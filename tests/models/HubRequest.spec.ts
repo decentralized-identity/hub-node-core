@@ -72,7 +72,7 @@ describe('HubRequest', () => {
       expect(request).toBeDefined('request should be parsed');
       expect(request.aud).toEqual(owner, 'aud incorrectly parsed');
       expect(request.iss).toEqual(requester, 'iss incorrectly parsed');
-      // expect(request.getInterface()).toEqual(testInterface, '@type incorrectly parsed');
+      expect(request.getInterface()).toEqual(testInterface, '@type incorrectly parsed');
       expect(request.getAction()).toEqual(testAction, '@type incorrectly parsed');
       expect(request.request).toBeDefined();
       if (request.request) {
