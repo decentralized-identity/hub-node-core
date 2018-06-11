@@ -41,26 +41,28 @@ export default class HubRequest {
    */
   constructor(body: any) {
     // Required properties
-    ['iss', 'aud', '@type'].forEach(property => {
-      if (!body[property])
+    ['iss', 'aud', '@type'].forEach((property) => {
+      if (!body[property]) {
         throw new HubError(`Request must specify the '${property}' field.`, HttpStatus.BAD_REQUEST);
+      }
     });
 
     this.aud = body.aud;
     this.iss = body.iss;
 
-    let [type, method] = body['@type'].toLowerCase().split('/');
-    [type, method].forEach(property => {
-      if (!property || property.length == 0)
+    const [type, method] = body['@type'].toLowerCase().split('/');
+    [type, method].forEach((property) => {
+      if (!property || property.length === 0) {
         throw new HubError('Request must specify a valid @type.', HttpStatus.BAD_REQUEST);
+      }
     });
-    this["@type"] = body['@type'];
+    this['@type'] = body['@type'];
 
     if (body.request) {
       this.request = {};
 
-      ['schema', 'key', 'id', 'skip', 'take'].forEach(property => {
-          (this.request as any)[property] = body.request[property];
+      ['schema', 'key', 'id', 'skip', 'take'].forEach((property) => {
+        (this.request as any)[property] = body.request[property];
       });
     }
 
@@ -70,10 +72,11 @@ export default class HubRequest {
 
       if (body.payload.meta) {
         this.payload.meta = {};
-        
-        ['cache-intent', 'title', 'tags'].forEach(property => {
-          if (body.payload.meta[property])
+
+        ['cache-intent', 'title', 'tags'].forEach((property) => {
+          if (body.payload.meta[property]) {
             (this as any).payload.meta[property] = body.payload.meta[property];
+          }
         });
       }
     }

@@ -48,4 +48,4 @@ export default interface Store {
   updateDocument(options: UpdateDocumentOptions): Promise<StoredObject>;
 
   deleteDocument(options: DeleteDocumentOptions): Promise<void>;
-};
+}

@@ -5,5 +5,5 @@ import Store from './interfaces/Store';
  * through Hub Core initialization function.
  */
 export default class Context {
-    static store: Store;
+  static store: Store;
 }
