@@ -84,11 +84,13 @@ export default class HubResponse {
           };
         }),
       };
-    } else if (this.success) {
+    }
+    if (this.success) {
       return {
         payload: { success: true },
       };
-    } else if (this.error) {
+    }
+    if (this.error) {
       return {
         error: {
           message: this.error.message,

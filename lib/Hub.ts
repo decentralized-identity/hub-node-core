@@ -54,8 +54,7 @@ export default class Hub {
       const hubResponse = await controller.handle(hubRequest);
 
       return hubResponse;
-    }
-    catch (error) {
+    } catch (error) {
       return HubResponse.withError(error);
     }
   }

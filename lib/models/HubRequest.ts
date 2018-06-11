@@ -67,7 +67,7 @@ export default class HubRequest {
 
     [this._interface, this._action] = body['@type'].toLowerCase().split('/');
     [this._interface, this._action].forEach((property) => {
-      if (!property || property.length == 0) {
+      if (!property || property.length === 0) {
         throw new HubError('Request must specify a valid @type.', HttpStatus.BAD_REQUEST);
       }
     });
