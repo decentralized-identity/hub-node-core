@@ -2,7 +2,7 @@ import HubRequest from '../../lib/models/HubRequest';
 
 describe('HubRequest', () => {
   describe('Constructor', () => {
-    it('Audiance is always required', (done) => {
+    it('Audiance is always required', () => {
       try {
         new HubRequest({
           iss: 'did:example:alice.id',
@@ -11,11 +11,10 @@ describe('HubRequest', () => {
 
       } catch (err) {
         expect(err).toBeDefined();
-        done();
       }
     });
 
-    it('Issuer is always required', (done) => {
+    it('Issuer is always required', () => {
       try {
         new HubRequest({
           aud: 'did:example:alice.id',
@@ -24,11 +23,10 @@ describe('HubRequest', () => {
 
       } catch (err) {
         expect(err).toBeDefined();
-        done();
       }
     });
 
-    it('Type is always required', (done) => {
+    it('Type is always required', () => {
       try {
         new HubRequest({
           iss: 'did:example:alice.id',
@@ -37,11 +35,10 @@ describe('HubRequest', () => {
 
       } catch (err) {
         expect(err).toBeDefined();
-        done();
       }
     });
 
-    it('Places parameters in the correct fields', (done) => {
+    it('Places parameters in the correct fields', () => {
       const testTitle = Math.random().toString();
       const testTag = Math.random().toString();
       const owner = `did:test:${Math.random().toString()}.id`;
@@ -87,18 +84,16 @@ describe('HubRequest', () => {
       expect(request.payload).toBeDefined();
       if (request.payload) {
         expect(request.payload).toEqual(testPayload, 'payload incorrectly parsed');
-        if (!request.payload.meta) {
+        if (request.payload.meta) {
+          expect(request.payload.meta.title).toEqual(testTitle, 'payload.meta.title incorrectly parsed');
+          expect(request.payload.meta.tags).toContain(testTag, 'payload.meta.tags incorrectly parsed');
+          expect(request.payload.meta['cache-intent']).toEqual(intent, 'payload.meta.cache-intent incorrectly parsed');
+        } else {
           fail('payload.meta should be defined');
-          done();
-          return;
         }
-        expect(request.payload.meta.title).toEqual(testTitle, 'payload.meta.title incorrectly parsed');
-        expect(request.payload.meta.tags).toContain(testTag, 'payload.meta.tags incorrectly parsed');
-        expect(request.payload.meta['cache-intent']).toEqual(intent, 'payload.meta.cache-intent incorrectly parsed');
       } else {
         fail('paylod not defined');
       }
-      done();
     });
   });
 });
