@@ -1,9 +1,9 @@
 import Store from './Store';
 
 /**
- * Interface for specifying options required to instantiate the Hub Core.
+ * Interface for injecting all components required to instantiate a Hub.
  */
-export default interface CoreOptions {
+export default interface Context {
   /**
    * The Store implementation for accessing Hub data.
    */

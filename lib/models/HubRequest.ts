@@ -1,10 +1,13 @@
-import HubError from '../models/HubError';
 import * as HttpStatus from 'http-status';
+import HubError from '../models/HubError';
 
 /**
  * Represents a request to the Hub.
  */
 export default class HubRequest {
+  private _interface: string;
+  private _action: string;
+
   iss: string;
   aud: string;
   '@type': string;
@@ -29,32 +32,53 @@ export default class HubRequest {
   };
 
   /**
-   * Gets the action portion of the @type property.
-   * E.g. If @type is "Collections/Add", "Add" is returned.
+   * Gets the interace portion of the @type property.
+   * 
+   * @returns Interface portion of the @type property. Always lower case.
+   * @example If @type is "Collections/Add", "collections" is returned.
    */
-  public getAction(): string {
-    return this['@type'].toLowerCase().split('/')[0];
+  public getInterface(): string {
+    return this._interface;
   }
 
   /**
-   * Translates an incoming request body into an Hub request object.
+   * Gets the action portion of the @type property.
+   * 
+   * @returns Action portion of the @type property. Always lower case.
+   * @example If @type is "Collections/Add", "add" is returned.
+   */
+  public getAction(): string {
+    return this._action;
+  }
+
+  /**
+   * Translates an incoming request body into a Hub request object.
    */
   constructor(body: any) {
     // Required properties
     ['iss', 'aud', '@type'].forEach(property => {
-      if (!body[property])
+      if (!body[property]) {
         throw new HubError(`Request must specify the '${property}' field.`, HttpStatus.BAD_REQUEST);
+      }
     });
 
     this.aud = body.aud;
     this.iss = body.iss;
 
-    let [type, method] = body['@type'].toLowerCase().split('/');
-    [type, method].forEach(property => {
-      if (!property || property.length == 0)
+    [this._interface, this._action] = body['@type'].toLowerCase().split('/');
+    [this._interface, this._action].forEach(property => {
+      if (!property || property.length == 0) {
         throw new HubError('Request must specify a valid @type.', HttpStatus.BAD_REQUEST);
+      }
     });
-    this["@type"] = body['@type'];
+    this['@type'] = body['@type'];
+
+    // Throw error if 'add' or 'update' request does not contain a payload with data.
+    if (['add', 'update'].includes(this._action)) {
+      if (!body.payload || !body.payload.data) {
+        throw new HubError('Add/Update requests must specify the "payload.data" field.', HttpStatus.BAD_REQUEST);
+      };
+    }
 
     if (body.request) {
       this.request = {};
@@ -72,8 +96,9 @@ export default class HubRequest {
         this.payload.meta = {};
         
         ['cache-intent', 'title', 'tags'].forEach(property => {
-          if (body.payload.meta[property])
+          if (body.payload.meta[property]) {
             (this as any).payload.meta[property] = body.payload.meta[property];
+          }
         });
       }
     }
