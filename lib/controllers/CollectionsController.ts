@@ -9,6 +9,10 @@ export default class CollectionsController extends BaseController {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
 
+  async handleExecuteRequest(request: HubRequest): Promise<HubResponse> {
+    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
+  }
+
   async handleReadRequest(request: HubRequest): Promise<HubResponse> {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
