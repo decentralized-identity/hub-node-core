@@ -2,13 +2,13 @@ import HubRequest from '../../lib/models/HubRequest';
 
 describe('HubRequest', () => {
   describe('Constructor', () => {
-    it('Audiance is always required', () => {
+    it('Audience is always required', () => {
       try {
         new HubRequest({
           iss: 'did:example:alice.id',
           '@type': 'Base/Any',
         });
-
+        fail('Hub Request was created.');
       } catch (err) {
         expect(err).toBeDefined();
       }
@@ -20,7 +20,7 @@ describe('HubRequest', () => {
           aud: 'did:example:alice.id',
           '@type': 'Base/Any',
         });
-
+        fail('Hub Request was created.');
       } catch (err) {
         expect(err).toBeDefined();
       }
@@ -32,7 +32,7 @@ describe('HubRequest', () => {
           iss: 'did:example:alice.id',
           aud: 'did:example:bob.id',
         });
-
+        fail('Hub Request was created.');
       } catch (err) {
         expect(err).toBeDefined();
       }
@@ -94,6 +94,28 @@ describe('HubRequest', () => {
       } else {
         fail('paylod not defined');
       }
+    });
+
+    function payloadIsRequiredFor(type: string, done: () => void) {
+      try {
+        new HubRequest({
+          iss: 'did:example:alice.id',
+          aud: 'did:example:alice.id',
+          '@type': `Test/${type}`,
+        });
+        fail('Hub Request was created without a payload');
+      } catch (err) {
+        expect(err).toBeDefined();
+        done();
+      }
+    }
+
+    it('Should require payloads for add requests', (done) => {
+      payloadIsRequiredFor('Add', done);
+    });
+
+    it('Should require payloads for update requests', (done) => {
+      payloadIsRequiredFor('Update', done);
     });
   });
 });
