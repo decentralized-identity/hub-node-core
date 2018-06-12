@@ -19,8 +19,8 @@ class TestObject implements StoredObject {
 
 describe('ApiReponse', () => {
 
-  describe('Errors', () => {
-    it('Normal Errors return', () => {
+  describe('withErrors', () => {
+    it('should return normal errors', () => {
       const message = Math.random().toString();
       const response = HubResponse.withError(new Error(message));
       const body = response.getResponseBody();
@@ -37,7 +37,7 @@ describe('ApiReponse', () => {
       }
     });
 
-    it('Hub errors return with custom error codes', () => {
+    it('should return HubErrors with custom error codes', () => {
       const message = Math.random().toString();
       const code = Math.round(Math.random());
       const response = HubResponse.withError(new HubError(message, code));
@@ -57,7 +57,7 @@ describe('ApiReponse', () => {
     });
   });
 
-  describe('Single object', () => {
+  describe('with single objects', () => {
     it('should return an object', () => {
       const test = new TestObject();
       const response = HubResponse.withObject(test);
@@ -93,7 +93,7 @@ describe('ApiReponse', () => {
     });
   });
 
-  describe('Success/Fail', () => {
+  describe('with Success', () => {
     it('should return success', () => {
       const response = HubResponse.withSuccess();
       expect(response.getResponseCode()).toEqual(200, 'response code was not OK');
@@ -115,7 +115,7 @@ describe('ApiReponse', () => {
     });
   });
 
-  describe('Multiple objects', () => {
+  describe('with multiple objects', () => {
     it('should return mutliple objects', () => {
       const test: TestObject[] = [];
       const numObjects = Math.round(Math.random() * 10);

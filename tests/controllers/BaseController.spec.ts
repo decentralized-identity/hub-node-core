@@ -3,7 +3,7 @@ import HubResponse from '../../lib/models/HubResponse';
 import HubError from '../../lib/models/HubError';
 import TestController from '../mocks/TestController';
 
-describe('Base Controller', () => {
+describe('BaseController', () => {
   const controller = new TestController();
 
   beforeEach(() => {
@@ -34,27 +34,27 @@ describe('Base Controller', () => {
     done();
   }
 
-  it('Should dispatch Add requests', async (done) => {
+  it('should dispatch Add requests', async (done) => {
     await dispatchCheckFor('Add', done);
   });
 
-  it('Should dispatch Read requests', async (done) => {
+  it('should dispatch Read requests', async (done) => {
     await dispatchCheckFor('Read', done);
   });
 
-  it('Should dispatch Update requests', async (done) => {
+  it('should dispatch Update requests', async (done) => {
     await dispatchCheckFor('Update', done);
   });
 
-  it('Should dispatch Remove requests', async (done) => {
+  it('should dispatch Remove requests', async (done) => {
     await dispatchCheckFor('Remove', done);
   });
 
-  it('Should dispatch Execute requests', async (done) => {
+  it('should dispatch Execute requests', async (done) => {
     await dispatchCheckFor('Execute', done);
   });
 
-  it('Should return errors for unknown actions', (done) => {
+  it('should return errors for unknown actions', (done) => {
     const randomNumber = Math.round(Math.random() * 1000).toString();
     const request = new HubRequest({
       iss: 'did:example:alice.id',

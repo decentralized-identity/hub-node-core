@@ -1,8 +1,8 @@
 import HubRequest from '../../lib/models/HubRequest';
 
 describe('HubRequest', () => {
-  describe('Constructor', () => {
-    it('Audience is always required', () => {
+  describe('constructor', () => {
+    it('should require an Audience field', () => {
       try {
         new HubRequest({
           iss: 'did:example:alice.id',
@@ -14,7 +14,7 @@ describe('HubRequest', () => {
       }
     });
 
-    it('Issuer is always required', () => {
+    it('should require an issuer field', () => {
       try {
         new HubRequest({
           aud: 'did:example:alice.id',
@@ -26,7 +26,7 @@ describe('HubRequest', () => {
       }
     });
 
-    it('Type is always required', () => {
+    it('should require a @type field', () => {
       try {
         new HubRequest({
           iss: 'did:example:alice.id',
@@ -38,21 +38,21 @@ describe('HubRequest', () => {
       }
     });
 
-    it('Places parameters in the correct fields', () => {
+    it('should places parameters in the correct fields', () => {
       const testTitle = Math.random().toString();
       const testTag = Math.random().toString();
-      const owner = `did:test:${Math.random().toString()}.id`;
-      const requester = `did:test:${Math.random().toString()}.id`;
+      const testOwner = `did:test:${Math.random().toString()}.id`;
+      const testRequester = `did:test:${Math.random().toString()}.id`;
       const testInterface = Math.random().toString();
       const testAction = Math.random().toString();
       const testSchema = `schema.example.org/${Math.random().toString()}`;
       const testId = Math.random().toString();
-      const intent = ['min', 'attr', 'full'][Math.floor(Math.random() * 3)];
+      const testIntent = ['min', 'attr', 'full'][Math.floor(Math.random() * 3)];
       const testPayload = {
         meta: {
           title: testTitle,
           tags: ['test', 'HubRequest', testTag],
-          'cache-intent': intent,
+          'cache-intent': testIntent,
         },
         data: { // purely for system logging purposes
           who: 'HubRequest.spec correct field parsing',
@@ -60,8 +60,8 @@ describe('HubRequest', () => {
         },
       };
       const request = new HubRequest({
-        iss: requester,
-        aud: owner,
+        iss: testRequester,
+        aud: testOwner,
         '@type': `${testInterface}/${testAction}`,
         request: {
           schema: testSchema,
@@ -70,8 +70,8 @@ describe('HubRequest', () => {
         payload: testPayload,
       });
       expect(request).toBeDefined('request should be parsed');
-      expect(request.aud).toEqual(owner, 'aud incorrectly parsed');
-      expect(request.iss).toEqual(requester, 'iss incorrectly parsed');
+      expect(request.aud).toEqual(testOwner, 'aud incorrectly parsed');
+      expect(request.iss).toEqual(testRequester, 'iss incorrectly parsed');
       expect(request.getInterface()).toEqual(testInterface, '@type incorrectly parsed');
       expect(request.getAction()).toEqual(testAction, '@type incorrectly parsed');
       expect(request.request).toBeDefined();
@@ -87,7 +87,7 @@ describe('HubRequest', () => {
         if (request.payload.meta) {
           expect(request.payload.meta.title).toEqual(testTitle, 'payload.meta.title incorrectly parsed');
           expect(request.payload.meta.tags).toContain(testTag, 'payload.meta.tags incorrectly parsed');
-          expect(request.payload.meta['cache-intent']).toEqual(intent, 'payload.meta.cache-intent incorrectly parsed');
+          expect(request.payload.meta['cache-intent']).toEqual(testIntent, 'payload.meta.cache-intent incorrectly parsed');
         } else {
           fail('payload.meta should be defined');
         }
@@ -110,11 +110,11 @@ describe('HubRequest', () => {
       }
     }
 
-    it('Should require payloads for add requests', (done) => {
+    it('should require payloads for add requests', (done) => {
       payloadIsRequiredFor('Add', done);
     });
 
-    it('Should require payloads for update requests', (done) => {
+    it('should require payloads for update requests', (done) => {
       payloadIsRequiredFor('Update', done);
     });
   });

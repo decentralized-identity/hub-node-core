@@ -1,8 +1,8 @@
 import HubError from '../../lib/models/HubError';
 
 describe('HubError', () => {
-  describe('Constructor', () => {
-    it('Should return the same code and message', () => {
+  describe('constructor', () => {
+    it('should return the same code and message', () => {
       const code = Math.round(Math.random() * 600);
       const message = Math.random().toString();
       const error = new HubError(message, code);
