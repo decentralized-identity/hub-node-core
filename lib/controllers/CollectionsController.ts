@@ -8,15 +8,19 @@ export default class CollectionsController extends BaseController {
   async handleAddRequest(request: HubRequest): Promise<HubResponse> {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
-  
+
+  async handleExecuteRequest(request: HubRequest): Promise<HubResponse> {
+    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
+  }
+
   async handleReadRequest(request: HubRequest): Promise<HubResponse> {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
-  
+
   async handleRemoveRequest(request: HubRequest): Promise<HubResponse> {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
-  
+
   async handleUpdateRequest(request: HubRequest): Promise<HubResponse> {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
