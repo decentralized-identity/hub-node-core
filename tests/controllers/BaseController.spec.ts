@@ -7,7 +7,7 @@ describe('BaseController', () => {
   const controller = new TestController();
 
   beforeEach(() => {
-    controller.reset();
+    controller.removeAllHandlers();
   });
 
   async function dispatchCheckFor(action: string, done: () => void) {
@@ -24,10 +24,10 @@ describe('BaseController', () => {
         data: {},
       },
     });
-    controller.set(action, (request, resolve, _) => {
+    controller.setHandler(action, async (request) => {
       expect(request).toBe(expectedRequest, 'Handler did not recieve the same request');
       const response = HubResponse.withError(new HubError('', responseCode));
-      resolve(response);
+      return response;
     });
     const response = await controller.handle(expectedRequest);
     expect(response.getResponseCode()).toBe(responseCode, 'Expected handler was not called');
@@ -54,26 +54,26 @@ describe('BaseController', () => {
     await dispatchCheckFor('Execute', done);
   });
 
-  it('should return errors for unknown actions', (done) => {
+  it('should return errors for unknown actions', async (done) => {
     const randomNumber = Math.round(Math.random() * 1000).toString();
     const request = new HubRequest({
       iss: 'did:example:alice.id',
       aud: 'did:example:alice.id',
       '@type': `Test/${randomNumber}`,
     });
-    controller.handle(request).then((response) => {
+    try {
+      const response = await controller.handle(request);
       expect(response).toBeDefined();
-      expect(response.getResponseBody()).toBeDefined();
       const body = response.getResponseBody();
-      if (body) {
-        expect(body.error).toBeDefined();
-      } else {
+      if (!body) {
         fail('Response did not contain an error message');
+        return;
       }
+      expect(body.error).toBeDefined();
       done();
-    }).catch((reject) => {
+    } catch (reject) {
       fail(reject);
       done();
-    });
+    }
   });
 });

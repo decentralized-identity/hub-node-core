@@ -1,70 +1,65 @@
 import BaseController from '../../lib/controllers/BaseController';
 import HubRequest from '../../lib/models/HubRequest';
 import HubResponse from '../../lib/models/HubResponse';
-import Context from '../../lib/Context';
+import Context from './Context';
 
+/**
+ * TestController implements an Interface controller (Action, Collection, Profile, etc.) with dynamic
+ * calling, such that behavior can be changed on the fly between or during tests. By default,
+ * TestController will throw for any request not set beforehand.
+ */
 export default class TestController extends BaseController {
-  private onAdd?: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void;
-  private onRead?: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void;
-  private onRemove?: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void;
-  private onUpdate?: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void;
-  private onExecute?: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void;
+  private onAdd?: (request: HubRequest) => Promise<HubResponse>;
+  private onRead?: (request: HubRequest) => Promise<HubResponse>;
+  private onRemove?: (request: HubRequest) => Promise<HubResponse>;
+  private onUpdate?: (request: HubRequest) => Promise<HubResponse>;
+  private onExecute?: (request: HubRequest) => Promise<HubResponse>;
 
   constructor() {
     super(Context);
   }
 
   async handleAddRequest(request: HubRequest): Promise<HubResponse> {
-    return new Promise<HubResponse>((resolve, reject) => {
-      if (!this.onAdd) {
-        reject('Add not defined in TestController.');
-      } else {
-        this.onAdd(request, resolve, reject);
-      }
-    });
+    if (!this.onAdd) {
+      throw new Error('Add not defined in TestController.');
+    } else {
+      return this.onAdd(request);
+    }
   }
 
   async handleReadRequest(request: HubRequest): Promise<HubResponse> {
-    return new Promise<HubResponse>((resolve, reject) => {
-      if (!this.onRead) {
-        reject('Read not defined in TestController.');
-      } else {
-        this.onRead(request, resolve, reject);
-      }
-    });
+    if (!this.onRead) {
+      throw new Error('Read not defined in TestController.');
+    } else {
+      return this.onRead(request);
+    }
   }
 
   async handleRemoveRequest(request: HubRequest): Promise<HubResponse> {
-    return new Promise<HubResponse>((resolve, reject) => {
-      if (!this.onRemove) {
-        reject('Remove not defined in TestController.');
-      } else {
-        this.onRemove(request, resolve, reject);
-      }
-    });
+    if (!this.onRemove) {
+      throw new Error('Remove not defined in TestController.');
+    } else {
+      return this.onRemove(request);
+    }
   }
 
   async handleUpdateRequest(request: HubRequest): Promise<HubResponse> {
-    return new Promise<HubResponse>((resolve, reject) => {
-      if (!this.onUpdate) {
-        reject('Update not defined in TestController.');
-      } else {
-        this.onUpdate(request, resolve, reject);
-      }
-    });
+    if (!this.onUpdate) {
+      throw new Error('Update not defined in TestController.');
+    } else {
+      return this.onUpdate(request);
+    }
   }
 
   async handleExecuteRequest(request: HubRequest): Promise<HubResponse> {
-    return new Promise<HubResponse>((resolve, reject) => {
-      if (!this.onExecute) {
-        reject('Execute not defined in TestController.');
-      } else {
-        this.onExecute(request, resolve, reject);
-      }
-    });
+    if (!this.onExecute) {
+      throw new Error('Execute not defined in TestController.');
+    } else {
+      return this.onExecute(request);
+    }
   }
 
-  reset() {
+  removeAllHandlers() {
     this.onAdd = undefined;
     this.onRead = undefined;
     this.onRemove = undefined;
@@ -72,42 +67,22 @@ export default class TestController extends BaseController {
     this.onExecute = undefined;
   }
 
-  setAdd(onAddDo: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void) {
-    this.onAdd = onAddDo;
-  }
-
-  setRead(onReadDo: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void) {
-    this.onRead = onReadDo;
-  }
-
-  setRemove(onRemoveDo: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void) {
-    this.onRemove = onRemoveDo;
-  }
-
-  setUpdate(onUpdateDo: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void) {
-    this.onUpdate = onUpdateDo;
-  }
-
-  setExecute(onExecuteDo: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void) {
-    this.onExecute = onExecuteDo;
-  }
-
-  set(action: string, onActionDo: (request: HubRequest, resolve: (result: HubResponse) => void, reject: (reason: any) => void) => void) {
+  setHandler(action: string, handler: (request: HubRequest) => Promise<HubResponse>) {
     switch (action.toLowerCase().trim()) {
       case 'add':
-        this.setAdd(onActionDo);
+        this.onAdd = handler;
         break;
       case 'read':
-        this.setRead(onActionDo);
+        this.onRead = handler;
         break;
       case 'update':
-        this.setUpdate(onActionDo);
+        this.onUpdate = handler;
         break;
       case 'remove':
-        this.setRemove(onActionDo);
+        this.onRemove = handler;
         break;
       case 'execute':
-        this.setExecute(onActionDo);
+        this.onExecute = handler;
         break;
       default:
         console.error(`TestController.set called with unknown action: '${action}'`);

@@ -24,17 +24,16 @@ describe('ApiReponse', () => {
       const message = Math.random().toString();
       const response = HubResponse.withError(new Error(message));
       const body = response.getResponseBody();
-      expect(body).toBeDefined();
-      if (body) {
-        expect(body.error).toBeDefined();
-        if (body.error) {
-          expect(body.error.message).toEqual(message, 'Error message did not match');
-        } else {
-          fail('error was not defined in the returned body');
-        }
-      } else {
+      if (!body) {
         fail('response body not defined');
+        return;
       }
+      expect(body.error).toBeDefined();
+      if (!body.error) {
+        fail('error was not defined in the returned body');
+        return;
+      }
+      expect(body.error.message).toEqual(message, 'Error message did not match');
     });
 
     it('should return HubErrors with custom error codes', () => {
@@ -42,18 +41,17 @@ describe('ApiReponse', () => {
       const code = Math.round(Math.random());
       const response = HubResponse.withError(new HubError(message, code));
       const body = response.getResponseBody();
-      expect(body).toBeDefined();
-      if (body) {
-        expect(body.error).toBeDefined();
-        if (body.error) {
-          expect(body.error.message).toEqual(message, 'Error message did not match');
-          expect(response.getResponseCode()).toEqual(code, 'Error code did not match');
-        } else {
-          fail('error was not defined in the returned body');
-        }
-      } else {
+      if (!body) {
         fail('response body not defined');
+        return;
       }
+      expect(body.error).toBeDefined();
+      if (!body.error) {
+        fail('error was not defined in the returned body');
+        return;
+      }
+      expect(body.error.message).toEqual(message, 'Error message did not match');
+      expect(response.getResponseCode()).toEqual(code, 'Error code did not match');
     });
   });
 
@@ -63,33 +61,29 @@ describe('ApiReponse', () => {
       const response = HubResponse.withObject(test);
       expect(response.getResponseCode()).toEqual(200, 'response code was not OK');
       const body = response.getResponseBody();
-      expect(body).toBeDefined();
-      if (body) {
-        expect(body.error).toBeUndefined();
-        expect(body.payload).toBeDefined();
-        const payload = body.payload;
-        if (payload) {
-          // payload has no type defined
-          const obj: any = (payload as any[])[0];
-          expect(obj).toBeDefined();
-          if (obj) {
-            expect(obj.meta).toBeDefined();
-            if (obj.meta) {
-              expect(obj.meta.id).toEqual(test.id);
-            } else {
-              fail('object meta was not defined');
-            }
-            expect(obj.data).toBeDefined();
-            expect(obj.data).toEqual(test.payload);
-          } else {
-            fail('payload does not contain an object');
-          }
-        } else {
-          fail('payload was not defined');
-        }
-      } else {
+      if (!body) {
         fail('body was not defined');
+        return;
       }
+      expect(body.error).toBeUndefined();
+      const payload = body.payload;
+      if (!payload) {
+        fail('payload was not defined');
+        return;
+      }
+      // payload has no type defined
+      const obj: any = (payload as any[])[0];
+      if (!obj) {
+        fail('payload does not contain an object');
+        return;
+      }
+      if (!obj.meta) {
+        fail('object meta was not defined');
+        return;
+      }
+      expect(obj.meta.id).toEqual(test.id);
+      expect(obj.data).toBeDefined();
+      expect(obj.data).toEqual(test.payload);
     });
   });
 
@@ -98,20 +92,18 @@ describe('ApiReponse', () => {
       const response = HubResponse.withSuccess();
       expect(response.getResponseCode()).toEqual(200, 'response code was not OK');
       const body = response.getResponseBody();
-      expect(body).toBeDefined();
-      if (body) {
-        expect(body.error).toBeUndefined();
-        expect(body.payload).toBeDefined();
-        const payload = (body.payload as any);
-        if (payload) {
-          expect(payload.success).toBeDefined();
-          expect(payload.success).toEqual(true, 'success was not true');
-        } else {
-          fail('payload was not defined');
-        }
-      } else {
+      if (!body)  {
         fail('body was not defined');
+        return;
       }
+      expect(body.error).toBeUndefined();
+      const payload = (body.payload as any);
+      if (!payload) {
+        fail('payload was not defined');
+        return;
+      }
+      expect(payload.success).toBeDefined();
+      expect(payload.success).toEqual(true, 'success was not true');
     });
   });
 
@@ -125,34 +117,30 @@ describe('ApiReponse', () => {
       const response = HubResponse.withObjects(test);
       expect(response.getResponseCode()).toEqual(200, 'response code was not OK');
       const body = response.getResponseBody();
-      expect(body).toBeDefined();
-      if (body) {
-        expect(body.error).toBeUndefined();
-        expect(body.payload).toBeDefined();
-        const payload = body.payload;
-        if (payload) {
-          const objects = payload as any[];
-          objects.forEach((testObject, index) => {
-            expect(testObject).toBeDefined();
-            if (testObject) {
-              expect(testObject.meta).toBeDefined();
-              if (testObject.meta) {
-                expect(testObject.meta.id).toEqual(test[index].id);
-              } else {
-                fail('object meta was not defined');
-              }
-              expect(testObject.data).toBeDefined();
-              expect(testObject.data).toEqual(test[index].payload);
-            } else {
-              fail('payload does not contain an object');
-            }
-          });
-        } else {
-          fail('payload was not defined');
-        }
-      } else {
+      if (!body) {
         fail('body was not defined');
+        return;
       }
+      expect(body.error).toBeUndefined();
+      const payload = body.payload;
+      if (!payload) {
+        fail('payload was not defined');
+        return;
+      }
+      const objects = payload as any[];
+      objects.forEach((testObject, index) => {
+        if (!testObject) {
+          fail('payload does not contain an object');
+          return;
+        }
+        if (!testObject.meta) {
+          fail('object meta was not defined');
+          return;
+        }
+        expect(testObject.meta.id).toEqual(test[index].id);
+        expect(testObject.data).toBeDefined();
+        expect(testObject.data).toEqual(test[index].payload);
+      });
     });
   });
 });

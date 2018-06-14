@@ -69,31 +69,32 @@ describe('HubRequest', () => {
         },
         payload: testPayload,
       });
-      expect(request).toBeDefined('request should be parsed');
+      if (!request) {
+        fail('request not defined.');
+        return;
+      }
       expect(request.aud).toEqual(testOwner, 'aud incorrectly parsed');
       expect(request.iss).toEqual(testRequester, 'iss incorrectly parsed');
       expect(request.getInterface()).toEqual(testInterface, '@type incorrectly parsed');
       expect(request.getAction()).toEqual(testAction, '@type incorrectly parsed');
-      expect(request.request).toBeDefined();
-      if (request.request) {
-        expect(request.request.schema).toEqual(testSchema, 'request.schema incorrectly parsed');
-        expect(request.request.id).toEqual(testId, 'request.id incorrectly parsed');
-      } else {
+      if (!(request.request)) {
         fail('request not defined.');
+        return;
       }
-      expect(request.payload).toBeDefined();
-      if (request.payload) {
-        expect(request.payload).toEqual(testPayload, 'payload incorrectly parsed');
-        if (request.payload.meta) {
-          expect(request.payload.meta.title).toEqual(testTitle, 'payload.meta.title incorrectly parsed');
-          expect(request.payload.meta.tags).toContain(testTag, 'payload.meta.tags incorrectly parsed');
-          expect(request.payload.meta['cache-intent']).toEqual(testIntent, 'payload.meta.cache-intent incorrectly parsed');
-        } else {
-          fail('payload.meta should be defined');
-        }
-      } else {
+      expect(request.request.schema).toEqual(testSchema, 'request.schema incorrectly parsed');
+      expect(request.request.id).toEqual(testId, 'request.id incorrectly parsed');
+      if (!request.payload) {
         fail('paylod not defined');
+        return;
       }
+      expect(request.payload).toEqual(testPayload, 'payload incorrectly parsed');
+      if (!request.payload.meta) {
+        fail('payload.meta should be defined');
+        return;
+      }
+      expect(request.payload.meta.title).toEqual(testTitle, 'payload.meta.title incorrectly parsed');
+      expect(request.payload.meta.tags).toContain(testTag, 'payload.meta.tags incorrectly parsed');
+      expect(request.payload.meta['cache-intent']).toEqual(testIntent, 'payload.meta.cache-intent incorrectly parsed');
     });
 
     function payloadIsRequiredFor(type: string, done: () => void) {
