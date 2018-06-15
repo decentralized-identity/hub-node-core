@@ -6,9 +6,9 @@ import HubError from './HubError';
  * Represents a response to a request to the Hub.
  */
 export default class HubResponse {
-  protected objects?: StoredObject[];
-  protected error?: Error;
-  protected success?: boolean;
+  private objects?: StoredObject[];
+  private error?: Error;
+  private success?: boolean;
 
   /**
    * Creates a response object with the given Hub objects.

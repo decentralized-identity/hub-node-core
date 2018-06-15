@@ -9,6 +9,9 @@ export interface StoredObject {
   payload: any;
 }
 
+/**
+ * Options for creating a object in Hub.
+ */
 export interface CreateDocumentOptions {
   owner: string;
   schema: string;
@@ -17,11 +20,17 @@ export interface CreateDocumentOptions {
   payload: any;
 }
 
+/**
+ * Options for reading objects in Hub.
+ */
 export interface QueryDocumentsOptions {
   owner: string;
   schema: string;
 }
 
+/**
+ * Options for updating an object in Hub.
+ */
 export interface UpdateDocumentOptions {
   owner: string;
   schema: string;
@@ -30,6 +39,9 @@ export interface UpdateDocumentOptions {
   payload: any;
 }
 
+/**
+ * Options for deleting an object in Hub.
+ */
 export interface DeleteDocumentOptions {
   owner: string;
   schema: string;
