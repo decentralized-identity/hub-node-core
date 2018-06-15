@@ -10,7 +10,7 @@ export interface StoredObject {
 }
 
 /**
- * Options for creating a object in Hub.
+ * Options for creating an object in Hub.
  */
 export interface CreateDocumentOptions {
   owner: string;
