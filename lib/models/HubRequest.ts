@@ -8,11 +8,16 @@ export default class HubRequest {
   private _interface: string;
   private _action: string;
 
+  /** Issuer (requester). */
   iss: string;
+
+  /** Audience (data owner). */
   aud: string;
+
+  /** @type property. */
   '@type': string;
 
-  // Request properties.
+  /** Request property. */
   request?: {
     schema?: string;
     key?: string;
@@ -21,7 +26,7 @@ export default class HubRequest {
     take?: number;
   };
 
-  // Payload for Add/Update.
+  /** Payload for Add/Update. */
   payload?: {
     meta?: {
       'cache-intent'?: string;

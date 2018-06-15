@@ -9,10 +9,15 @@ import HubResponse from '../models/HubResponse';
  */
 export default abstract class BaseController {
 
+  /** Handles an add request. */
   abstract async handleAddRequest(request: HubRequest): Promise<HubResponse>;
+  /** Handles an execute request. */
   abstract async handleExecuteRequest(request: HubRequest): Promise<HubResponse>;
+  /** Handles a read request. */
   abstract async handleReadRequest(request: HubRequest): Promise<HubResponse>;
+  /** Handles a remove request. */
   abstract async handleRemoveRequest(request: HubRequest): Promise<HubResponse>;
+  /** Handles an update request. */
   abstract async handleUpdateRequest(request: HubRequest): Promise<HubResponse>;
 
   /**
@@ -20,6 +25,7 @@ export default abstract class BaseController {
    */
   protected _handlers: { [name: string]: (request: HubRequest) => Promise<HubResponse> } = {
     'add': this.handleAddRequest,
+    'execute': this.handleExecuteRequest,
     'read': this.handleReadRequest,
     'remove': this.handleRemoveRequest,
     'update': this.handleUpdateRequest,
