@@ -1,7 +1,7 @@
 import BaseController from '../../lib/controllers/BaseController';
 import HubRequest from '../../lib/models/HubRequest';
 import HubResponse from '../../lib/models/HubResponse';
-import Context from './Context';
+import TestContext from './TestContext';
 
 /**
  * TestController implements an Interface controller (Action, Collection, Profile, etc.) with dynamic
@@ -16,7 +16,7 @@ export default class TestController extends BaseController {
   private onExecute?: (request: HubRequest) => Promise<HubResponse>;
 
   constructor() {
-    super(Context);
+    super(TestContext);
   }
 
   async handleAddRequest(request: HubRequest): Promise<HubResponse> {
