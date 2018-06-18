@@ -7,7 +7,7 @@ import HubResponse from '../models/HubResponse';
 /**
  * This class handles all the permission requests.
  */
-export default class PermissionsController extends BaseController {  
+export default class PermissionsController extends BaseController {
   async handleAddRequest(request: HubRequest): Promise<HubResponse> {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }

@@ -14,7 +14,7 @@ export default class HubRequest {
   /** Audience (data owner). */
   aud: string;
 
-  /** @type property. */
+  /** \@type property. */
   '@type': string;
 
   /** Request property. */
@@ -38,7 +38,7 @@ export default class HubRequest {
 
   /**
    * Gets the interace portion of the @type property.
-   * 
+   *
    * @returns Interface portion of the @type property. Always lower case.
    * @example If @type is "Collections/Add", "collections" is returned.
    */
@@ -48,7 +48,7 @@ export default class HubRequest {
 
   /**
    * Gets the action portion of the @type property.
-   * 
+   *
    * @returns Action portion of the @type property. Always lower case.
    * @example If @type is "Collections/Add", "add" is returned.
    */
@@ -61,7 +61,7 @@ export default class HubRequest {
    */
   constructor(body: any) {
     // Required properties
-    ['iss', 'aud', '@type'].forEach(property => {
+    ['iss', 'aud', '@type'].forEach((property) => {
       if (!body[property]) {
         throw new HubError(`Request must specify the '${property}' field.`, HttpStatus.BAD_REQUEST);
       }
@@ -71,8 +71,8 @@ export default class HubRequest {
     this.iss = body.iss;
 
     [this._interface, this._action] = body['@type'].toLowerCase().split('/');
-    [this._interface, this._action].forEach(property => {
-      if (!property || property.length == 0) {
+    [this._interface, this._action].forEach((property) => {
+      if (!property || property.length === 0) {
         throw new HubError('Request must specify a valid @type.', HttpStatus.BAD_REQUEST);
       }
     });
@@ -82,14 +82,14 @@ export default class HubRequest {
     if (['add', 'update'].includes(this._action)) {
       if (!body.payload || !body.payload.data) {
         throw new HubError('Add/Update requests must specify the "payload.data" field.', HttpStatus.BAD_REQUEST);
-      };
+      }
     }
 
     if (body.request) {
       this.request = {};
 
-      ['schema', 'key', 'id', 'skip', 'take'].forEach(property => {
-          (this.request as any)[property] = body.request[property];
+      ['schema', 'key', 'id', 'skip', 'take'].forEach((property) => {
+        (this.request as any)[property] = body.request[property];
       });
     }
 
@@ -99,8 +99,8 @@ export default class HubRequest {
 
       if (body.payload.meta) {
         this.payload.meta = {};
-        
-        ['cache-intent', 'title', 'tags'].forEach(property => {
+
+        ['cache-intent', 'title', 'tags'].forEach((property) => {
           if (body.payload.meta[property]) {
             (this as any).payload.meta[property] = body.payload.meta[property];
           }

@@ -24,16 +24,16 @@ export default abstract class BaseController {
    * Map of request handler methods that can be selected based on the action name.
    */
   protected _handlers: { [name: string]: (request: HubRequest) => Promise<HubResponse> } = {
-    'add': this.handleAddRequest,
-    'execute': this.handleExecuteRequest,
-    'read': this.handleReadRequest,
-    'remove': this.handleRemoveRequest,
-    'update': this.handleUpdateRequest,
+    add: this.handleAddRequest,
+    execute: this.handleExecuteRequest,
+    read: this.handleReadRequest,
+    remove: this.handleRemoveRequest,
+    update: this.handleUpdateRequest,
   };
 
   /**
    * Constructor for the BaseController.
-   * 
+   *
    * @param context The context object containing all the injected components.
    */
   constructor(protected context: Context) { }

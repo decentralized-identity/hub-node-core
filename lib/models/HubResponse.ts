@@ -75,24 +75,26 @@ export default class HubResponse {
   getResponseBody(): any {
     if (this.objects) {
       return {
-        payload: this.objects.map(obj => {
+        payload: this.objects.map((obj) => {
           return {
             meta: {
-              id: obj.id
+              id: obj.id,
             },
-            data: obj.payload
+            data: obj.payload,
           };
-        })
+        }),
       };
-    } else if (this.success) {
+    }
+    if (this.success) {
       return {
-        payload: { success: true }
+        payload: { success: true },
       };
-    } else if (this.error) {
+    }
+    if (this.error) {
       return {
         error: {
-          message: this.error.message
-        }
+          message: this.error.message,
+        },
       };
     }
     return null;

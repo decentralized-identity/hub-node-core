@@ -23,7 +23,7 @@ export default class Hub {
 
   /**
    * Hub constructor.
-   * 
+   *
    * @param context Components for initializing the Hub.
    */
   public constructor(private context: Context) {
@@ -37,7 +37,7 @@ export default class Hub {
 
   /**
    * Handles the incoming request.
-   * 
+   *
    * @param request The raw request buffer.
    * @param requestOptions The optional request options.
    */
@@ -46,17 +46,16 @@ export default class Hub {
       if (requestOptions && requestOptions.hubKeyId) {
         throw new HubError('Not implemented.', HttpStatus.NOT_IMPLEMENTED);
       }
-  
+
       const unencryptedRequest = request.toString('utf8');
       const requestJson = JSON.parse(unencryptedRequest);
       const hubRequest = new HubRequest(requestJson);
       const controller = this._controllers[hubRequest.getInterface()];
       const hubResponse = await controller.handle(hubRequest);
-  
+
       return hubResponse;
-    }
-    catch (error) {
+    } catch (error) {
       return HubResponse.withError(error);
     }
-  };
+  }
 }
