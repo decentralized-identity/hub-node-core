@@ -53,6 +53,8 @@ export default class Hub {
       const controller = this._controllers[hubRequest.getInterface()];
       const hubResponse = await controller.handle(hubRequest);
 
+      hubResponse.setInterfaceName(hubRequest.getInterface());
+
       return hubResponse;
     } catch (error) {
       return HubResponse.withError(error);
