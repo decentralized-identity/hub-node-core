@@ -16,7 +16,7 @@ export default class TestController extends BaseController {
   private onExecute?: (request: HubRequest) => Promise<HubResponse>;
 
   constructor() {
-    super(TestContext);
+    super(TestContext.instance);
   }
 
   async handleAddRequest(request: HubRequest): Promise<HubResponse> {
