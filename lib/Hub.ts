@@ -113,6 +113,8 @@ export default class Hub {
       const controller = this._controllers[hubRequest.getInterface()];
       const hubResponse = await controller.handle(hubRequest);
 
+      hubResponse.setInterfaceName(hubRequest.getInterface());
+
       // Sign then encrypt the response.
       const hubResponseBody = hubResponse.getResponseBody();
       const responseBuffer = await Hub.signThenEncrypt(hubResponseBody, hubKey, requesterPublicKey);
