@@ -48,7 +48,7 @@ export default class Hub {
     let requesterPublicKey = null;
     let requesterDid = null;
     let hubKey = null;
-    let challengeJwsString = null;
+    let accessTokenString = null;
     let plainTextRequestString = null;
 
     // Try decrypt the payload and validate signature,
@@ -59,11 +59,11 @@ export default class Hub {
       const keyId = Hub.getKeyIdInJweOrJws(requestString);
       hubKey = this.context.keys[keyId];
 
-      // Get the JWS payload and DID challenge by decrypting the JWE blob,
+      // Get the JWS payload and access token by decrypting the JWE blob,
       const keyPair = await jose.JWK.asKey(hubKey); // NOTE: Must use library object for decryption.
       const decryptedData = await jose.JWE.createDecrypt(keyPair).decrypt(requestString);
       const jwsString = decryptedData.plaintext.toString();
-      challengeJwsString = Hub.getJweOrJwsHeader(jwsString)['did-challenge'];
+      accessTokenString = Hub.getJweOrJwsHeader(jwsString)['did-access-token'];
 
       // Obtain the requester's public key.
       const requesterPublicKeyId = Hub.getKeyIdInJweOrJws(jwsString);
@@ -83,23 +83,23 @@ export default class Hub {
 
     // NOTE: Requester is identified if code reaches here.
     try {
-      // Verify challenge.
-      const challengeVerified = await this.verifyChallenge(challengeJwsString, requesterDid);
+      // Verify access token.
+      const tokenVerified = await this.verifyAccessToken(accessTokenString, requesterDid);
 
-      // If Hub challenge is not found in the request or is invalid,
-      // respond with a new Hub challenge.
-      if (!challengeVerified) {
-        // Create a new challenge.
+      // If Hub access token is not found in the request or is invalid,
+      // respond with a new Hub access token.
+      if (!tokenVerified) {
+        // Create a new access token.
         const validDurationInMinutes = 5;
-        const didHubChallenge = {
-          requester: requesterDid,
-          challengeTime: new Date(Date.now()),
-          expiry: new Date(Date.now() + validDurationInMinutes * 600000),
+        const accessToken = {
+          sub: requesterDid,
+          iat: new Date(Date.now()),
+          exp: new Date(Date.now() + validDurationInMinutes * 600000),
           nonce: jose.util.randomBytes(64).toString('base64'),
         };
 
-        // Sign then encrypt the new challenge.
-        const responseBuffer = await Hub.signThenEncrypt(didHubChallenge, hubKey, requesterPublicKey);
+        // Sign then encrypt the new access token.
+        const responseBuffer = await Hub.signThenEncrypt(accessToken, hubKey, requesterPublicKey);
 
         return {
           statusCode: HttpStatus.OK,
@@ -107,7 +107,7 @@ export default class Hub {
         };
       }
 
-      // If we get here, it means the Hub challenge recieved is valid, proceed with handling the request.
+      // If we get here, it means the Hub access token recieved is valid, proceed with handling the request.
       const requestJson = JSON.parse(plainTextRequestString);
       const hubRequest = new HubRequest(requestJson);
       const controller = this._controllers[hubRequest.getInterface()];
@@ -151,30 +151,30 @@ export default class Hub {
     return verifiedData.payload.toString();
   }
 
-  private async verifyChallenge(challengeJwsString: string, requester: string): Promise<boolean> {
-    if (!challengeJwsString || !requester) {
+  private async verifyAccessToken(signedJwtString: string, requester: string): Promise<boolean> {
+    if (!signedJwtString || !requester) {
       return false;
     }
 
     try {
       // TODO: Consider optimizing keys dictionary to have jose.JWK objects instead of JSON objects.
       // Fetch the key specified by kid in the JWS header.
-      const keyId = Hub.getKeyIdInJweOrJws(challengeJwsString);
+      const keyId = Hub.getKeyIdInJweOrJws(signedJwtString);
       const hubKey = this.context.keys[keyId];
       const keyPair = await jose.JWK.asKey(hubKey);
 
-      // Verify that the challenge was created by this Hub (signature verification).
-      const verifiedData = await jose.JWS.createVerify(keyPair).verify(challengeJwsString);
+      // Verify that the token was created by this Hub (signature verification).
+      const verifiedData = await jose.JWS.createVerify(keyPair).verify(signedJwtString);
 
-      // Verify that the challenge was issued to the same person making the current request.
-      const challenge = JSON.parse(verifiedData.payload);
-      if (challenge.requester !== requester) {
+      // Verify that the token was issued to the same person making the current request.
+      const token = JSON.parse(verifiedData.payload);
+      if (token.sub !== requester) {
         return false;
       }
 
-      // Verify that the challenge is not expired.
+      // Verify that the token is not expired.
       const now = new Date(Date.now());
-      const expiry = new Date(challenge.expiry);
+      const expiry = new Date(token.exp);
       if (now > expiry) {
         return false;
       }
@@ -205,9 +205,7 @@ export default class Hub {
    * @returns Signed payload in compact JWS format.
    */
   private static async sign(content: object, jwk: object): Promise<string> {
-    // Sign the new challenge in JWS compact form.
     const contentBuffer = Buffer.from(JSON.stringify(content));
-
     const contentJwsString = await jose.JWS.createSign({ format: 'compact' }, jwk).update(contentBuffer).final();
 
     return contentJwsString;
