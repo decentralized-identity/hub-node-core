@@ -33,10 +33,10 @@ Specifically, every request sent to the Hub must be JWE encrypted using a public
   "enc": "A128GCM",
 }
 ```
-> NOTE: The requester needs to be identified and authenticated in order for Hub to send the encrypted response. This will be discussed in the end-to-end authentication of this document.
+> NOTE: The requester needs to be identified and authenticated in order for Hub to send the encrypted response. This will be discussed in the end-to-end authentication section of this document.
 
 # End-To-End Authentication
-The Hub requires end-to-end (two-way) authentication for all request-response exchanges using the JWS scheme. As a result of the additional message confidentiality requirement described early, all requests and responses are first JWS signed, then JWE encrypted.
+The Hub requires end-to-end (two-way) authentication for all request-response exchanges using the JWS scheme. As a result of the additional message confidentiality requirement described earlier, all requests and responses are first JWS signed, then JWE encrypted.
 
 The following sequence diagram shows the complete end-to-end authentication (and encryption) flow:
 
@@ -80,35 +80,35 @@ Requester -> Requester: Parses Hub response.
 
 >Since all messages exchanged are protected by JWE, JWE encryption and decryption steps are intentionally omitted to highlight the authentication steps in the description below.
 
-1. The requester creates a self-signed access request as a JWS. A nonce must be added to the ```did-requester-nonce``` JWS header parameter for every request sent to the Hub, the Hub must then include the same nonce header in the response to protect requester from response replays. The requester nonce is included in the header rather than the payload to decouple authentication data from the request or response data. The Hub will ignore the actual payload in the JWS during this phase of the authentication flow.
+1. The requester creates a self-signed access request as a JWS. A nonce must be added to the ```did-requester-nonce``` JWS header parameter for every request sent to the Hub, the Hub must then include the same nonce header in the response to protect the requester from response replays. The requester nonce is included in the header rather than the payload to decouple authentication data from the request or response data. The Hub will ignore the actual payload in the JWS during this phase of the authentication flow.
 
 1. Requester sends the JWS to the Hub.
 
-1. The Hub verifies the JWS by resolving the requester's DID then obtaining the public key needed for verification. The requester's DID and the public-key ID and can be derived from ```kid``` JWS header parameter. The same public-key must be used for encrypting the response.
+1. The Hub verifies the JWS by resolving the requester's DID then obtaining the public key needed for verification. The requester's DID and the public-key ID can be derived from ```kid``` JWS header parameter. The same public-key must be used for encrypting the response.
 > Public key resolution is pending real implementation.
 
 4. The Hub generates a time-bound token for the requester to use in future communication. This token technically can be of any opaque format, however in the DID Hub Core Library implementation, the token is a signed JWT. The Hub must also copy the ```did-requester-nonce``` JWS header parameter from the request into its own JWT header.
 
 > Note: Currently the DID Hub Core library authentication implementation is stateless, thus it is subject to request replays within the time-bound window allowed by the JWT. However the requester nonce can be cached on the Hub in the future to prevent all request replays.
 
-1. The Hub sends the signed JWT back to the requester.
-> TO BE DISCUSSED: decided if the signed JWT should be the payload of a JWS for consistency.
+5. The Hub sends the signed JWT back to the requester.
+> Discussion: Current implementation passes the JWT directly without being encapsulated as the payload of a JWS. Decided if the signed JWT should be the payload of a JWS for consistency.
 
 6. The requester verifies the value in the ```did-requester-nonce``` JWT header parameter matches its requester-issued nonce.
 
-1. The requester verifies JWT is signed by the Hub by resolving the Hub's DID then obtaining the public key needed for verification. The Hub's DID and the public-key ID and can be derived from ```kid``` header parameter.
+1. The requester verifies that JWT is signed by the Hub by resolving the Hub's DID then obtaining the public key needed for verification. The Hub's DID and the public-key ID can be derived from ```kid``` header parameter.
 
-1. The Hub is authenticated after the step above. The Requester can caches the Hub-signed JWT locally and reuse it for all future requests to the Hub until the Hub rejects it, most commonly due to token expiry.
+1. The Hub is authenticated after the step above. The Requester can cache the Hub-signed JWT locally and reuse it for all future requests to the Hub until the Hub rejects it, most commonly due to token expiry.
 
 1. The requester crafts the actual Hub request, and creates a new nonce.
 
-1. The requester signs the Hub request as a JWS, including the new nonce in the ```did-requester-nonce``` header parameter and the Hub-signed JWT in the ```did-service-token``` header parameter.
+1. The requester signs the Hub request as a JWS, including the new nonce in the ```did-requester-nonce``` header parameter and the Hub-signed JWT in the ```did-access-token``` header parameter.
 
 1. The requester sends the signed Hub request to the Hub.
 
 1. The Hub verifies the JWS by resolving the requester's DID then obtaining the public key needed for verification. The same public-key must be used for encrypting the response.
 
-1. The Hub verifies the signed JWT given in the ```did-service-token``` header parameter.
+1. The Hub verifies the signed JWT given in the ```did-access-token``` header parameter.
 
 1. The requester is authenticated after the step above. The Hub process the request and generates an in-memory response.
 
@@ -116,9 +116,9 @@ Requester -> Requester: Parses Hub response.
 
 1. The Hub sends the signed Hub response back to the requester.
 
-1. The requester verifies the value in the ```did-requester-nonce``` JWS header parameter matches its requester-issued nonce.
+1. The requester verifies that the value in the ```did-requester-nonce``` JWS header parameter matches its requester-issued nonce.
 
-1. The requester verifies JWT is signed by the Hub by resolving Hub's DID and obtaining the public key specified by the ```kid``` header in the JWT.
+1. The requester verifies that JWT is signed by the Hub by resolving Hub's DID and obtaining the public key specified by the ```kid``` header in the JWT.
 
 ## Example Hub JWT Payload
 ```json
@@ -131,51 +131,47 @@ Requester -> Requester: Parses Hub response.
 }
 ```
 
-> TO BE DISCUSSED: Should we go did- prefix all the way or really reuse JWT abbreviations?
-
 ## Example JWS header
 ```json
 {
   "kid": "did:example:123456789abcdefghi#keys-1",
   "alg": "RS256",
   "did-requester-nonce": "p6OLLpeRafCWbOAEYpuGVTKNkcq8l",
-  "did-service-token": "..."
+  "did-access-token": "..."
 }
 ```
 
 
 # JWS/JWT Support
-## Serialization
-|                       |     |
+| Serialization         |     |
 | --------------------- | --- |
 | Compact Serialization | Yes |
 | JSON Serialization    | No  |
 
-## Signing Algorithms
-|                    |     |
+| Signing Algorithm  |     |
 | ------------------ | --- |
 | RS256              | Yes |
 | RS512              | Yes |
 
 
 # JWE Support
-## Serialization
-|                       |     |
+| Serialization         |     |
 | --------------------- | --- |
 | Compact Serialization | Yes |
 | JSON Serialization    | No  |
 
-## Key Encryption Algorithms
-|                    |     |
-| ------------------ | --- |
-| RSA-OAEP           | Yes |
-| RSA-OAEP-256       | Yes |
+> Discussion: Current implementation assumes Compact Serialization in the HTTP POST body and payload. We might want to support JSON serialization for POST body instead/in addition.
 
-## Content Encryption Algorithms
-|                    |     |
-| ------------------ | --- |
-| A128GCM            | Yes |
-| A256GCM            | Yes |
+| Key Encryption Algorithm |     |
+| ------------------------ | --- |
+| RSA-OAEP                 | Yes |
+| RSA-OAEP-256             | Yes |
+> Note: The list above is a list of key encryption algorithms currently tested. In reality, the Hub Core implementation uses Cisco's JOSE library, which officially supports a few more algorithms such as EC P256, but since we have not tested those curves end-to-end and those are considered insecure by some, I did not add it to the supported list.
+
+| Content encryption algorithm  |     |
+| ----------------------------- | --- |
+| A128GCM                       | Yes |
+| A256GCM                       | Yes |
 
 # Future Work
 - Stateful authentication scheme to prevent any replay attack.
