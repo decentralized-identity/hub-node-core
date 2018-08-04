@@ -12,8 +12,6 @@ import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
 
-const jose = require('node-jose');
-
 /**
  * Core class that handles Hub requests.
  */
@@ -94,12 +92,7 @@ export default class Hub {
       if (!tokenVerified) {
         // Create a new access token.
         const validDurationInMinutes = 5;
-        const accessToken = {
-          sub: requesterDid,
-          iat: new Date(Date.now()),
-          exp: new Date(Date.now() + validDurationInMinutes * 600000),
-          nonce: jose.util.randomBytes(64).toString('base64'),
-        };
+        const accessToken = await Crypto.createAccessToken(hubKey, requesterDid, validDurationInMinutes);
 
         // Sign then encrypt the new access token.
         const responseBuffer = await Crypto.signThenEncrypt(accessToken, hubKey, requesterPublicKey);
