@@ -1,5 +1,6 @@
 import * as HttpStatus from 'http-status';
 import Context from './interfaces/Context';
+import Crypto from './utils/Crypto';
 import HttpHubResponse from './models/HttpHubResponse';
 import HubRequest from './models/HubRequest';
 import HubResponse from './models/HubResponse';
@@ -60,9 +61,7 @@ export default class Hub {
       hubKey = this.context.keys[keyId];
 
       // Get the JWS payload and access token by decrypting the JWE blob,
-      const keyPair = await jose.JWK.asKey(hubKey); // NOTE: Must use library object for decryption.
-      const decryptedData = await jose.JWE.createDecrypt(keyPair).decrypt(requestString);
-      const jwsString = decryptedData.plaintext.toString();
+      const jwsString = await Crypto.decrypt(requestString, hubKey);
       accessTokenString = Hub.getJweOrJwsHeader(jwsString)['did-access-token'];
 
       // Obtain the requester's public key.
@@ -74,7 +73,7 @@ export default class Hub {
       requesterDid = Hub.parseDid(requesterPublicKeyId);
 
       // Verify the signature of the sender.
-      plainTextRequestString = await Hub.verifySignature(jwsString, requesterPublicKey);
+      plainTextRequestString = await Crypto.verifySignature(jwsString, requesterPublicKey);
     } catch (error) {
       // TODO: Proper error logging with logger, for now loggint to console.
       console.log(error);
@@ -83,10 +82,14 @@ export default class Hub {
 
     // NOTE: Requester is identified if code reaches here.
     try {
-      // Verify access token.
-      const tokenVerified = await this.verifyAccessToken(accessTokenString, requesterDid);
+      // Get the key used to sign the access token specified in the 'kid' header parameters in the JWT header.
+      const keyId = accessTokenString ? Hub.getKeyIdInJweOrJws(accessTokenString) : undefined;
+      const key = keyId ? this.context.keys[keyId] : {};
 
-      // If Hub access token is not found in the request or is invalid,
+      // Verify that the token was created by this Hub (signature verification).
+      const tokenVerified = await Crypto.verifyAccessToken(key, accessTokenString, requesterDid);
+
+      // If Hub access token is not found or invalid,
       // respond with a new Hub access token.
       if (!tokenVerified) {
         // Create a new access token.
@@ -99,7 +102,7 @@ export default class Hub {
         };
 
         // Sign then encrypt the new access token.
-        const responseBuffer = await Hub.signThenEncrypt(accessToken, hubKey, requesterPublicKey);
+        const responseBuffer = await Crypto.signThenEncrypt(accessToken, hubKey, requesterPublicKey);
 
         return {
           statusCode: HttpStatus.OK,
@@ -115,7 +118,7 @@ export default class Hub {
 
       // Sign then encrypt the response.
       const hubResponseBody = hubResponse.getResponseBody();
-      const responseBuffer = await Hub.signThenEncrypt(hubResponseBody, hubKey, requesterPublicKey);
+      const responseBuffer = await Crypto.signThenEncrypt(hubResponseBody, hubKey, requesterPublicKey);
 
       return { statusCode: HttpStatus.OK, body: responseBuffer };
     } catch (error) {
@@ -124,7 +127,7 @@ export default class Hub {
       const hubResponseBody = hubResponse.getResponseBody();
 
       // Sign then encrypt the error response.
-      const responseBuffer = await Hub.signThenEncrypt(hubResponseBody, hubKey, requesterPublicKey);
+      const responseBuffer = await Crypto.signThenEncrypt(hubResponseBody, hubKey, requesterPublicKey);
 
       return {
         statusCode: HttpStatus.OK,
@@ -142,73 +145,6 @@ export default class Hub {
   private static lookUpPublicKey(keyId: string): object {
     console.log(`Public key look-up for ${keyId} is not implemented.`);
     return {};
-  }
-
-  private static async verifySignature(jwsString: string, jwk: object): Promise<string> {
-    const key = await jose.JWK.asKey(jwk);
-    const verifiedData = await jose.JWS.createVerify(key).verify(jwsString);
-
-    return verifiedData.payload.toString();
-  }
-
-  private async verifyAccessToken(signedJwtString: string, requester: string): Promise<boolean> {
-    if (!signedJwtString || !requester) {
-      return false;
-    }
-
-    try {
-      // TODO: Consider optimizing keys dictionary to have jose.JWK objects instead of JSON objects.
-      // Fetch the key specified by kid in the JWS header.
-      const keyId = Hub.getKeyIdInJweOrJws(signedJwtString);
-      const hubKey = this.context.keys[keyId];
-      const keyPair = await jose.JWK.asKey(hubKey);
-
-      // Verify that the token was created by this Hub (signature verification).
-      const verifiedData = await jose.JWS.createVerify(keyPair).verify(signedJwtString);
-
-      // Verify that the token was issued to the same person making the current request.
-      const token = JSON.parse(verifiedData.payload);
-      if (token.sub !== requester) {
-        return false;
-      }
-
-      // Verify that the token is not expired.
-      const now = new Date(Date.now());
-      const expiry = new Date(token.exp);
-      if (now > expiry) {
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  private static async signThenEncrypt(content: object, signingKey: object, encryptingKey: object): Promise<Buffer> {
-    const jwsCompactString = await Hub.sign(content, signingKey);
-    const signedThenEncryptedContent = await Hub.encrypt(jwsCompactString, encryptingKey);
-
-    return signedThenEncryptedContent;
-  }
-
-  private static async encrypt(content: string, jwk: object): Promise<Buffer> {
-    const jweJson = await jose.JWE.createEncrypt({ contentAlg: 'A128GCM', format: 'compact' }, jwk)
-      .update(Buffer.from(content))
-      .final();
-
-    return Buffer.from(jweJson);
-  }
-
-  /**
-   * Sign the given content using the given private key in JWK format.
-   * @returns Signed payload in compact JWS format.
-   */
-  private static async sign(content: object, jwk: object): Promise<string> {
-    const contentBuffer = Buffer.from(JSON.stringify(content));
-    const contentJwsString = await jose.JWS.createSign({ format: 'compact' }, jwk).update(contentBuffer).final();
-
-    return contentJwsString;
   }
 
   private static getKeyIdInJweOrJws(jweOrJwsCompactString: string) {
