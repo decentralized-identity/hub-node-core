@@ -2,6 +2,7 @@ import * as HttpStatus from 'http-status';
 import Context from './interfaces/Context';
 import Crypto from './utils/Crypto';
 import HttpHubResponse from './models/HttpHubResponse';
+import HubError from './models/HubError';
 import HubRequest from './models/HubRequest';
 import HubResponse from './models/HubResponse';
 
@@ -80,16 +81,8 @@ export default class Hub {
 
     // NOTE: Requester is identified if code reaches here.
     try {
-      // Get the key used to sign the access token specified in the 'kid' header parameters in the JWT header.
-      const keyId = accessTokenString ? Hub.getKeyIdInJweOrJws(accessTokenString) : undefined;
-      const key = keyId ? this.context.keys[keyId] : {};
-
-      // Verify that the token was created by this Hub (signature verification).
-      const tokenVerified = await Crypto.verifyAccessToken(key, accessTokenString, requesterDid);
-
-      // If Hub access token is not found or invalid,
-      // respond with a new Hub access token.
-      if (!tokenVerified) {
+      // If access token is not given, this is an "access request", issue a new token.
+      if (!accessTokenString) {
         // Create a new access token.
         const validDurationInMinutes = 5;
         const accessToken = await Crypto.createAccessToken(hubKey, requesterDid, validDurationInMinutes);
@@ -101,6 +94,18 @@ export default class Hub {
           statusCode: HttpStatus.OK,
           body: responseBuffer,
         };
+      }
+
+      // Token is given if code reaches here, verify it.
+
+      // Get the key used to sign the access token specified in the 'kid' header parameters in the JWT header.
+      const keyId = Hub.getKeyIdInJweOrJws(accessTokenString);
+      const key = this.context.keys[keyId];
+      const tokenVerified = await Crypto.verifyAccessToken(key, accessTokenString, requesterDid);
+
+      // If Hub access token invalid.
+      if (!tokenVerified) {
+        throw new HubError('Access token rejected.');
       }
 
       // If we get here, it means the Hub access token recieved is valid, proceed with handling the request.
