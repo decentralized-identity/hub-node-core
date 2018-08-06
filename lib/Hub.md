@@ -142,36 +142,45 @@ Requester -> Requester: Parses Hub response.
 ```
 
 
-# JWS/JWT Support
-| Serialization         |     |
-| --------------------- | --- |
-| Compact Serialization | Yes |
-| JSON Serialization    | No  |
+# Signature and Encryption Algorithms
+This section lists the signature and encryption algorithms currently supported (implemented and tested). In reality, the Hub Core implementation uses Cisco's JOSE library, which officially supports a few more algorithms such as ECDSA P256, but since we have not tested those curves end-to-end and those are considered insecure by some, they have not been added to the supported list.
 
-| Signing Algorithm  |     |
-| ------------------ | --- |
-| RS256              | Yes |
-| RS512              | Yes |
+## JWS/JWT Support
+| Serialization         | Support |
+| --------------------- | ------- |
+| Compact Serialization | Yes     |
+| JSON Serialization    | No      |
 
+| Signing Algorithm  | Support           | JOSE specified | JWK specified | 
+| ------------------ | ----------------- | -------------- | ------------- |
+| RS256              | Yes               | Yes            | Yes           |
+| RS512              | Yes               | Yes            | Yes           |
+| ED25519            | To be implemented | To be added    | Yes           |
+| SECP256K1          | To be implemented | To be added    | To be added   |
+> Note: ED25519 is defined in JWK specification, while SECP256K1 is not. Neither algorithms are listed in the JOSE signature and encryption algorithms, (https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms), and are not implemented in the node-jose NPM package used in the current implementation.
 
-# JWE Support
-| Serialization         |     |
-| --------------------- | --- |
-| Compact Serialization | Yes |
-| JSON Serialization    | No  |
+## JWE Support
+| Serialization         | Support |
+| --------------------- | ------- |
+| Compact Serialization | Yes     |
+| JSON Serialization    | No      |
 
 > Discussion: Current implementation assumes Compact Serialization in the HTTP POST body and payload. We might want to support JSON serialization for POST body instead/in addition.
 
-| Key Encryption Algorithm |     |
-| ------------------------ | --- |
-| RSA-OAEP                 | Yes |
-| RSA-OAEP-256             | Yes |
-> Note: The list above is a list of key encryption algorithms currently tested. In reality, the Hub Core implementation uses Cisco's JOSE library, which officially supports a few more algorithms such as EC P256, but since we have not tested those curves end-to-end and those are considered insecure by some, I did not add it to the supported list.
+| Key Encryption Algorithm | Support           | JOSE specified | JWK specified |
+| ------------------------ | ----------------- | -------------- | ------------- |
+| RSA-OAEP                 | Yes               | Yes            | Yes           |
+| RSA-OAEP-256             | Yes               | Yes            | Yes           |
+| ED25519                  | To be implemented | To be added    | Yes           |
+| SECP256K1                | To be implemented | To be added    | To be added   |
 
-| Content encryption algorithm  |     |
-| ----------------------------- | --- |
-| A128GCM                       | Yes |
-| A256GCM                       | Yes |
+| Content encryption algorithm  | Support            | JOSE specified |
+| ----------------------------- | ------------------ | -------------- |
+| A128GCM                       | Yes                | Yes            |
+| A256GCM                       | Yes                | Yes            |
+| XSalsa20-Poly1305             | To be implemented  | To be added    |
+
+
 
 # Future Work
 - Stateful authentication scheme to prevent any replay attack.
