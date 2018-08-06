@@ -67,7 +67,7 @@ export default class Hub {
 
       // Record the requester nonce to be used in response.
       const requesterNonce = jwsHeader['did-requester-nonce'];
-      responseJwsHeader = { 'did-requester-nonce': requesterNonce, };
+      responseJwsHeader = { 'did-requester-nonce': requesterNonce };
 
       // Obtain the requester's public key.
       const requesterPublicKeyId = Hub.getKeyIdInJweOrJws(jwsString);

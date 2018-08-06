@@ -81,7 +81,7 @@ export default class Crypto {
    * JWS-signs the given content using the given signing key,
    * then JWE-encrypts the JWS using the given key encryption key.
    * Content encryption algorithm is hardcoded to 'A128GCM'.
-   * 
+   *
    * @param jwsHeaderParameters Header parameters in addition to 'alg' and 'kid' to be included in the JWS.
    */
   public static async signThenEncrypt(
@@ -97,7 +97,7 @@ export default class Crypto {
 
   /**
    * Sign the given content using the given private key in JWK format.
-   * 
+   *
    * @param jwsHeaderParameters Header parameters in addition to 'alg' and 'kid' to be included in the JWS.
    * @returns Signed payload in compact JWS format.
    */
@@ -109,7 +109,7 @@ export default class Crypto {
       contentBuffer = Buffer.from(JSON.stringify(content));
     }
 
-    const contentJwsString = await jose.JWS.createSign({ format: 'compact', fields: jwsHeaderParameters, }, jwk).update(contentBuffer).final();
+    const contentJwsString = await jose.JWS.createSign({ format: 'compact', fields: jwsHeaderParameters }, jwk).update(contentBuffer).final();
 
     return contentJwsString;
   }
