@@ -33,7 +33,7 @@ export default class Crypto {
       nonce: jose.util.randomBytes(64).toString('base64'),
     };
 
-    const jwt = await Crypto.sign(accessTokenPayload, privateKey);
+    const jwt = await Crypto.sign({}, accessTokenPayload, privateKey);
 
     return jwt;
   }
@@ -81,9 +81,15 @@ export default class Crypto {
    * JWS-signs the given content using the given signing key,
    * then JWE-encrypts the JWS using the given key encryption key.
    * Content encryption algorithm is hardcoded to 'A128GCM'.
+   * 
+   * @param jwsHeaderParameters Header parameters in addition to 'alg' and 'kid' to be included in the JWS.
    */
-  public static async signThenEncrypt(content: object | string, signingKey: object, encryptingKey: object): Promise<Buffer> {
-    const jwsCompactString = await Crypto.sign(content, signingKey);
+  public static async signThenEncrypt(
+    jwsHeaderParameters: { [name: string]: string },
+    content: object | string,
+    signingKey: object,
+    encryptingKey: object) : Promise<Buffer> {
+    const jwsCompactString = await Crypto.sign(jwsHeaderParameters, content, signingKey);
     const signedThenEncryptedContent = await Crypto.encrypt(jwsCompactString, encryptingKey);
 
     return signedThenEncryptedContent;
@@ -91,9 +97,11 @@ export default class Crypto {
 
   /**
    * Sign the given content using the given private key in JWK format.
+   * 
+   * @param jwsHeaderParameters Header parameters in addition to 'alg' and 'kid' to be included in the JWS.
    * @returns Signed payload in compact JWS format.
    */
-  private static async sign(content: object | string, jwk: object): Promise<string> {
+  private static async sign(jwsHeaderParameters: { [name: string]: string }, content: object | string, jwk: object): Promise<string> {
     let contentBuffer;
     if (typeof content === 'string') {
       contentBuffer = Buffer.from(content);
@@ -101,7 +109,7 @@ export default class Crypto {
       contentBuffer = Buffer.from(JSON.stringify(content));
     }
 
-    const contentJwsString = await jose.JWS.createSign({ format: 'compact' }, jwk).update(contentBuffer).final();
+    const contentJwsString = await jose.JWS.createSign({ format: 'compact', fields: jwsHeaderParameters, }, jwk).update(contentBuffer).final();
 
     return contentJwsString;
   }

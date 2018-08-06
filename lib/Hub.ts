@@ -49,6 +49,7 @@ export default class Hub {
     let requesterDid = null;
     let hubKey = null;
     let accessTokenString = null;
+    let responseJwsHeader = null;
     let plainTextRequestString = null;
 
     // Try decrypt the payload and validate signature,
@@ -61,7 +62,12 @@ export default class Hub {
 
       // Get the JWS payload and access token by decrypting the JWE blob,
       const jwsString = await Crypto.decrypt(requestString, hubKey);
-      accessTokenString = Hub.getJweOrJwsHeader(jwsString)['did-access-token'];
+      const jwsHeader = Hub.getJweOrJwsHeader(jwsString);
+      accessTokenString = jwsHeader['did-access-token'];
+
+      // Record the requester nonce to be used in response.
+      const requesterNonce = jwsHeader['did-requester-nonce'];
+      responseJwsHeader = { 'did-requester-nonce': requesterNonce, };
 
       // Obtain the requester's public key.
       const requesterPublicKeyId = Hub.getKeyIdInJweOrJws(jwsString);
@@ -88,7 +94,7 @@ export default class Hub {
         const accessToken = await Crypto.createAccessToken(hubKey, requesterDid, validDurationInMinutes);
 
         // Sign then encrypt the new access token.
-        const responseBuffer = await Crypto.signThenEncrypt(accessToken, hubKey, requesterPublicKey);
+        const responseBuffer = await Crypto.signThenEncrypt(responseJwsHeader, accessToken, hubKey, requesterPublicKey);
 
         return {
           statusCode: HttpStatus.OK,
@@ -116,7 +122,7 @@ export default class Hub {
 
       // Sign then encrypt the response.
       const hubResponseBody = hubResponse.getResponseBody();
-      const responseBuffer = await Crypto.signThenEncrypt(hubResponseBody, hubKey, requesterPublicKey);
+      const responseBuffer = await Crypto.signThenEncrypt(responseJwsHeader, hubResponseBody, hubKey, requesterPublicKey);
 
       return { statusCode: HttpStatus.OK, body: responseBuffer };
     } catch (error) {
@@ -125,7 +131,7 @@ export default class Hub {
       const hubResponseBody = hubResponse.getResponseBody();
 
       // Sign then encrypt the error response.
-      const responseBuffer = await Crypto.signThenEncrypt(hubResponseBody, hubKey, requesterPublicKey);
+      const responseBuffer = await Crypto.signThenEncrypt(responseJwsHeader, hubResponseBody, hubKey, requesterPublicKey);
 
       return {
         statusCode: HttpStatus.OK,
