@@ -58,7 +58,10 @@ export default class Hub {
       // Load the key specified by 'kid' in the JWE header.
       const requestString = request.toString();
       const keyId = Hub.getKeyIdInJweOrJws(requestString);
+      if (!keyId) console.log('Request must provide a key ID.');
+
       hubKey = this.context.keys[keyId];
+      if (!hubKey) console.log('Cannot find key with ID: ' + keyId);
 
       // Get the JWS payload and access token by decrypting the JWE blob,
       const jwsString = await Crypto.decrypt(requestString, hubKey);
