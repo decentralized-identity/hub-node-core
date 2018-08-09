@@ -11,7 +11,7 @@ const ACTION_SCHEMA: string = 'http://schema.identity.foundation/Action';
  * This class handles all the action requests.
  */
 export default class ActionsController extends BaseController {
-  async handleAddRequest(request: HubRequest): Promise<HubResponse> {
+  async handleCreateRequest(request: HubRequest): Promise<HubResponse> {
     const payloadField = Validation.requiredValue(request.payload, 'payload');
 
     const result = await this.context.store.createDocument({
@@ -37,7 +37,7 @@ export default class ActionsController extends BaseController {
     return HubResponse.withObjects(results);
   }
 
-  async handleRemoveRequest(request: HubRequest): Promise<HubResponse> {
+  async handleDeleteRequest(request: HubRequest): Promise<HubResponse> {
     const requestField = Validation.requiredValue(request.request, 'request');
 
     await this.context.store.deleteDocument({

@@ -9,7 +9,7 @@ import Validation from '../utilities/Validation';
  * This class handles all the collection requests.
  */
 export default class CollectionsController extends BaseController {
-  async handleAddRequest(request: HubRequest): Promise<HubResponse> {
+  async handleCreateRequest(request: HubRequest): Promise<HubResponse> {
     const requestField = Validation.requiredValue(request.request, 'request');
     const payloadField = Validation.requiredValue(request.payload, 'payload');
 
@@ -38,7 +38,7 @@ export default class CollectionsController extends BaseController {
     return HubResponse.withObjects(results);
   }
 
-  async handleRemoveRequest(request: HubRequest): Promise<HubResponse> {
+  async handleDeleteRequest(request: HubRequest): Promise<HubResponse> {
     const requestField = Validation.requiredValue(request.request, 'request');
 
     await this.context.store.deleteDocument({
