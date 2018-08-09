@@ -8,7 +8,7 @@ import HubResponse from '../models/HubResponse';
  * This class handles all the profile requests.
  */
 export default class ProfileController extends BaseController {
-  async handleAddRequest(request: HubRequest): Promise<HubResponse> {
+  async handleCreateRequest(request: HubRequest): Promise<HubResponse> {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
 
@@ -20,7 +20,7 @@ export default class ProfileController extends BaseController {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
 
-  async handleRemoveRequest(request: HubRequest): Promise<HubResponse> {
+  async handleDeleteRequest(request: HubRequest): Promise<HubResponse> {
     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
   }
 
