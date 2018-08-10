@@ -1,10 +1,13 @@
 import * as HttpStatus from 'http-status';
 import Context from './interfaces/Context';
 import Crypto from './utils/Crypto';
+import DidDocument from './utils/DidDocument';
+import DidResolver from './utils/DidResolver';
 import HttpHubResponse from './models/HttpHubResponse';
 import HubError from './models/HubError';
 import HubRequest from './models/HubRequest';
 import HubResponse from './models/HubResponse';
+import Jose from './utils/Jose';
 
 // Controller classes.
 import BaseController from './controllers/BaseController';
@@ -57,7 +60,7 @@ export default class Hub {
     try {
       // Load the key specified by 'kid' in the JWE header.
       const requestString = request.toString();
-      const keyId = Hub.getKeyIdInJweOrJws(requestString);
+      const keyId = Jose.getKeyIdInJweOrJws(requestString);
       if (!keyId) console.log('Request must provide a key ID.');
 
       hubKey = this.context.keys[keyId];
@@ -65,7 +68,7 @@ export default class Hub {
 
       // Get the JWS payload and access token by decrypting the JWE blob,
       const jwsString = await Crypto.decrypt(requestString, hubKey);
-      const jwsHeader = Hub.getJweOrJwsHeader(jwsString);
+      const jwsHeader = Jose.getJweOrJwsHeader(jwsString);
       accessTokenString = jwsHeader['did-access-token'];
 
       // Record the requester nonce to be used in response.
@@ -73,12 +76,12 @@ export default class Hub {
       responseJwsHeader = { 'did-requester-nonce': requesterNonce };
 
       // Obtain the requester's public key.
-      const requesterPublicKeyId = Hub.getKeyIdInJweOrJws(jwsString);
-      requesterPublicKey = Hub.lookUpPublicKey(requesterPublicKeyId);
+      const requesterPublicKeyId = Jose.getKeyIdInJweOrJws(jwsString);
+      requesterPublicKey = DidResolver.lookUpPublicKey(requesterPublicKeyId);
       requesterPublicKey = hubKey; // TODO: Remove once look up is implemented, for now using a hardcoded hub key.
 
       // Parse requester DID from the requester's fully-qualified public key ID.
-      requesterDid = Hub.parseDid(requesterPublicKeyId);
+      requesterDid = DidDocument.getDidFromKeyId(requesterPublicKeyId);
 
       // Verify the signature of the sender.
       plainTextRequestString = await Crypto.verifySignature(jwsString, requesterPublicKey);
@@ -108,7 +111,7 @@ export default class Hub {
       // Token is given if code reaches here, verify it.
 
       // Get the key used to sign the access token specified in the 'kid' header parameters in the JWT header.
-      const keyId = Hub.getKeyIdInJweOrJws(accessTokenString);
+      const keyId = Jose.getKeyIdInJweOrJws(accessTokenString);
       const key = this.context.keys[keyId];
       const tokenVerified = await Crypto.verifyAccessToken(key, accessTokenString, requesterDid);
 
@@ -143,40 +146,5 @@ export default class Hub {
         body: responseBuffer,
       };
     }
-  }
-
-  /**
-   * // TODO: Provide implementation.
-   * Gets the public key in JWK format given the fully-qualified key ID.
-   *
-   * @param keyId A fully-qualified key ID. e.g.
-   */
-  private static lookUpPublicKey(keyId: string): object {
-    console.log(`Public key look-up for ${keyId} is not implemented.`);
-    return {};
-  }
-
-  private static getKeyIdInJweOrJws(jweOrJwsCompactString: string) {
-    const header = this.getJweOrJwsHeader(jweOrJwsCompactString);
-    return header.kid;
-  }
-
-  private static getJweOrJwsHeader(jweOrJwsCompactString: string): any {
-    const headerLength = jweOrJwsCompactString.indexOf('.');
-    const headerBase64 = jweOrJwsCompactString.substr(0, headerLength);
-
-    return Hub.base64ToJson(headerBase64);
-  }
-
-  private static base64ToJson(base64String: string): any {
-    const jsonString = new Buffer(base64String, 'base64').toString();
-    return JSON.parse(jsonString);
-  }
-
-  private static parseDid(keyId: string): string {
-    const didLength = keyId.indexOf('#');
-    const did = keyId.substr(0, didLength);
-
-    return did;
   }
 }

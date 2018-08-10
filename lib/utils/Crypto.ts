@@ -1,4 +1,13 @@
+import Jose from './Jose';
+import HubError from '../models/HubError';
+import Rsa from '../crypto/Rsa';
+
 const jose = require('node-jose');
+
+/**
+ * Definition for a delegate that can verfiy signed data.
+ */
+type VerifySignatureDelegate = (signedContent: string, signature: string, jwk: object) => boolean;
 
 /**
  * Class for performing various cryptographic operations.
@@ -6,15 +15,36 @@ const jose = require('node-jose');
 export default class Crypto {
 
   /**
-   * Verifies the given JWS using the given key in JWK JSON object format.
+   * Verifies the given JWS compact serialized string using the given key in JWK object format.
    *
    * @returns The payload if signature is verified. Throws exception otherwise.
    */
   public static async verifySignature(jwsString: string, jwk: object): Promise<string> {
-    const key = await jose.JWK.asKey(jwk);
-    const verifiedData = await jose.JWS.createVerify(key).verify(jwsString);
+    const algorithm = Jose.getJweOrJwsHeader(jwsString).alg.toUpperCase();
+    const signedContent = Jose.getJwsSignedContent(jwsString);
+    const signature = Jose.getJwsSignature(jwsString);
 
-    return verifiedData.payload.toString();
+    // Get the correct signature verification function based on the given algorithm.
+    let verifySignature: VerifySignatureDelegate;
+    switch (algorithm) {
+      case 'RS256':
+        verifySignature = Rsa.verifySignatureRS256;
+        break;
+      case 'RS512':
+        verifySignature = Rsa.verifySignatureRS512;
+        break;
+      default:
+        throw new HubError(`Unsupported signing alogrithm: ${algorithm}.`, 400);
+    }
+
+    const passedSignatureValidation = verifySignature(signedContent, signature, jwk);
+
+    if (!passedSignatureValidation) {
+      throw new HubError('Failed signature validation.', 400);
+    }
+
+    const verifiedData = Jose.getJwsPayload(jwsString);
+    return verifiedData;
   }
 
   /**
