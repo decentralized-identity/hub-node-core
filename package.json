@@ -7,10 +7,14 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
+    "base64-url": "^2.2.0",
     "http-status": "^1.1.2",
+    "jsonwebtoken": "^8.3.0",
+    "jwk-to-pem": "^2.0.0",
     "node-jose": "^1.0.0"
   },
   "devDependencies": {
+    "@types/base64-url": "^2.2.0",
     "@types/http-status": "^0.2.30",
     "@types/jasmine": "^2.8.8",
     "@types/node": "^10.3.1",
