@@ -182,7 +182,20 @@ This section lists the signature and encryption algorithms currently supported (
 | A256GCM                       | Yes                | Yes            |
 | XSalsa20-Poly1305             | To be implemented  | To be added    |
 
+## Adding Algorithm Support
+This section describes how to add additional support to cryptographic algorithms in the Hub.
 
+### Signing Algorithm
+Create a library function for the new signing algorithm matching the `VerifySignatureDelegate` definition, then reference it in the `verifySignature(...)` function. `VerifySignatureDelegate` and `verifySignature(...)` can be located in `HubAuthentication.ts`.
+
+### Signature Verification Algorithm
+To be added.
+
+### Encryption Algorithm
+To be added.
+
+### Decryption Algorithm
+To be added.
 
 # Future Work
 - Stateful authentication scheme to prevent any replay attack.
