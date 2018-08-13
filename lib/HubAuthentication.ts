@@ -1,6 +1,7 @@
-import Jose from './Jose';
-import HubError from '../models/HubError';
-import Rsa from '../crypto/Rsa';
+
+import HubError from './models/HubError';
+import Jose from './Utilities/Jose';
+import Rsa from './crypto/Rsa';
 
 const jose = require('node-jose');
 
@@ -10,9 +11,28 @@ const jose = require('node-jose');
 type VerifySignatureDelegate = (signedContent: string, signature: string, jwk: object) => boolean;
 
 /**
- * Class for performing various cryptographic operations.
+ * Class for performing various Hub authentication operations.
  */
-export default class Crypto {
+export default class HubAuthentication {
+
+  /**
+   * Sign the given content using the given private key in JWK format.
+   *
+   * @param jwsHeaderParameters Header parameters in addition to 'alg' and 'kid' to be included in the JWS.
+   * @returns Signed payload in compact JWS format.
+   */
+  public static async sign(jwsHeaderParameters: { [name: string]: string }, content: object | string, jwk: object): Promise<string> {
+    let contentBuffer;
+    if (typeof content === 'string') {
+      contentBuffer = Buffer.from(content);
+    } else { // Else content is a JSON object.
+      contentBuffer = Buffer.from(JSON.stringify(content));
+    }
+
+    const contentJwsString = await jose.JWS.createSign({ format: 'compact', fields: jwsHeaderParameters }, jwk).update(contentBuffer).final();
+
+    return contentJwsString;
+  }
 
   /**
    * Verifies the given JWS compact serialized string using the given key in JWK object format.
@@ -63,7 +83,7 @@ export default class Crypto {
       nonce: jose.util.randomBytes(64).toString('base64'),
     };
 
-    const jwt = await Crypto.sign({}, accessTokenPayload, privateKey);
+    const jwt = await HubAuthentication.sign({}, accessTokenPayload, privateKey);
 
     return jwt;
   }
@@ -105,69 +125,5 @@ export default class Crypto {
     } catch {
       return false;
     }
-  }
-
-  /**
-   * JWS-signs the given content using the given signing key,
-   * then JWE-encrypts the JWS using the given key encryption key.
-   * Content encryption algorithm is hardcoded to 'A128GCM'.
-   *
-   * @param jwsHeaderParameters Header parameters in addition to 'alg' and 'kid' to be included in the JWS.
-   */
-  public static async signThenEncrypt(
-    jwsHeaderParameters: { [name: string]: string },
-    content: object | string,
-    signingKey: object,
-    encryptingKey: object) : Promise<Buffer> {
-    const jwsCompactString = await Crypto.sign(jwsHeaderParameters, content, signingKey);
-    const signedThenEncryptedContent = await Crypto.encrypt(jwsCompactString, encryptingKey);
-
-    return signedThenEncryptedContent;
-  }
-
-  /**
-   * Sign the given content using the given private key in JWK format.
-   *
-   * @param jwsHeaderParameters Header parameters in addition to 'alg' and 'kid' to be included in the JWS.
-   * @returns Signed payload in compact JWS format.
-   */
-  private static async sign(jwsHeaderParameters: { [name: string]: string }, content: object | string, jwk: object): Promise<string> {
-    let contentBuffer;
-    if (typeof content === 'string') {
-      contentBuffer = Buffer.from(content);
-    } else { // Else content is a JSON object.
-      contentBuffer = Buffer.from(JSON.stringify(content));
-    }
-
-    const contentJwsString = await jose.JWS.createSign({ format: 'compact', fields: jwsHeaderParameters }, jwk).update(contentBuffer).final();
-
-    return contentJwsString;
-  }
-
-  /**
-   * Encrypts the given string in JWE compact serialized format using the given key in JWK JSON object format.
-   * Content encryption algorithm is hardcoded to 'A128GCM'.
-   *
-   * @returns Encrypted Buffer in JWE compact serialized format.
-   */
-  private static async encrypt(content: string, jwk: object): Promise<Buffer> {
-    const jweJson = await jose.JWE.createEncrypt({ contentAlg: 'A128GCM', format: 'compact' }, jwk)
-    .update(Buffer.from(content))
-    .final();
-
-    return Buffer.from(jweJson);
-  }
-
-  /**
-   * Decrypts the given JWE compact serialized string using the given key in JWK JSON object format.
-   *
-   * @returns Decrypted plaintext.
-   */
-  public static async decrypt(jweString: string, jwk: object): Promise<string> {
-    const key = await jose.JWK.asKey(jwk); // NOTE: Must use library object for decryption.
-    const decryptedData = await jose.JWE.createDecrypt(key).decrypt(jweString);
-    const decryptedPlaintext = decryptedData.plaintext.toString();
-
-    return decryptedPlaintext;
   }
 }

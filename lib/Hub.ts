@@ -1,13 +1,14 @@
 import * as HttpStatus from 'http-status';
 import Context from './interfaces/Context';
-import Crypto from './utils/Crypto';
-import DidDocument from './utils/DidDocument';
-import DidResolver from './utils/DidResolver';
+import DidDocument from './did/DidDocument';
+import DidResolver from './did/DidResolver';
 import HttpHubResponse from './models/HttpHubResponse';
+import HubAuthentication from './HubAuthentication';
+import HubEncryption from './HubEncryption';
 import HubError from './models/HubError';
 import HubRequest from './models/HubRequest';
 import HubResponse from './models/HubResponse';
-import Jose from './utils/Jose';
+import Jose from './utilities/Jose';
 
 // Controller classes.
 import BaseController from './controllers/BaseController';
@@ -64,7 +65,7 @@ export default class Hub {
       hubKey = this.context.keys[keyId];
 
       // Get the JWS payload and access token by decrypting the JWE blob,
-      const jwsString = await Crypto.decrypt(requestString, hubKey);
+      const jwsString = await HubEncryption.decrypt(requestString, hubKey);
       const jwsHeader = Jose.getJweOrJwsHeader(jwsString);
       accessTokenString = jwsHeader['did-access-token'];
 
@@ -81,7 +82,7 @@ export default class Hub {
       requesterDid = DidDocument.getDidFromKeyId(requesterPublicKeyId);
 
       // Verify the signature of the sender.
-      plainTextRequestString = await Crypto.verifySignature(jwsString, requesterPublicKey);
+      plainTextRequestString = await HubAuthentication.verifySignature(jwsString, requesterPublicKey);
     } catch (error) {
       // TODO: Proper error logging with logger, for now loggint to console.
       console.log(error);
@@ -94,10 +95,10 @@ export default class Hub {
       if (!accessTokenString) {
         // Create a new access token.
         const validDurationInMinutes = 5;
-        const accessToken = await Crypto.createAccessToken(hubKey, requesterDid, validDurationInMinutes);
+        const accessToken = await HubAuthentication.createAccessToken(hubKey, requesterDid, validDurationInMinutes);
 
         // Sign then encrypt the new access token.
-        const responseBuffer = await Crypto.signThenEncrypt(responseJwsHeader, accessToken, hubKey, requesterPublicKey);
+        const responseBuffer = await Hub.signThenEncrypt(responseJwsHeader, accessToken, hubKey, requesterPublicKey);
 
         return {
           statusCode: HttpStatus.OK,
@@ -110,7 +111,7 @@ export default class Hub {
       // Get the key used to sign the access token specified in the 'kid' header parameters in the JWT header.
       const keyId = Jose.getKeyIdInJweOrJws(accessTokenString);
       const key = this.context.keys[keyId];
-      const tokenVerified = await Crypto.verifyAccessToken(key, accessTokenString, requesterDid);
+      const tokenVerified = await HubAuthentication.verifyAccessToken(key, accessTokenString, requesterDid);
 
       // If Hub access token invalid.
       if (!tokenVerified) {
@@ -125,7 +126,7 @@ export default class Hub {
 
       // Sign then encrypt the response.
       const hubResponseBody = hubResponse.getResponseBody();
-      const responseBuffer = await Crypto.signThenEncrypt(responseJwsHeader, hubResponseBody, hubKey, requesterPublicKey);
+      const responseBuffer = await Hub.signThenEncrypt(responseJwsHeader, hubResponseBody, hubKey, requesterPublicKey);
 
       return { statusCode: HttpStatus.OK, body: responseBuffer };
     } catch (error) {
@@ -134,12 +135,30 @@ export default class Hub {
       const hubResponseBody = hubResponse.getResponseBody();
 
       // Sign then encrypt the error response.
-      const responseBuffer = await Crypto.signThenEncrypt(responseJwsHeader, hubResponseBody, hubKey, requesterPublicKey);
+      const responseBuffer = await Hub.signThenEncrypt(responseJwsHeader, hubResponseBody, hubKey, requesterPublicKey);
 
       return {
         statusCode: HttpStatus.OK,
         body: responseBuffer,
       };
     }
+  }
+
+  /**
+   * JWS-signs the given content using the given signing key,
+   * then JWE-encrypts the JWS using the given key encryption key.
+   * Content encryption algorithm is hardcoded to 'A128GCM'.
+   *
+   * @param jwsHeaderParameters Header parameters in addition to 'alg' and 'kid' to be included in the JWS.
+   */
+  private static async signThenEncrypt(
+    jwsHeaderParameters: { [name: string]: string },
+    content: object | string,
+    signingKey: object,
+    encryptingKey: object) : Promise<Buffer> {
+    const jwsCompactString = await HubAuthentication.sign(jwsHeaderParameters, content, signingKey);
+    const signedThenEncryptedContent = await HubEncryption.encrypt(jwsCompactString, encryptingKey);
+
+    return signedThenEncryptedContent;
   }
 }
