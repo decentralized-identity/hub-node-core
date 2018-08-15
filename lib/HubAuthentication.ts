@@ -1,6 +1,6 @@
 
 import HubError from './models/HubError';
-import Jose from './Utilities/Jose';
+import Jose from './utilities/Jose';
 import Rsa from './crypto/Rsa';
 
 const jose = require('node-jose');
