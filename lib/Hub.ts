@@ -85,7 +85,7 @@ export default class Hub {
       requesterDid = DidDocument.getDidFromKeyId(requesterPublicKeyId);
 
       // Verify the signature of the sender.
-      plainTextRequestString = await HubAuthentication.verifySignature(jwsString, requesterPublicKey);
+      plainTextRequestString = HubAuthentication.verifySignature(jwsString, requesterPublicKey);
     } catch (error) {
       // TODO: Proper error logging with logger, for now loggint to console.
       console.log(error);
@@ -114,7 +114,7 @@ export default class Hub {
       // Get the key used to sign the access token specified in the 'kid' header parameters in the JWT header.
       const keyId = Jose.getKeyIdInJweOrJws(accessTokenString);
       const key = this.context.keys[keyId];
-      const tokenVerified = await HubAuthentication.verifyAccessToken(key, accessTokenString, requesterDid);
+      const tokenVerified = HubAuthentication.verifyAccessToken(key, accessTokenString, requesterDid);
 
       // If Hub access token invalid.
       if (!tokenVerified) {
@@ -160,7 +160,7 @@ export default class Hub {
     jwsHeaderParameters: { [name: string]: string },
     content: object | string,
     signingKey: object,
-    encryptingKey: object) : Promise<Buffer> {
+    encryptingKey: any) : Promise<Buffer> {
     const jwsCompactString = await HubAuthentication.sign(jwsHeaderParameters, content, signingKey);
     const signedThenEncryptedContent = await HubEncryption.encrypt(jwsCompactString, encryptingKey);
 

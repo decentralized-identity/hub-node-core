@@ -1,4 +1,4 @@
-import * as base64url from 'base64-url';
+import Base64Url from './Base64Url';
 
 /**
  * Class for performing various JOSE operations.
@@ -18,7 +18,7 @@ export default class Jose {
   public static getJweOrJwsHeader(jweOrJwsCompactString: string): any {
     const headerLength = jweOrJwsCompactString.indexOf('.');
     const headerBase64Url = jweOrJwsCompactString.substr(0, headerLength);
-    const jsonString = base64url.decode(headerBase64Url);
+    const jsonString = Base64Url.decode(headerBase64Url);
 
     return JSON.parse(jsonString);
   }
@@ -41,7 +41,7 @@ export default class Jose {
     const payloadExclusiveEndIndex = jwsCompactString.lastIndexOf('.');
     const payload = jwsCompactString.substring(payloadStartIndex, payloadExclusiveEndIndex);
 
-    return base64url.decode(payload);
+    return Base64Url.decode(payload);
   }
 
   /**

@@ -147,19 +147,28 @@ Requester -> Requester: Parses Hub response.
 # Signature and Encryption Algorithms
 This section lists the signature and encryption algorithms currently supported (implemented and tested). In reality, the Hub Core implementation uses Cisco's JOSE library, which officially supports a few more algorithms such as ECDSA P256, but since we have not tested those curves end-to-end and those are considered insecure by some, they have not been added to the supported list.
 
-## JWS/JWT Support
+## JWS Support
 | Serialization         | Support |
 | --------------------- | ------- |
 | Compact Serialization | Yes     |
 | JSON Serialization    | No      |
 
-| Signing Algorithm  | Support           | JOSE specified | JWK specified | 
+### Hub Response and Token Signing
+| Algorithm          | Support           | JOSE specified | JWK specified | 
+| ------------------ | ----------------- | -------------- | ------------- |
+| RS256              | Yes               | Yes            | Yes           |
+| ED25519            | To be implemented | To be added    | Yes           |
+| SECP256K1          | To be implemented | To be added    | To be added   |
+
+### Request Signature Verification
+| Algorithm          | Support           | JOSE specified | JWK specified | 
 | ------------------ | ----------------- | -------------- | ------------- |
 | RS256              | Yes               | Yes            | Yes           |
 | RS512              | Yes               | Yes            | Yes           |
 | ED25519            | To be implemented | To be added    | Yes           |
 | SECP256K1          | To be implemented | To be added    | To be added   |
 > Note: ED25519 is defined in JWK specification, while SECP256K1 is not. Neither algorithms are listed in the JOSE signature and encryption algorithms, (https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms), and are not implemented in the node-jose NPM package used in the current implementation.
+
 
 ## JWE Support
 | Serialization         | Support |
@@ -169,34 +178,66 @@ This section lists the signature and encryption algorithms currently supported (
 
 > Discussion: Current implementation assumes Compact Serialization in the HTTP POST body and payload. We might want to support JSON serialization for POST body instead/in addition.
 
-| Key Encryption Algorithm | Support           | JOSE specified | JWK specified |
+### Key Encryption
+Asymmetric algorithms that can be used by the Hub to encrypt the symmetric content encryption key in the Hub response JWE:
+| Algorithm                | Support           | JOSE specified | JWK specified |
+| ------------------------ | ----------------- | -------------- | ------------- |
+| RSA-OAEP                 | Yes               | Yes            | Yes           |
+| ED25519                  | To be implemented | To be added    | Yes           |
+| SECP256K1                | To be implemented | To be added    | To be added   |
+
+### Key Decryption
+Asymmetric algorithms that can be used by the Hub to decrypt the symmetric content encryption key in the Hub request JWE:
+| Algorithm                | Support           | JOSE specified | JWK specified |
 | ------------------------ | ----------------- | -------------- | ------------- |
 | RSA-OAEP                 | Yes               | Yes            | Yes           |
 | RSA-OAEP-256             | Yes               | Yes            | Yes           |
 | ED25519                  | To be implemented | To be added    | Yes           |
 | SECP256K1                | To be implemented | To be added    | To be added   |
 
-| Content encryption algorithm  | Support            | JOSE specified |
+### Content Encryption
+Symmetric algorithms that can be used by the Hub to encrypt the content of the Hub response JWE:
+| Algorithm                     | Support            | JOSE specified |
 | ----------------------------- | ------------------ | -------------- |
 | A128GCM                       | Yes                | Yes            |
-| A256GCM                       | Yes                | Yes            |
 | XSalsa20-Poly1305             | To be implemented  | To be added    |
 
-## Adding Algorithm Support
+### Content Decryption
+Symmetric algorithms that can be used by the Hub to decrypt the content of the Hub request JWE:
+| Algorithm                     | Support            | JOSE specified |
+| ----------------------------- | ------------------ | -------------- |
+| A128GCM                       | Yes                | Yes            |
+| XSalsa20-Poly1305             | To be implemented  | To be added    |
+
+
+
+# Cryptographic Algorithm Extensibility
 This section describes how to add additional support to cryptographic algorithms in the Hub.
 
-### Signing Algorithm
-Create a library function for the new signing algorithm matching the `VerifySignatureDelegate` definition, then reference it in the `verifySignature(...)` function. `VerifySignatureDelegate` and `verifySignature(...)` can be located in `HubAuthentication.ts`.
+## JWE Content Encryption Key Encryption
+Follow the steps below to add an additional algorithm for asymmetric key encryption:
+1. Extend `getKeyEncryptionAlgorithm(...)` method in `HubEncryption.ts` to support a new JWK format.
+1. Create a library function for the new encryption algorithm matching the `EncryptDelegate` definition found in `HubEncryption.ts`.
+1. Reference the new encryption function in `encryptContentEncryptionKey(...)` method found in `HubEncryption.ts`.
 
-### Signature Verification Algorithm
+## JWE Content Encryption Key Decryption
 To be added.
 
-### Encryption Algorithm
+## JWE Content Encryption
 To be added.
 
-### Decryption Algorithm
+## JWE Content Decryption
 To be added.
+
+## JWS Signing
+To be added.
+
+## JWS Signature Verification
+Follow the steps below to add an additional algorithm for signature verification:
+1. Create a library function for the new signing algorithm matching the `VerifySignatureDelegate` definition found in `HubAuthentication.ts`.
+1. Reference the new signature verification function in the `verifySignature(...)` method found in `HubAuthentication.ts`.
+
 
 # Future Work
 - Stateful authentication scheme to prevent any replay attack.
-- Stateful ephemeral key and repudiation support.
+- Stateful ephemeral key / forward secrecy support.
