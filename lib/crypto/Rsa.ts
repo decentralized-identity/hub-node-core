@@ -1,6 +1,7 @@
 // TODO: Create and reference TypeScript definition file for 'jwk-to-pem'
 const jwkToPem = require('jwk-to-pem');
 import * as crypto from 'crypto';
+import * as constants from 'constants';
 
 /**
  * Class for performing various RSA cryptographic operations.
@@ -33,5 +34,15 @@ export default class Rsa {
 
     const passedVerification = verifier.verify(publicKey, signature, 'base64');
     return passedVerification;
+  }
+
+  /**
+   * RSA-OAEP encrypts the given data using the given public key in JWK format.
+   */
+  public static encryptRSAOAEP(data: Buffer, jwk: object): Buffer {
+    const publicKey = jwkToPem(jwk);
+    const encryptedDataBuffer = crypto.publicEncrypt({ key: publicKey, padding: constants.RSA_PKCS1_OAEP_PADDING }, data);
+
+    return encryptedDataBuffer;
   }
 }

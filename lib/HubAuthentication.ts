@@ -1,8 +1,9 @@
-
 import HubError from './models/HubError';
 import Jose from './Utilities/Jose';
 import Rsa from './crypto/Rsa';
+import * as crypto from 'crypto';
 
+// TODO: Rewrite sign() to allow additional cryptographic algorithms to be added easily then remove dependency on 'node-jose'.
 const jose = require('node-jose');
 
 /**
@@ -39,7 +40,7 @@ export default class HubAuthentication {
    *
    * @returns The payload if signature is verified. Throws exception otherwise.
    */
-  public static async verifySignature(jwsString: string, jwk: object): Promise<string> {
+  public static verifySignature(jwsString: string, jwk: object): string {
     const algorithm = Jose.getJweOrJwsHeader(jwsString).alg.toUpperCase();
     const signedContent = Jose.getJwsSignedContent(jwsString);
     const signature = Jose.getJwsSignature(jwsString);
@@ -80,7 +81,7 @@ export default class HubAuthentication {
       sub: requesterDid,
       iat: new Date(Date.now()),
       exp: new Date(Date.now() + validDurationInMinutes * 600000),
-      nonce: jose.util.randomBytes(64).toString('base64'),
+      nonce: crypto.randomBytes(32).toString('base64'),
     };
 
     const jwt = await HubAuthentication.sign({}, accessTokenPayload, privateKey);
@@ -99,17 +100,16 @@ export default class HubAuthentication {
    * @param expectedRequesterDid Expected requester ID in the 'sub' field of the JWT payload.
    * @returns true if token passes all validation, false otherwise.
    */
-  public static async verifyAccessToken(publicKey: object, signedJwtString: string, expectedRequesterDid: string): Promise<boolean> {
+  public static verifyAccessToken(publicKey: object, signedJwtString: string, expectedRequesterDid: string): boolean {
     if (!publicKey || !signedJwtString || !expectedRequesterDid) {
       return false;
     }
 
     try {
-      const keyPair = await jose.JWK.asKey(publicKey);
-      const verifiedData = await jose.JWS.createVerify(keyPair).verify(signedJwtString);
+      const verifiedData = HubAuthentication.verifySignature(signedJwtString, publicKey);
 
       // Verify that the token was issued to the same person making the current request.
-      const token = JSON.parse(verifiedData.payload);
+      const token = JSON.parse(verifiedData);
       if (token.sub !== expectedRequesterDid) {
         return false;
       }
