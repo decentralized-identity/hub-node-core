@@ -33,10 +33,10 @@ Specifically, every request sent to the Hub must be JWE encrypted using a public
   "enc": "A128GCM",
 }
 ```
-> NOTE: The requester needs to be identified and authenticated in order for Hub to send the encrypted response. This will be discussed in the end-to-end authentication section of this document.
+> NOTE: The requester needs to be identified and authenticated for Hub to send the encrypted response. This will be discussed in the end-to-end authentication section of this document.
 
 # End-To-End Authentication
-The Hub requires end-to-end (two-way) authentication for all request-response exchanges using the JWS scheme. As a result of the additional message confidentiality requirement described earlier, all requests and responses are first JWS signed, then JWE encrypted.
+The Hub requires end-to-end (two-way) authentication for all request-response exchanges using the JWS scheme. Because of the additional message confidentiality requirement described earlier, all requests and responses are first JWS signed, then JWE encrypted.
 
 The following sequence diagram shows the complete end-to-end authentication (and encryption) flow:
 
@@ -145,7 +145,7 @@ Requester -> Requester: Parses Hub response.
 
 
 # Signature and Encryption Algorithms
-This section lists the signature and encryption algorithms currently supported (implemented and tested). In reality, the Hub Core implementation uses Cisco's JOSE library, which officially supports a few more algorithms such as ECDSA P256, but since we have not tested those curves end-to-end and those are considered insecure by some, they have not been added to the supported list.
+This section lists the signature and encryption algorithms currently supported (implemented and tested).
 
 ## JWS Support
 | Serialization         | Support |
@@ -212,7 +212,7 @@ Symmetric algorithms that can be used by the Hub to decrypt the content of the H
 
 
 # Cryptographic Algorithm Extensibility
-This section describes how to add additional support to cryptographic algorithms in the Hub.
+This section describes how to add additional cryptographic algorithm support in the Hub.
 
 ## JWE Content Encryption Key Encryption
 Follow the steps below to add an additional algorithm for asymmetric key encryption:
