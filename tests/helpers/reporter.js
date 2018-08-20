@@ -6,5 +6,4 @@ var junitReporter = new jasmineReporters.NUnitXmlReporter({
   consolidateAll: false,
 });
 
-jasmine.getEnv().clearReporters();
 jasmine.getEnv().addReporter(junitReporter)
