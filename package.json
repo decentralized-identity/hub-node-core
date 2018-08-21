@@ -4,10 +4,13 @@
   "description": "Node.js implementation of the Identity Hub core.",
   "repository": "https://github.com/decentralized-identity/hub-node-core",
   "license": "Apache-2.0",
-  "main": "dist/Hub.js",
-  "types": "dist/Hub.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
-    "http-status": "^1.1.2"
+    "http-status": "^1.1.2",
+    "jsonwebtoken": "^8.3.0",
+    "jwk-to-pem": "^2.0.0",
+    "node-jose": "^1.0.0"
   },
   "devDependencies": {
     "@types/http-status": "^0.2.30",
@@ -15,6 +18,7 @@
     "@types/node": "^10.3.1",
     "husky": "^0.14.3",
     "jasmine": "^3.1.0",
+    "jasmine-reporters": "^2.3.2",
     "jasmine-ts": "^0.2.1",
     "tslint": "^5.10.0",
     "tslint-config-airbnb": "^5.9.2",

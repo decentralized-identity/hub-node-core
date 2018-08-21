@@ -1,2 +1,4 @@
 dist/
 node_modules/
+nunitresults.xml
+hub-node-core-*.tgz
