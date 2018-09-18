@@ -20,6 +20,8 @@
     "jasmine": "^3.1.0",
     "jasmine-reporters": "^2.3.2",
     "jasmine-ts": "^0.2.1",
+    "nyc": "^13.0.1",
+    "source-map-support": "^0.5.9",
     "tslint": "^5.10.0",
     "tslint-config-airbnb": "^5.9.2",
     "typescript": "^2.9.1"
@@ -27,7 +29,24 @@
   "scripts": {
     "precommit": "npm run lint",
     "build": "tsc",
-    "test": "jasmine-ts --config=./tests/jasmine.json",
+    "test": "nyc jasmine-ts --config=./tests/jasmine.json",
     "lint": "tslint --fix --project ."
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "include": [
+      "lib/**"
+    ],
+    "reporter": [
+      "text",
+      "cobertura",
+      "html"
+    ]
   }
 }
