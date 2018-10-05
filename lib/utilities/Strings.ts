@@ -12,6 +12,9 @@ export default class Strings {
     if (str && str.length > 1) {
       return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
     }
+    if (str) {
+      return str.toUpperCase();
+    }
     return str;
   }
 

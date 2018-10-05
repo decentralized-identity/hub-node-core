@@ -1,5 +1,5 @@
 {
-  "name": "hub-node-core",
+  "name": "@decentralized-identity/hub-node-core",
   "version": "0.1.0",
   "description": "Node.js implementation of the Identity Hub core.",
   "repository": "https://github.com/decentralized-identity/hub-node-core",
@@ -7,12 +7,13 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
+    "@decentralized-identity/did-auth-jose": "^0.1.1",
+    "@decentralized-identity/did-common-typescript": "^0.1.1",
     "http-status": "^1.1.2",
-    "jsonwebtoken": "^8.3.0",
-    "jwk-to-pem": "^2.0.0",
-    "node-jose": "^1.0.0"
+    "node-fetch": "^2.2.0"
   },
   "devDependencies": {
+    "@types/node-fetch": "^2.1.2",
     "@types/http-status": "^0.2.30",
     "@types/jasmine": "^2.8.8",
     "@types/node": "^10.3.1",

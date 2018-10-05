@@ -85,7 +85,7 @@ export default class HubResponse {
   getResponseBody(): any {
     if (this.objects) {
       return {
-        '@type': Strings.upperFirst(this.interfaceName) + '/Response',
+        '@type': `${Strings.upperFirst(this.interfaceName)}/Response`,
         payload: this.objects.map((obj) => {
           return {
             // Add 'id' to any existing meta fields
@@ -97,13 +97,13 @@ export default class HubResponse {
     }
     if (this.success) {
       return {
-        '@type': Strings.upperFirst(this.interfaceName) + '/Response',
+        '@type': `${Strings.upperFirst(this.interfaceName)}/Response`,
         payload: { success: true },
       };
     }
     if (this.error) {
       return {
-        '@type': Strings.upperFirst(this.interfaceName) + '/Response',
+        '@type': `${Strings.upperFirst(this.interfaceName)}/Response`,
         error: {
           message: this.error.message,
         },
