@@ -3,6 +3,7 @@
  */
 import Hub from './Hub';
 import Store from './interfaces/Store';
+import HttpResolver from './plugins/HttpResolver';
 
 export default Hub;
-export { Store };
+export { Store, HttpResolver };
