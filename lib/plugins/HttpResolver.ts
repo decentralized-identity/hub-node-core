@@ -11,7 +11,7 @@ export default class HttpResolver implements DidResolver {
   /**
    * @param universalResolverUrl the URL endpoint of the remote universal resolvers
    */
-  constructor(public universalResolverUrl: string) {}
+  constructor(private universalResolverUrl: string) {}
 
   /**
    * Looks up a DID Document
