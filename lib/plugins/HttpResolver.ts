@@ -1,4 +1,4 @@
-import { DidResolver, ResolveResult } from '@decentralized-identity/did-common-typescript';
+import { DidResolver, ResolveResult, DidDocument } from '@decentralized-identity/did-common-typescript';
 import nodeFetch from 'node-fetch';
 
 /**
@@ -35,7 +35,7 @@ export default class HttpResolver implements DidResolver {
 
     const didDocument = await response.json();
     return {
-      didDocument: didDocument.document,
+      didDocument: new DidDocument(didDocument.document),
       metadata: didDocument.resolverMetadata,
     } as ResolveResult;
   }
