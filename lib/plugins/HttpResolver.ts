@@ -11,7 +11,7 @@ export default class HttpResolver implements DidResolver {
   /**
    * @param universalResolverUrl the URL endpoint of the remote universal resolvers
    */
-  constructor(private universalResolverUrl: string) {}
+  constructor(public universalResolverUrl: string) {}
 
   /**
    * Looks up a DID Document
@@ -35,7 +35,8 @@ export default class HttpResolver implements DidResolver {
 
     const didDocument = await response.json();
     return {
-      didDocument,
+      didDocument: didDocument.document,
+      metadata: didDocument.resolverMetadata,
     } as ResolveResult;
   }
 }
