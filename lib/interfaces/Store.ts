@@ -49,6 +49,14 @@ export interface DeleteDocumentOptions {
 }
 
 /**
+ * Options common to all storage operations.
+ */
+export interface DocumentOperationOptions {
+  owner: string;
+  schema: string;
+}
+
+/**
  * Interface for storing Hub data.
  * NOTE: This is subject to change as replication design solidifies.
  */

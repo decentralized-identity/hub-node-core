@@ -1,11 +1,13 @@
 import * as HttpStatus from 'http-status';
 import { StoredObject } from '../interfaces/Store';
 import HubError from './HubError';
+import Strings from '../utilities/Strings';
 
 /**
  * Represents a response to a request to the Hub.
  */
 export default class HubResponse {
+  private interfaceName?: string;
   private objects?: StoredObject[];
   private error?: Error;
   private success?: boolean;
@@ -70,16 +72,24 @@ export default class HubResponse {
   }
 
   /**
+   * Sets the interface name (e.g. 'actions' or 'collections') to be used in the response.
+   */
+  public setInterfaceName(name: string): HubResponse {
+    this.interfaceName = name;
+    return this;
+  }
+
+  /**
    * Gets the response body.
    */
   getResponseBody(): any {
     if (this.objects) {
       return {
+        '@type': `${Strings.upperFirst(this.interfaceName)}/Response`,
         payload: this.objects.map((obj) => {
           return {
-            meta: {
-              id: obj.id,
-            },
+            // Add 'id' to any existing meta fields
+            meta: Object.assign(obj.meta || {}, { id: obj.id }),
             data: obj.payload,
           };
         }),
@@ -87,11 +97,13 @@ export default class HubResponse {
     }
     if (this.success) {
       return {
+        '@type': `${Strings.upperFirst(this.interfaceName)}/Response`,
         payload: { success: true },
       };
     }
     if (this.error) {
       return {
+        '@type': `${Strings.upperFirst(this.interfaceName)}/Response`,
         error: {
           message: this.error.message,
         },

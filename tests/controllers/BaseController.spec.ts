@@ -34,8 +34,8 @@ describe('BaseController', () => {
     done();
   }
 
-  it('should dispatch Add requests', async (done) => {
-    await dispatchCheckFor('Add', done);
+  it('should dispatch Create requests', async (done) => {
+    await dispatchCheckFor('Create', done);
   });
 
   it('should dispatch Read requests', async (done) => {
@@ -46,8 +46,8 @@ describe('BaseController', () => {
     await dispatchCheckFor('Update', done);
   });
 
-  it('should dispatch Remove requests', async (done) => {
-    await dispatchCheckFor('Remove', done);
+  it('should dispatch Delete requests', async (done) => {
+    await dispatchCheckFor('Delete', done);
   });
 
   it('should dispatch Execute requests', async (done) => {

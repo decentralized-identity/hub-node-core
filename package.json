@@ -1,21 +1,28 @@
 {
-  "name": "hub-node-core",
+  "name": "@decentralized-identity/hub-node-core",
   "version": "0.1.0",
   "description": "Node.js implementation of the Identity Hub core.",
   "repository": "https://github.com/decentralized-identity/hub-node-core",
   "license": "Apache-2.0",
-  "main": "dist/Hub.js",
-  "types": "dist/Hub.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
-    "http-status": "^1.1.2"
+    "@decentralized-identity/did-auth-jose": "^0.1.1",
+    "@decentralized-identity/did-common-typescript": "^0.1.1",
+    "http-status": "^1.1.2",
+    "node-fetch": "^2.2.0"
   },
   "devDependencies": {
+    "@types/node-fetch": "^2.1.2",
     "@types/http-status": "^0.2.30",
     "@types/jasmine": "^2.8.8",
     "@types/node": "^10.3.1",
     "husky": "^0.14.3",
     "jasmine": "^3.1.0",
+    "jasmine-reporters": "^2.3.2",
     "jasmine-ts": "^0.2.1",
+    "nyc": "^13.0.1",
+    "source-map-support": "^0.5.9",
     "tslint": "^5.10.0",
     "tslint-config-airbnb": "^5.9.2",
     "typescript": "^2.9.1"
@@ -23,7 +30,24 @@
   "scripts": {
     "precommit": "npm run lint",
     "build": "tsc",
-    "test": "jasmine-ts --config=./tests/jasmine.json",
+    "test": "nyc jasmine-ts --config=./tests/jasmine.json",
     "lint": "tslint --fix --project ."
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "include": [
+      "lib/**"
+    ],
+    "reporter": [
+      "text",
+      "cobertura",
+      "html"
+    ]
   }
 }
