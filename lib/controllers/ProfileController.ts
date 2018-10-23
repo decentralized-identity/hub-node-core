@@ -41,7 +41,7 @@ export default class ProfileController extends BaseController {
       await this.context.store.deleteDocument({
         owner: request.iss,
         schema: PROFILE_SCHEMA,
-        id: Validation.requiredValue(profile.id, 'request.id'),
+        id: profile.id,
       });
     });
 
@@ -95,7 +95,7 @@ export default class ProfileController extends BaseController {
       const result = await this.context.store.updateDocument({
         owner: request.iss,
         schema: PROFILE_SCHEMA,
-        id: Validation.requiredValue(profile.id, 'request.id'),
+        id: profile.id,
         meta: payloadField.meta,
         payload: Validation.requiredValue(payloadField.data, 'request.payload'),
       });
