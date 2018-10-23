@@ -88,12 +88,17 @@ describe('ProfileController', () => {
         },
       };
       const result = await controller.handleCreateRequest(request);
-      expect(storeCreate).toHaveBeenCalled();
+      expect(storeCreate).toHaveBeenCalledWith({
+        owner: did,
+        schema: PROFILE_SCHEMA,
+        meta: undefined,
+        payload: request.payload.data,
+      });
       expect(result as any).toEqual(testObject);
     });
 
     it('should call update if a Profile already exists', async() => {
-      queryReturnProfile();
+      const profile = queryReturnProfile();
       const testObject = {
         test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
       };
@@ -104,7 +109,13 @@ describe('ProfileController', () => {
         },
       };
       const result = await controller.handleCreateRequest(request);
-      expect(storeUpdate).toHaveBeenCalled();
+      expect(storeUpdate).toHaveBeenCalledWith({
+        owner: did,
+        schema: PROFILE_SCHEMA,
+        id: profile.id,
+        meta: undefined,
+        payload: request.payload.data,
+      });
       expect(result as any).toEqual(testObject);
     });
   });
@@ -122,12 +133,17 @@ describe('ProfileController', () => {
         },
       };
       const result = await controller.handleUpdateRequest(request);
-      expect(storeCreate).toHaveBeenCalled();
+      expect(storeCreate).toHaveBeenCalledWith({
+        owner: did,
+        schema: PROFILE_SCHEMA,
+        meta: undefined,
+        payload: request.payload.data,
+      });
       expect(result as any).toEqual(testObject);
     });
 
     it('should call update if a Profile already exists', async() => {
-      queryReturnProfile();
+      const profile = queryReturnProfile();
       const testObject = {
         test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
       };
@@ -138,7 +154,13 @@ describe('ProfileController', () => {
         },
       };
       const result = await controller.handleUpdateRequest(request);
-      expect(storeUpdate).toHaveBeenCalled();
+      expect(storeUpdate).toHaveBeenCalledWith({
+        owner: did,
+        schema: PROFILE_SCHEMA,
+        id: profile.id,
+        meta: undefined,
+        payload: request.payload.data,
+      });
       expect(result as any).toEqual(testObject);
     });
   });
@@ -162,14 +184,20 @@ describe('ProfileController', () => {
     it('should return the stored Profile', async () => {
       const profile = queryReturnProfile();
       const response = await controller.handleReadRequest(request);
-      expect(storeQuery).toHaveBeenCalled();
+      expect(storeQuery).toHaveBeenCalledWith({
+        owner: did,
+        schema: PROFILE_SCHEMA,
+      });
       expect(response as any).toEqual(profile);
     });
 
     it('should return an empty object when no profile is found', async () => {
       queryReturnEmpty();
       const response: any = await controller.handleReadRequest(request);
-      expect(storeQuery).toHaveBeenCalled();
+      expect(storeQuery).toHaveBeenCalledWith({
+        owner: did,
+        schema: PROFILE_SCHEMA,
+      });
       expect(response.owner).toEqual(did);
       expect(response.schema).toEqual(PROFILE_SCHEMA);
       expect(response.payload).toEqual({});
@@ -178,7 +206,10 @@ describe('ProfileController', () => {
     it('should return the a single Profile if multiple are found', async () => {
       const profiles = queryReturnMultiple();
       const response: any = await controller.handleReadRequest(request);
-      expect(storeQuery).toHaveBeenCalled();
+      expect(storeQuery).toHaveBeenCalledWith({
+        owner: did,
+        schema: PROFILE_SCHEMA,
+      });
       expect(typeof response).not.toEqual('Array');
       expect(response.owner).toEqual(did);
       expect(response.schema).toEqual(PROFILE_SCHEMA);
@@ -190,7 +221,10 @@ describe('ProfileController', () => {
     it('should call query', async () => {
       queryReturnEmpty();
       await controller.handleDeleteRequest(request);
-      expect(storeQuery).toHaveBeenCalled();
+      expect(storeQuery).toHaveBeenCalledWith({
+        owner: did,
+        schema: PROFILE_SCHEMA,
+      });
     });
 
     it('should delete queried objects', async () => {
@@ -212,7 +246,7 @@ describe('ProfileController', () => {
         calledIds.push(deleteOptions.id);
       });
       await controller.handleDeleteRequest(request);
-      expect(storeDelete).toHaveBeenCalled();
+      expect(storeDelete).toHaveBeenCalledTimes(profiles.length);
       expect(calledIds).toEqual(profiles);
     });
   });
