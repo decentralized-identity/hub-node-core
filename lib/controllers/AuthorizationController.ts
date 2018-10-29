@@ -23,7 +23,13 @@ export default class AuthorizationController {
       return true;
     }
     const requester = request.iss;
-    const schema = request.request ? request.request.schema : undefined;
+    if (!request.request) {
+      throw new HubError('request required');
+    }
+    const schema = request.request.schema;
+    if (!schema) {
+      throw new HubError('request.schema required');
+    }
     let operation: RegExp;
     switch (request.getAction().toLowerCase()) {
       case 'create':
