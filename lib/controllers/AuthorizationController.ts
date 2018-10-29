@@ -58,7 +58,7 @@ export default class AuthorizationController {
     permissions.forEach((permission) => {
       const grant = permission.payload as PermissionGrant;
       if (grant.grantee !== requester ||
-         (schema && grant.object_type !== schema) ||
+         (grant.object_type !== schema) ||
           !operation.test(grant.allow)) {
         return;
       }
