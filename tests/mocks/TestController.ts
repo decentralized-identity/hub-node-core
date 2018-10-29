@@ -2,6 +2,7 @@ import BaseController from '../../lib/controllers/BaseController';
 import HubRequest from '../../lib/models/HubRequest';
 import HubResponse from '../../lib/models/HubResponse';
 import TestContext from './TestContext';
+import TestAuthorization from './TestAuthorization';
 
 /**
  * TestController implements an Interface controller (Action, Collection, Profile, etc.) with dynamic
@@ -16,7 +17,9 @@ export default class TestController extends BaseController {
   private onExecute?: (request: HubRequest) => Promise<HubResponse>;
 
   constructor() {
-    super(TestContext.instance);
+    const author = new TestAuthorization();
+    author.setAuthorize(true);
+    super(TestContext.instance, author);
   }
 
   async handleCreateRequest(request: HubRequest): Promise<HubResponse> {

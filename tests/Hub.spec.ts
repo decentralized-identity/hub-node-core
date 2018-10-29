@@ -9,6 +9,7 @@ import {
          RsaCryptoSuite,
          PrivateKey,
         CryptoFactory} from '@decentralized-identity/did-auth-jose';
+import TestAuthorization from './mocks/TestAuthorization';
 
 describe('Hub', () => {
 
@@ -21,6 +22,7 @@ describe('Hub', () => {
   let testResolver: any;
   const rsa = new RsaCryptoSuite();
   const registry = new CryptoFactory([rsa]);
+  let hub: Hub;
 
   beforeAll(async (done) => {
     testContext = new TestContext();
@@ -47,6 +49,11 @@ describe('Hub', () => {
     testResolver = new unitTestExports.TestResolver();
     testResolver.setHandle(async (_: string) => { return hubDID; });
     testContext.resolver = testResolver;
+
+    const author = new TestAuthorization();
+    author.setAuthorize(true);
+    spyOn(Hub, 'getNewAuthorizationController' as 'prototype').and.returnValue(author);
+    hub = new Hub(testContext);
     done();
   });
 
@@ -63,9 +70,7 @@ describe('Hub', () => {
   };
 
   it('should fail because of unimplemented controller handle and send HTTPStutus.OK back.', async () => {
-    const hub = new Hub(testContext);
-
-        // create an access token, sign it, and add to jweToken Header.
+    // create an access token, sign it, and add to jweToken Header.
     const accessTokenPayload = {
       sub: 'did:example:did',
       iat: new Date(Date.now()),
@@ -102,9 +107,6 @@ describe('Hub', () => {
   });
 
   it('should send back an OK HttpResponse for requesting an access token.', async () => {
-
-    const hub = new Hub(testContext);
-
     const jws = new JwsToken(payload, registry);
     const data = await jws.sign(hubkey, header);
     const jwe = new JweToken(data, registry);
@@ -117,7 +119,6 @@ describe('Hub', () => {
   });
 
   it('should fail validation and send back a httpStatus.Bad_Request', async () => { 
-
     const did = new DidDocument({
       '@context': 'https://w3id.org/did/v1',
       id: 'did:example:did',

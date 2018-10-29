@@ -11,6 +11,8 @@ import ActionsController from './controllers/ActionsController';
 import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
+import AuthorizationController from './controllers/AuthorizationController';
+import { Store } from './index';
 
 /**
  * Core class that handles Hub requests.
@@ -30,11 +32,12 @@ export default class Hub {
    * @param context Components for initializing the Hub.
    */
   public constructor(private context: Context) {
+    const authorization = Hub.getNewAuthorizationController(this.context.store);
     this._controllers = {
-      collections: new CollectionsController(this.context),
-      actions: new ActionsController(this.context),
-      permissions: new PermissionsController(this.context),
-      profile: new ProfileController(this.context),
+      collections: new CollectionsController(this.context, authorization),
+      actions: new ActionsController(this.context, authorization),
+      permissions: new PermissionsController(this.context, authorization),
+      profile: new ProfileController(this.context, authorization),
     };
 
     this._authentication = new Authentication({
@@ -42,7 +45,11 @@ export default class Hub {
       keys: this.context.keys,
       cryptoSuites: this.context.cryptoSuites,
     });
+  }
 
+  // Used for unit test overrides
+  private static getNewAuthorizationController(store: Store): AuthorizationController {
+    return new AuthorizationController(store);
   }
 
   /**
