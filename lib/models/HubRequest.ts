@@ -79,7 +79,7 @@ export default class HubRequest {
     this['@type'] = body['@type'];
 
     // Throw error if 'add' or 'update' request does not contain a payload with data.
-    if (['add', 'update'].includes(this._action)) {
+    if (['create', 'update'].includes(this._action)) {
       if (!body.payload || !body.payload.data) {
         throw new HubError('Add/Update requests must specify the "payload.data" field.', HttpStatus.BAD_REQUEST);
       }
