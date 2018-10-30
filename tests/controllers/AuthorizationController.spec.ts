@@ -31,7 +31,7 @@ describe('AuthorizationController', () => {
       const request = new HubRequest({
         iss: sender,
         aud: owner,
-        '@type': 'unknown/create',
+        '@type': 'unknown/read',
         request: {
           schema: 'will not matter here',
         },
@@ -149,12 +149,12 @@ describe('AuthorizationController', () => {
       const request = new HubRequest({
         iss: sender,
         aud: owner,
-        '@type': 'unknown/create',
+        '@type': 'unknown/read',
         request: {
           schema,
         },
       });
-      store.and.returnValues([createPermissionGrant(owner, grantee, schema, 'C----')]);
+      store.and.returnValues([createPermissionGrant(owner, grantee, schema, '-R---')]);
       expect(await auth.authorize(request)).toBeFalsy();
       expect(store).toHaveBeenCalled();
     });
@@ -167,12 +167,12 @@ describe('AuthorizationController', () => {
       const request = new HubRequest({
         iss: sender,
         aud: owner,
-        '@type': 'unknown/create',
+        '@type': 'unknown/read',
         request: {
           schema,
         },
       });
-      store.and.returnValues([createPermissionGrant(owner, sender, permissionSchema, 'C----')]);
+      store.and.returnValues([createPermissionGrant(owner, sender, permissionSchema, '-R---')]);
       expect(await auth.authorize(request)).toBeFalsy();
       expect(store).toHaveBeenCalled();
     });
@@ -187,6 +187,11 @@ describe('AuthorizationController', () => {
         '@type': 'unknown/create',
         request: {
           schema,
+        },
+        payload: {
+          data: {
+            // nothing needs to be here
+          },
         },
       });
       store.and.returnValues([createPermissionGrant(owner, sender, schema, '-R---')]);

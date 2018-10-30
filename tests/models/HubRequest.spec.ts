@@ -112,7 +112,7 @@ describe('HubRequest', () => {
     }
 
     it('should require payloads for add requests', (done) => {
-      payloadIsRequiredFor('Add', done);
+      payloadIsRequiredFor('Create', done);
     });
 
     it('should require payloads for update requests', (done) => {
