@@ -4,6 +4,7 @@ import TestAuthorization from '../mocks/TestAuthorization';
 import TestStore from '../mocks/TestStore';
 import HubRequest from '../../lib/models/HubRequest';
 import { PERMISSION_GRANT_SCHEMA } from '../../lib/models/PermissionGrant';
+import { DeleteDocumentOptions } from '../../lib/interfaces/Store';
 
 describe('PermissionsController', () => {
   let permissionsController: PermissionsController;
@@ -162,41 +163,68 @@ describe('PermissionsController', () => {
     });
   });
 
-  describe('handleCreateRequest', () => {
-    it('should return the stored data', async() => {
-      const permission = makePermission();
-      const request = makeRequest(permission);
-      spyOn(store, 'createDocument').and.callFake((document: any) => document);
-      const result = await permissionsController.handleCreateRequest(request);
-      const response: any = result.getResponseBody().payload[0].data;
-      expect(response).toEqual(permission);
+  describe('handleDeleteRequests', () => {
+    it('should require an id', async () => {
+      const request = makeRequest(undefined);
+      try {
+        await permissionsController.handleDeleteRequest(request);
+        fail('Delete did not require id');
+      } catch (err) {
+        expect(err.message).toContain('id');
+      }
+    });
+
+
+    it('should call the store\'s delete', async() => {
+      const id = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+      const request = makeRequest(undefined, {
+        id,
+        schema: PERMISSION_GRANT_SCHEMA
+      });
+      const spy = spyOn(store, 'deleteDocument').and.callFake((request: DeleteDocumentOptions) => {
+        expect(request.owner).toEqual(request.owner);
+        expect(request.schema).toEqual(PERMISSION_GRANT_SCHEMA);
+        expect(request.id).toEqual(id);
+      })
+      await permissionsController.handleDeleteRequest(request);
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should validate the schema', async() => {
-      checkValidateSchemaIsCalled(async (request) => {await permissionsController.handleCreateRequest(request)});
-    });
-
-    it('should validate the payload', async () => {
-      checkGetPermissionGrantIsCalled(async (request) => {await permissionsController.handleCreateRequest(request)})
+      checkValidateSchemaIsCalled(async (request) => {await permissionsController.handleDeleteRequest(request)});
     });
   });
 
-  describe('handleCreateRequest', () => {
-    it('should return the stored data', async() => {
+  describe('handleUpdateRequest', () => {
+    it('should require an id', async () => {
       const permission = makePermission();
       const request = makeRequest(permission);
-      spyOn(store, 'createDocument').and.callFake((document: any) => document);
-      const result = await permissionsController.handleCreateRequest(request);
+      try {
+        await permissionsController.handleUpdateRequest(request);
+        fail('Update did not require id');
+      } catch (err) {
+        expect(err.message).toContain('id');
+      }
+    });
+
+    it('should return the stored data', async() => {
+      const permission = makePermission();
+      const request = makeRequest(permission, {
+        schema: PERMISSION_GRANT_SCHEMA,
+        id: 'test',
+      });
+      spyOn(store, 'updateDocument').and.callFake((document: any) => document);
+      const result = await permissionsController.handleUpdateRequest(request);
       const response: any = result.getResponseBody().payload[0].data;
       expect(response).toEqual(permission);
     });
 
     it('should validate the schema', async() => {
-      checkValidateSchemaIsCalled(async (request) => {await permissionsController.handleCreateRequest(request)});
+      checkValidateSchemaIsCalled(async (request) => {await permissionsController.handleUpdateRequest(request)});
     });
 
     it('should validate the payload', async () => {
-      checkGetPermissionGrantIsCalled(async (request) => {await permissionsController.handleCreateRequest(request)})
+      checkGetPermissionGrantIsCalled(async (request) => {await permissionsController.handleUpdateRequest(request)})
     });
   });
 
