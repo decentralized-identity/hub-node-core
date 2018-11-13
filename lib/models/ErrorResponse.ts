@@ -1,8 +1,23 @@
 import BaseResponse from './BaseResponse';
 
+/**
+ * Standard error codes
+ */
+export enum ErrorCode {
+  BadRequest = 'bad_request',
+  AuthenticationFailed = 'authentication_failed',
+  PermissionsRequired = 'permissions_required',
+  NotFound = 'not_found',
+  TooManyRequests = 'too_many_requests',
+  ServerError = 'server_error',
+  NotImplemented = 'not_implemented',
+  ServiceUnavailable = 'service_unavailable',
+  TemporarilyUnavailable = 'temporarily_unavailable',
+}
+
 /** Parameters to create an ErrorResponse */
-export interface ErrorOptions {
-  errorCode: string;
+interface ErrorResponseOptions {
+  errorCode: ErrorCode;
   target?: string;
   errorUrl?: string;
   developerMessage?: string;
@@ -25,7 +40,7 @@ export default class ErrorResponse extends BaseResponse {
   /** Custom hub provider error information */
   readonly innerError?: any;
 
-  constructor(options: ErrorOptions) {
+  constructor(options: ErrorResponseOptions) {
     super(options.developerMessage);
     this.type = 'ErrorResponse';
     this.errorCode = options.errorCode;

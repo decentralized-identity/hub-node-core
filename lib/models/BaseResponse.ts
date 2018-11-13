@@ -15,7 +15,9 @@ export default class BaseResponse {
   constructor(public developerMessage?: string) {
   }
 
-  /** Forms a JSON stringified response */
+  /**
+   * Forms a JSON stringified response
+   */
   toString(): string {
     return JSON.stringify(this.toJson());
   }
