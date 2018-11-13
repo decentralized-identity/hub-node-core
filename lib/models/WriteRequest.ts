@@ -1,5 +1,6 @@
 import BaseRequest from './BaseRequest';
 import Commit from './Commit';
+import HubError, { ErrorCode, DeveloperMessage } from './HubError';
 
 /**
  * A hub request of type WriteRequest
@@ -16,10 +17,18 @@ export default class WriteRequest extends BaseRequest {
       request = JSON.parse(json);
     }
     if (!('commit' in request)) {
-      throw new Error("'commit' property required in WriteRequest");
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'commit',
+        developerMessage: DeveloperMessage.MissingParameter,
+      });
     }
     if (typeof request.commit !== 'object') {
-      throw new Error("commit' must be a JSON Serialization");
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'commit',
+        developerMessage: DeveloperMessage.IncorrectParameter,
+      });
     }
     this.commit = new Commit(request.commit);
   }

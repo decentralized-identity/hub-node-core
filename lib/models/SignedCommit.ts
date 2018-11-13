@@ -1,4 +1,5 @@
 import Commit from './Commit';
+import HubError, { DeveloperMessage, ErrorCode } from './HubError';
 
 /**
  * A JSON Serialized signed commit object
@@ -13,10 +14,18 @@ export default class SignedCommit extends Commit {
     super(jws);
     ['payload', 'signature'].forEach((property) => {
       if (!(property in jws)) {
-        throw new Error(`'${property} property in commits required`);
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: `commit.${property}`,
+          developerMessage: DeveloperMessage.MissingParameter,
+        });
       }
       if (typeof jws[property] !== 'string') {
-        throw new Error(`'${property}' property in commits must be a Base64Url string`);
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: `commit.${property}`,
+          developerMessage: DeveloperMessage.IncorrectParameter,
+        });
       }
     });
 

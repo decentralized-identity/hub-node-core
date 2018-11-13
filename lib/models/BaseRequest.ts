@@ -1,3 +1,4 @@
+import HubError, { ErrorCode, DeveloperMessage } from './HubError';
 
 /**
  * A hub request of type BaseRequest
@@ -27,10 +28,18 @@ export default class BaseRequest {
       request = JSON.parse(json);
     }
     if (this.context !== request['@context']) {
-      throw new Error(`'@context' must be ${this.context}`);
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: '@context',
+        developerMessage: DeveloperMessage.IncorrectParameter,
+      });
     }
     if (this.type !== request['@type']) {
-      throw new Error(`@type must be ${this.type}`);
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: '@type',
+        developerMessage: DeveloperMessage.IncorrectParameter,
+      });
     }
     this.iss = request.iss;
     this.aud = request.aud;

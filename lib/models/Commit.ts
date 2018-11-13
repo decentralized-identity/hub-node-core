@@ -1,5 +1,6 @@
 import Base64Url from '@decentralized-identity/did-auth-jose/lib/utilities/Base64Url';
 import { DidDocument } from '@decentralized-identity/did-common-typescript';
+import HubError, { ErrorCode, DeveloperMessage } from './HubError';
 
 /**
  * A single Commit to an object
@@ -16,10 +17,18 @@ export default class Commit {
    */
   constructor (jwt: any) {
     if (!('protected' in jwt)) {
-      throw new Error("'protected' property in commits is required");
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'commit.protected',
+        developerMessage: DeveloperMessage.MissingParameter,
+      });
     }
     if (typeof jwt.protected !== 'string') {
-      throw new Error("'protected' property in commits must be a Base64Url string");
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'commit.protected',
+        developerMessage: DeveloperMessage.IncorrectParameter,
+      });
     }
 
     this.originalProtected = jwt.protected;
