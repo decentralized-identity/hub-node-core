@@ -33,7 +33,40 @@ export default class Commit {
 
     this.originalProtected = jwt.protected;
 
-    this.headers = JSON.parse(Base64Url.decode(jwt.protected));
+    this.headers = this.getProtectedHeaders();
+
+    // check required protected headers
+    ['context', 'type', 'operation', 'committed_at', 'commit_strategy', 'sub', 'kid'].forEach((property) => {
+      if (!(property in this.headers)) {
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: `commit.protected.${property}`,
+          developerMessage: DeveloperMessage.MissingParameter,
+        });
+      }
+    });
+    switch (this.headers.operation) {
+      case operation.Create:
+        // no additional checks
+        break;
+      case operation.Update:
+      case operation.Delete:
+        if (!('object_id' in this.headers)) {
+          throw new HubError({
+            errorCode: ErrorCode.BadRequest,
+            property: 'commit.protected.sub',
+            developerMessage: DeveloperMessage.MissingParameter,
+          });
+        }
+        break;
+      default:
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: 'commit.protected.operation',
+          developerMessage: DeveloperMessage.IncorrectParameter,
+        });
+    }
+    // populate the convinence headers
     this.headers['iss'] = DidDocument.getDidFromKeyId(this.headers.kid);
   }
 
@@ -46,6 +79,13 @@ export default class Commit {
       headers[header] = (this.headers as any)[header];
     }
     return headers as CommitHeaders;
+  }
+
+  /**
+   * Gets the protected headers
+   */
+  getProtectedHeaders(): any {
+    return JSON.parse(Base64Url.decode(this.originalProtected));
   }
 }
 
@@ -65,7 +105,8 @@ interface CommitHeaders {
   commit_strategy: string;
   sub: string;
   kid: string;
-  meta: any;
+  meta?: any;
   iss: string;
+  object_id: string;
   rev: string;
 }
