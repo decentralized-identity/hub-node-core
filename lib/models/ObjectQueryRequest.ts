@@ -20,6 +20,8 @@ export default class ObjectQueryRequest extends BaseRequest {
     /** Value the metadata property should be evaluated against */
     value: string;
   }[];
+  /** Optional skip token, if included in the request */
+  readonly skipToken?: string;
 
   constructor(json: string | any) {
     super(json);
@@ -111,6 +113,17 @@ export default class ObjectQueryRequest extends BaseRequest {
         });
       });
       this.filters = request.query.filters;
+    }
+    // if skip_token is included
+    if ('skip_token' in request.query) {
+      if (request.query.skip_token !== 'string') {
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: 'query.skip_token',
+          developerMessage: DeveloperMessage.IncorrectParameter,
+        });
+      }
+      this.skipToken = request.query.skip_token;
     }
   }
 }
