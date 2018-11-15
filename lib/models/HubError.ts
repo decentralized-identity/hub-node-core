@@ -1,3 +1,4 @@
+import ErrorResponse from "./ErrorResponse";
 
 /**
  * Standard error codes
@@ -20,6 +21,7 @@ export enum ErrorCode {
 export enum DeveloperMessage {
   MissingParameter = 'Required parameter is missing',
   IncorrectParameter = 'Required parameter is of the incorrect type',
+  NotImplemented = 'Not Implemented',
 }
 
 interface HubErrorOptions {
@@ -62,10 +64,18 @@ export default class HubError extends Error {
    * Forms an ErrorResponse using this Error
    */
   toResponse(): ErrorResponse {
+    let developerMessage = this.developerMessage;
+    if (!developerMessage) {
+      switch (this.errorCode) {
+        case ErrorCode.NotImplemented:
+          developerMessage = DeveloperMessage.NotImplemented;
+          break;
+      }
+    }
     return new ErrorResponse({
+      developerMessage,
       errorCode: this.errorCode,
       target: this.property,
-      developerMessage: this.developerMessage,
       userMessage: this.userMessage,
       innerError: {
         timestamp: this.timestamp,

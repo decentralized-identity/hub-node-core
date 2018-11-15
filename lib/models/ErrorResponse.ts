@@ -1,5 +1,5 @@
 import BaseResponse from './BaseResponse';
-import HubError from './HubError';
+import { ErrorCode } from './HubError';
 
 /** Parameters to create an ErrorResponse */
 interface ErrorResponseOptions {
