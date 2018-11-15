@@ -13,6 +13,7 @@ import Request from './models/Request';
 import BaseRequest from './models/BaseRequest';
 import ObjectQueryRequest from './models/ObjectQueryRequest';
 import WriteRequest from './models/WriteRequest';
+import BaseResponse from './models/BaseResponse';
 
 /**
  * Core class that handles Hub requests.
@@ -79,6 +80,7 @@ export default class Hub {
     try {
       // If we get here, it means the Hub access token received is valid, proceed with handling the request.
       const request = new Request(verifiedRequest.request);
+      let response: BaseResponse;
       if (request.getType() === 'CommitQueryRequest') {
         // Commit requests go directly to the Storage layer
         // TODO: Implement storage commit queries
@@ -101,7 +103,7 @@ export default class Hub {
         }
 
         const controller = this._controllers[objectRequest.interface];
-        const response = await controller.handle(objectRequest);
+        response = await controller.handle(objectRequest);
       }
 
       // Sign then encrypt the response.
