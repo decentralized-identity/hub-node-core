@@ -11,6 +11,7 @@ import ActionsController from './controllers/ActionsController';
 import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
+import BaseRequest from './models/BaseRequest';
 
 /**
  * Core class that handles Hub requests.
@@ -76,15 +77,12 @@ export default class Hub {
 
     try {
       // If we get here, it means the Hub access token received is valid, proceed with handling the request.
-      const requestJson = JSON.parse(verifiedRequest.request);
-      const hubRequest = new HubRequest(requestJson);
-      const controller = this._controllers[hubRequest.getInterface()];
-      const hubResponse = await controller.handle(hubRequest);
-
-      hubResponse.setInterfaceName(hubRequest.getInterface());
+      const base = new BaseRequest(verifiedRequest.request);
+      const controller = this._controllers[base.interface];
+      const response = await controller.handle(verifiedRequest.request);
 
       // Sign then encrypt the response.
-      const hubResponseBody = hubResponse.getResponseBody();
+      const hubResponseBody = response.toString();
       const responseBuffer = await this._authentication.getAuthenticatedResponse(verifiedRequest, hubResponseBody);
 
       return {

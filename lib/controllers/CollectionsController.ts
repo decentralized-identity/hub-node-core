@@ -23,11 +23,7 @@ export default class CollectionsController extends BaseController {
     return HubResponse.withObject(result);
   }
 
-  async handleExecuteRequest(request: HubRequest): Promise<HubResponse> {
-    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
-  }
-
-  async handleReadRequest(request: HubRequest): Promise<HubResponse> {
+  async handleQueryRequest(request: HubRequest): Promise<HubResponse> {
     const requestField = Validation.requiredValue(request.request, 'request');
 
     const results = await this.context.store.queryDocuments({

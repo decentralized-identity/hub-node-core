@@ -1,8 +1,5 @@
-import * as HttpStatus from 'http-status';
 import BaseController from './BaseController';
-import HubError from '../models/HubError';
-import HubRequest from '../models/HubRequest';
-import HubResponse from '../models/HubResponse';
+import HubError, { ErrorCode } from '../models/HubError';
 import Validation from '../utilities/Validation';
 
 const ACTION_SCHEMA: string = 'http://schema.identity.foundation/Action';
@@ -24,11 +21,7 @@ export default class ActionsController extends BaseController {
     return HubResponse.withObject(result);
   }
 
-  async handleExecuteRequest(request: HubRequest): Promise<HubResponse> {
-    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
-  }
-
-  async handleReadRequest(request: HubRequest): Promise<HubResponse> {
+  async handleQueryRequest(request: HubRequest): Promise<HubResponse> {
     const results = await this.context.store.queryDocuments({
       owner: request.aud,
       schema: ACTION_SCHEMA,

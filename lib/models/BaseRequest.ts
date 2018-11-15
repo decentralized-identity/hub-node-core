@@ -22,7 +22,6 @@ export default class BaseRequest {
    * @param json A json string or object
    */
   constructor(json: string | any) {
-    this.type = 'BaseRequest';
     let request = json;
     if (typeof json === 'string') {
       request = JSON.parse(json);
@@ -34,9 +33,31 @@ export default class BaseRequest {
         developerMessage: DeveloperMessage.IncorrectParameter,
       });
     }
+    if (!('@type' in request)) {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: '@type',
+        developerMessage: DeveloperMessage.MissingParameter,
+      });
+    }
+    if (typeof request['@type'] !== 'string') {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: '@type',
+        developerMessage: DeveloperMessage.IncorrectParameter,
+      });
+    }
+    this.type = request['@type'];
     this.iss = request.iss;
     this.aud = request.aud;
     this.sub = request.sub;
     this.interface = request.interface;
+  }
+
+  /**
+   * Gets the type of this request
+   */
+  getType(): string {
+    return this.type;
   }
 }

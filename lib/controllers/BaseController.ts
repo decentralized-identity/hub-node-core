@@ -1,8 +1,12 @@
 import * as HttpStatus from 'http-status';
 import Context from '../interfaces/Context';
 import HubError from '../models/HubError';
-import HubRequest from '../models/HubRequest';
-import HubResponse from '../models/HubResponse';
+import WriteRequest from '../models/WriteRequest';
+import WriteResponse from '../models/WriteResponse';
+import ObjectQueryRequest from '../models/ObjectQueryRequest';
+import ObjectQueryResponse from '../models/ObjectQueryResponse';
+import BaseRequest from '../models/BaseRequest';
+import BaseResponse from '../models/BaseResponse';
 
 /**
  * Abstract controller class for every interface controllers to inherit.
@@ -10,23 +14,20 @@ import HubResponse from '../models/HubResponse';
 export default abstract class BaseController {
 
   /** Handles an add request. */
-  abstract async handleCreateRequest(request: HubRequest): Promise<HubResponse>;
-  /** Handles an execute request. */
-  abstract async handleExecuteRequest(request: HubRequest): Promise<HubResponse>;
+  abstract async handleCreateRequest(request: WriteRequest): Promise<WriteResponse>;
   /** Handles a read request. */
-  abstract async handleReadRequest(request: HubRequest): Promise<HubResponse>;
+  abstract async handleQueryRequest(request: ObjectQueryRequest): Promise<ObjectQueryResponse>;
   /** Handles a remove request. */
-  abstract async handleDeleteRequest(request: HubRequest): Promise<HubResponse>;
+  abstract async handleDeleteRequest(request: WriteRequest): Promise<WriteResponse>;
   /** Handles an update request. */
-  abstract async handleUpdateRequest(request: HubRequest): Promise<HubResponse>;
+  abstract async handleUpdateRequest(request: WriteRequest): Promise<WriteResponse>;
 
   /**
    * Map of request handler methods that can be selected based on the action name.
    */
-  protected _handlers: { [name: string]: (request: HubRequest) => Promise<HubResponse> } = {
+  protected _handlers: { [name: string]: <T extends BaseRequest, Q extends BaseResponse>(request: T) => Promise<Q> } = {
     create: this.handleCreateRequest,
-    execute: this.handleExecuteRequest,
-    read: this.handleReadRequest,
+    read: this.handleQueryRequest,
     delete: this.handleDeleteRequest,
     update: this.handleUpdateRequest,
   };
@@ -41,8 +42,8 @@ export default abstract class BaseController {
   /**
    * Handles the Hub request.
    */
-  public async handle(request: HubRequest): Promise<HubResponse> {
-    const action = request.getAction();
+  public async handle(json: string): Promise<BaseResponse> {
+
     const handler = this._handlers[action];
 
     if (!handler) {
