@@ -1,9 +1,6 @@
 import * as HttpStatus from 'http-status';
 import { Authentication } from '@decentralized-identity/did-auth-jose';
 import Context from './interfaces/Context';
-import HttpResponse from './models/HttpResponse';
-import HubRequest from './models/HubRequest';
-import HubResponse from './models/HubResponse';
 
 // Controller classes.
 import BaseController from './controllers/BaseController';
@@ -12,6 +9,7 @@ import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
 import BaseRequest from './models/BaseRequest';
+import HubError, { ErrorCode } from './models/HubError';
 
 /**
  * Core class that handles Hub requests.
@@ -90,9 +88,14 @@ export default class Hub {
         body: responseBuffer,
       };
     } catch (error) {
-      // TODO: Consider defining Hub response code as part of the body.
-      const hubResponse = HubResponse.withError(error);
-      const hubResponseBody = hubResponse.getResponseBody();
+      let hubError: HubError;
+      if (error instanceof HubError) {
+        hubError = error;
+      } else {
+        hubError = new HubError({ errorCode: ErrorCode.ServerError });
+        hubError.stack = error.stack;
+      }
+      const hubResponseBody = hubError.toResponse().toString();
       console.log(error);
 
       // Sign then encrypt the error response.
