@@ -34,13 +34,6 @@ export default class BaseRequest {
         developerMessage: DeveloperMessage.IncorrectParameter,
       });
     }
-    if (this.type !== request['@type']) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: '@type',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
-    }
     this.iss = request.iss;
     this.aud = request.aud;
     this.sub = request.sub;
