@@ -1,4 +1,3 @@
-import * as HttpStatus from 'http-status';
 import { Authentication } from '@decentralized-identity/did-auth-jose';
 import Context from './interfaces/Context';
 

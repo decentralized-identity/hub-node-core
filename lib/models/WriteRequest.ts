@@ -1,6 +1,7 @@
 import BaseRequest from './BaseRequest';
 import Commit from './Commit';
 import HubError, { ErrorCode, DeveloperMessage } from './HubError';
+import SignedCommit from './SignedCommit';
 
 /**
  * A hub request of type WriteRequest
@@ -30,6 +31,6 @@ export default class WriteRequest extends BaseRequest {
         developerMessage: DeveloperMessage.IncorrectParameter,
       });
     }
-    this.commit = new Commit(request.commit);
+    this.commit = new SignedCommit(request.commit);
   }
 }
