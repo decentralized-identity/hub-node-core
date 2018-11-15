@@ -14,6 +14,7 @@ import BaseRequest from './models/BaseRequest';
 import ObjectQueryRequest from './models/ObjectQueryRequest';
 import WriteRequest from './models/WriteRequest';
 import BaseResponse from './models/BaseResponse';
+import HttpResponse from './models/HttpResponse';
 
 /**
  * Core class that handles Hub requests.
