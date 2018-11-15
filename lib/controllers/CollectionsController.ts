@@ -4,7 +4,6 @@ import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
-import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
 
 /**
  * This class handles all the collection requests.
