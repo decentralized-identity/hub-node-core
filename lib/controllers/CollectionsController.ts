@@ -1,29 +1,27 @@
-import * as HttpStatus from 'http-status';
 import BaseController from './BaseController';
-import HubError from '../models/HubError';
-import HubRequest from '../models/HubRequest';
-import HubResponse from '../models/HubResponse';
 import Validation from '../utilities/Validation';
+import WriteRequest from '../models/WriteRequest';
+import WriteResponse from '../models/WriteResponse';
+import ObjectQueryResponse from '../models/ObjectQueryResponse';
+import ObjectQueryRequest from '../models/ObjectQueryRequest';
+import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
 
 /**
  * This class handles all the collection requests.
  */
 export default class CollectionsController extends BaseController {
-  async handleCreateRequest(request: HubRequest): Promise<HubResponse> {
-    const requestField = Validation.requiredValue(request.request, 'request');
-    const payloadField = Validation.requiredValue(request.payload, 'payload');
-
+  async handleCreateRequest(request: WriteRequest): Promise<WriteResponse> {
+    const headers = request.commit.getHeaders();
     const result = await this.context.store.createDocument({
-      owner: request.aud,
-      schema: Validation.requiredValue(requestField.schema, 'request.schema'),
-      meta: payloadField.meta,
-      payload: Validation.requiredValue(payloadField.data, 'request.payload'),
+      owner: request.sub,
+      schema: `${headers.context}${headers.context.endsWith('/') ? '' : '/'}${headers.type}`,
+
     });
 
-    return HubResponse.withObject(result);
+    return new WriteResponse([]);
   }
 
-  async handleQueryRequest(request: HubRequest): Promise<HubResponse> {
+  async handleQueryRequest(request: ObjectQueryRequest): Promise<ObjectQueryResponse> {
     const requestField = Validation.requiredValue(request.request, 'request');
 
     const results = await this.context.store.queryDocuments({
@@ -34,7 +32,7 @@ export default class CollectionsController extends BaseController {
     return HubResponse.withObjects(results);
   }
 
-  async handleDeleteRequest(request: HubRequest): Promise<HubResponse> {
+  async handleDeleteRequest(request: WriteRequest): Promise<WriteResponse> {
     const requestField = Validation.requiredValue(request.request, 'request');
 
     await this.context.store.deleteDocument({
@@ -46,7 +44,7 @@ export default class CollectionsController extends BaseController {
     return HubResponse.withSuccess();
   }
 
-  async handleUpdateRequest(request: HubRequest): Promise<HubResponse> {
+  async handleUpdateRequest(request: WriteRequest): Promise<WriteResponse> {
     const requestField = Validation.requiredValue(request.request, 'request');
     const payloadField = Validation.requiredValue(request.payload, 'payload');
 
@@ -60,4 +58,5 @@ export default class CollectionsController extends BaseController {
 
     return HubResponse.withObject(result);
   }
+
 }

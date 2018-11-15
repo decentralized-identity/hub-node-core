@@ -1,26 +1,27 @@
-import * as HttpStatus from 'http-status';
 import BaseController from './BaseController';
-import HubError from '../models/HubError';
-import HubRequest from '../models/HubRequest';
-import HubResponse from '../models/HubResponse';
+import HubError, { ErrorCode } from '../models/HubError';
+import WriteRequest from '../models/WriteRequest';
+import WriteResponse from '../models/WriteResponse';
+import ObjectQueryRequest from '../models/ObjectQueryRequest';
+import ObjectQueryResponse from '../models/ObjectQueryResponse';
 
 /**
  * This class handles all the permission requests.
  */
 export default class PermissionsController extends BaseController {
-  async handleCreateRequest(request: HubRequest): Promise<HubResponse> {
-    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
+  async handleCreateRequest(_: WriteRequest): Promise<WriteResponse> {
+    throw new HubError({ errorCode: ErrorCode.NotImplemented });
   }
 
-  async handleQueryRequest(request: HubRequest): Promise<HubResponse> {
-    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
+  async handleQueryRequest(_: ObjectQueryRequest): Promise<ObjectQueryResponse> {
+    throw new HubError({ errorCode: ErrorCode.NotImplemented });
   }
 
-  async handleDeleteRequest(request: HubRequest): Promise<HubResponse> {
-    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
+  async handleDeleteRequest(_: WriteRequest): Promise<WriteResponse> {
+    throw new HubError({ errorCode: ErrorCode.NotImplemented });
   }
 
-  async handleUpdateRequest(request: HubRequest): Promise<HubResponse> {
-    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
+  async handleUpdateRequest(_: WriteRequest): Promise<WriteResponse> {
+    throw new HubError({ errorCode: ErrorCode.NotImplemented });
   }
 }

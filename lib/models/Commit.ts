@@ -2,6 +2,13 @@ import Base64Url from '@decentralized-identity/did-auth-jose/lib/utilities/Base6
 import { DidDocument } from '@decentralized-identity/did-common-typescript';
 import HubError, { ErrorCode, DeveloperMessage } from './HubError';
 
+/** Operations for a commit */
+export enum Operation {
+  Create = 'create',
+  Update = 'update',
+  Delete = 'delete',
+}
+
 /**
  * A single Commit to an object
  */
@@ -46,11 +53,11 @@ export default abstract class Commit {
       }
     });
     switch (this.headers.operation) {
-      case operation.Create:
+      case Operation.Create:
         // no additional checks
         break;
-      case operation.Update:
-      case operation.Delete:
+      case Operation.Update:
+      case Operation.Delete:
         if (!('object_id' in this.headers)) {
           throw new HubError({
             errorCode: ErrorCode.BadRequest,
@@ -94,18 +101,11 @@ export default abstract class Commit {
   abstract toJson(): any;
 }
 
-/** Operations for a commit */
-enum operation {
-  Create = 'create',
-  Update = 'update',
-  Delete = 'delete',
-}
-
 /** Combined headers for a commit */
 interface CommitHeaders {
   context: string;
   type: string;
-  operation: operation;
+  operation: Operation;
   committed_at: string;
   commit_strategy: string;
   sub: string;

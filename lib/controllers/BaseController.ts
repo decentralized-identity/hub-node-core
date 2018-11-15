@@ -6,6 +6,7 @@ import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
 import BaseRequest from '../models/BaseRequest';
 import BaseResponse from '../models/BaseResponse';
+import { Operation } from '../models/Commit';
 
 /**
  * Abstract controller class for every interface controllers to inherit.
@@ -37,12 +38,13 @@ export default abstract class BaseController {
         return await this.handleQueryRequest(request as ObjectQueryRequest);
       case 'WriteRequest':
         const writeRequest = request as WriteRequest;
+        BaseController.verifyConstraints(writeRequest);
         switch (writeRequest.commit.getHeaders().operation) {
-          case 'create':
+          case Operation.Create:
             return await this.handleCreateRequest(writeRequest);
-          case 'update':
+          case Operation.Update:
             return await this.handleUpdateRequest(writeRequest);
-          case 'delete':
+          case Operation.Delete:
             return await this.handleDeleteRequest(writeRequest);
           default:
             throw new HubError({
@@ -57,6 +59,21 @@ export default abstract class BaseController {
           property: '@type',
           developerMessage: DeveloperMessage.IncorrectParameter,
         });
+    }
+  }
+
+  /**
+   * Verifies common constraints for commits
+   * @param request Request to verify
+   */
+  private static verifyConstraints(request: WriteRequest) {
+    const headers = request.commit.getProtectedHeaders();
+    if (request.sub !== headers.sub) {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'commit.protected.sub',
+        developerMessage: DeveloperMessage.IncorrectParameter,
+      });
     }
   }
 }
