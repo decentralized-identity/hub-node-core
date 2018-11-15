@@ -22,16 +22,6 @@ export default abstract class BaseController {
   abstract async handleUpdateRequest(request: WriteRequest): Promise<WriteResponse>;
 
   /**
-   * Map of request handler methods that can be selected based on the action name.
-   */
-  protected _handlers: { [name: string]: <T extends BaseRequest>(request: T) => Promise<BaseResponse> } = {
-    create: this.handleCreateRequest,
-    query: this.handleQueryRequest,
-    delete: this.handleDeleteRequest,
-    update: this.handleUpdateRequest,
-  };
-
-  /**
    * Constructor for the BaseController.
    *
    * @param context The context object containing all the injected components.
@@ -41,23 +31,26 @@ export default abstract class BaseController {
   /**
    * Handles the Hub request.
    */
-  public async handle<T extends BaseRequest>(request: T): Promise<BaseResponse> {
-    let handler: <T extends BaseRequest>(request: T) => Promise<BaseResponse>;
+  public async handle(request: BaseRequest): Promise<BaseResponse> {
     switch (request.getType()) {
       case 'ObjectQueryRequest':
-        handler = this._handlers['query'];
-        break;
+        return await this.handleQueryRequest(request as ObjectQueryRequest);
       case 'WriteRequest':
         const writeRequest = request as WriteRequest;
-        handler = this._handlers[writeRequest.commit.getHeaders().operation];
-        if (!handler) {
-          throw new HubError({
-            errorCode: ErrorCode.BadRequest,
-            property: 'commit.protected.operation',
-            developerMessage: DeveloperMessage.IncorrectParameter,
-          });
+        switch (writeRequest.commit.getHeaders().operation) {
+          case 'create':
+            return await this.handleCreateRequest(writeRequest);
+          case 'update':
+            return await this.handleUpdateRequest(writeRequest);
+          case 'delete':
+            return await this.handleDeleteRequest(writeRequest);
+          default:
+            throw new HubError({
+              errorCode: ErrorCode.BadRequest,
+              property: 'commit.protected.operation',
+              developerMessage: DeveloperMessage.IncorrectParameter,
+            });
         }
-        break;
       default:
         throw new HubError({
           errorCode: ErrorCode.BadRequest,
@@ -65,7 +58,5 @@ export default abstract class BaseController {
           developerMessage: DeveloperMessage.IncorrectParameter,
         });
     }
-
-    return await handler.call(this, request);
   }
 }
