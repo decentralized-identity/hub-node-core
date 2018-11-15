@@ -14,7 +14,7 @@ import BaseRequest from './models/BaseRequest';
 import ObjectQueryRequest from './models/ObjectQueryRequest';
 import WriteRequest from './models/WriteRequest';
 import BaseResponse from './models/BaseResponse';
-import HttpResponse from './models/HttpResponse';
+import Response from './models/Response';
 
 /**
  * Core class that handles Hub requests.
@@ -54,7 +54,7 @@ export default class Hub {
    *
    * @param request The raw request buffer.
    */
-  public async handleRequest(request: Buffer): Promise<HttpResponse> {
+  public async handleRequest(request: Buffer): Promise<Response> {
     // Try decrypt the payload and validate signature,
     // Respond with bad request if unable to identify the requester.
     let verifiedRequest;
@@ -64,7 +64,7 @@ export default class Hub {
       // TODO: Proper error logging with logger, for now logging to console.
       console.log(error);
       return {
-        statusCode: HttpStatus.BAD_REQUEST,
+        ok: false,
         body: Buffer.from(''),
       };
     }
@@ -73,7 +73,7 @@ export default class Hub {
     // if the plaintext is a buffer, auth is attempting to send back a fully formed token
     if (verifiedRequest instanceof Buffer) {
       return {
-        statusCode: HttpStatus.OK,
+        ok: true,
         body: verifiedRequest,
       };
     }
@@ -112,7 +112,7 @@ export default class Hub {
       const responseBuffer = await this._authentication.getAuthenticatedResponse(verifiedRequest, hubResponseBody);
 
       return {
-        statusCode: HttpStatus.OK,
+        ok: true,
         body: responseBuffer,
       };
     } catch (error) {
@@ -130,7 +130,7 @@ export default class Hub {
       const responseBuffer = await this._authentication.getAuthenticatedResponse(verifiedRequest, hubResponseBody);
 
       return {
-        statusCode: HttpStatus.OK,
+        ok: true,
         body: responseBuffer,
       };
     }
