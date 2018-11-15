@@ -1,4 +1,4 @@
-import ErrorResponse from "./ErrorResponse";
+import ErrorResponse from './ErrorResponse';
 
 /**
  * Standard error codes
