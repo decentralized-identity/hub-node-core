@@ -4,7 +4,7 @@ import BaseResponse from './BaseResponse';
  * A hub response of type WriteResponse
  */
 export default class WriteResponse extends BaseResponse {
-  constructor(public revisions: string[], developerMessage?: string) {
+  constructor(public readonly revisions: string[], developerMessage?: string) {
     super(developerMessage);
     this.type = 'WriteResponse';
   }

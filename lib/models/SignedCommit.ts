@@ -39,4 +39,18 @@ export default class SignedCommit extends Commit {
    */
   validate() {
   }
+
+  toJson() {
+    const additionalHeaders = this.getHeaders();
+    const protectedHeaders = this.getProtectedHeaders();
+    protectedHeaders.forEach((key: string) => {
+      delete (additionalHeaders as any)[key];
+    });
+    return {
+      protected: this.originalProtected,
+      headers: additionalHeaders,
+      payload: this.originalPayload,
+      signature: this.originalSignature,
+    } as any;
+  }
 }

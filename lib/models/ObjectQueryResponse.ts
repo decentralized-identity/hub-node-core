@@ -18,9 +18,9 @@ export interface ObjectContainer {
  */
 export default class ObjectQueryResponse extends BaseResponse {
   /** Results of the Object Query */
-  objects: ObjectContainer[];
+  readonly objects: ObjectContainer[];
   /** Optional skip token to continue result returns */
-  skipToken?: string;
+  readonly skipToken?: string;
 
   constructor(objects: ObjectContainer[], developerMessage?: string) {
     super(developerMessage);

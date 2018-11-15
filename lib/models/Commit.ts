@@ -5,7 +5,7 @@ import HubError, { ErrorCode, DeveloperMessage } from './HubError';
 /**
  * A single Commit to an object
  */
-export default class Commit {
+export default abstract class Commit {
   /** original Base64Url protected headers */
   protected readonly originalProtected: string;
   /** decrypted combined headers */
@@ -87,6 +87,11 @@ export default class Commit {
   getProtectedHeaders(): any {
     return JSON.parse(Base64Url.decode(this.originalProtected));
   }
+
+  /**
+   * Gets the JSON Serialized form of this commit
+   */
+  abstract toJson(): any;
 }
 
 /** Operations for a commit */

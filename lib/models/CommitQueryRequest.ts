@@ -11,6 +11,8 @@ export default class CommitQueryRequest extends BaseRequest {
   revisions: string[];
   /** if provided, restrict returned results to only the listed metadata fields */
   fields: string[];
+  /** if provided, the skip token used for continuation */
+  skipToken?: string;
 
   constructor(json: string | any) {
     super(json);
@@ -35,6 +37,18 @@ export default class CommitQueryRequest extends BaseRequest {
         this.revisions = revisions;
       } else {
         this.revisions = [];
+      }
+      // check skip_token
+      if ('skip_token' in request.query) {
+        const skipToken = request.query.skip_token;
+        if (typeof skipToken !== 'string') {
+          throw new HubError({
+            errorCode: ErrorCode.BadRequest,
+            property: 'query.skip_token',
+            developerMessage: DeveloperMessage.IncorrectParameter,
+          });
+        }
+        this.skipToken = skipToken;
       }
     } else {
       this.objectIds = [];
