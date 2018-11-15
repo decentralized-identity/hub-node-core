@@ -3,7 +3,7 @@ import HubError, { ErrorCode, DeveloperMessage } from './HubError';
 /**
  * A generic hub request. All requests contain these fields
  */
-export default abstract class Request {
+export default class Request {
   /** \@context of the request schema */
   protected readonly context = 'https://schema.identity.foundation/0.1';
   /** \@type of the request, always 'BaseRequest' */

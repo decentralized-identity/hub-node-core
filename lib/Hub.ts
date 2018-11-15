@@ -8,8 +8,11 @@ import ActionsController from './controllers/ActionsController';
 import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
+import HubError, { ErrorCode, DeveloperMessage } from './models/HubError';
+import Request from './models/Request';
 import BaseRequest from './models/BaseRequest';
-import HubError, { ErrorCode } from './models/HubError';
+import ObjectQueryRequest from './models/ObjectQueryRequest';
+import WriteRequest from './models/WriteRequest';
 
 /**
  * Core class that handles Hub requests.
@@ -75,9 +78,31 @@ export default class Hub {
 
     try {
       // If we get here, it means the Hub access token received is valid, proceed with handling the request.
-      const base = new BaseRequest(verifiedRequest.request);
-      const controller = this._controllers[base.interface];
-      const response = await controller.handle(verifiedRequest.request);
+      const request = new Request(verifiedRequest.request);
+      if (request.getType() === 'CommitQueryRequest') {
+        // Commit requests go directly to the Storage layer
+        // TODO: Implement storage commit queries
+        throw new HubError({ errorCode: ErrorCode.NotImplemented });
+      } else {
+        let objectRequest: BaseRequest;
+        switch (request.getType()) {
+          case 'ObjectQueryRequest':
+            objectRequest = new ObjectQueryRequest(verifiedRequest.request);
+            break;
+          case 'WriteRequest':
+            objectRequest = new WriteRequest(verifiedRequest.request);
+            break;
+          default:
+            throw new HubError({
+              errorCode: ErrorCode.BadRequest,
+              property: '@type',
+              developerMessage: DeveloperMessage.IncorrectParameter,
+            });
+        }
+
+        const controller = this._controllers[objectRequest.interface];
+        const response = await controller.handle(objectRequest);
+      }
 
       // Sign then encrypt the response.
       const hubResponseBody = response.toString();

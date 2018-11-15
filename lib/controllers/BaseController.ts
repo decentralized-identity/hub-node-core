@@ -1,6 +1,5 @@
-import * as HttpStatus from 'http-status';
 import Context from '../interfaces/Context';
-import HubError from '../models/HubError';
+import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
@@ -25,9 +24,9 @@ export default abstract class BaseController {
   /**
    * Map of request handler methods that can be selected based on the action name.
    */
-  protected _handlers: { [name: string]: <T extends BaseRequest, Q extends BaseResponse>(request: T) => Promise<Q> } = {
+  protected _handlers: { [name: string]: <T extends BaseRequest>(request: T) => Promise<BaseResponse> } = {
     create: this.handleCreateRequest,
-    read: this.handleQueryRequest,
+    query: this.handleQueryRequest,
     delete: this.handleDeleteRequest,
     update: this.handleUpdateRequest,
   };
@@ -42,12 +41,29 @@ export default abstract class BaseController {
   /**
    * Handles the Hub request.
    */
-  public async handle(json: string): Promise<BaseResponse> {
-
-    const handler = this._handlers[action];
-
-    if (!handler) {
-      return HubResponse.withError(new HubError(`Handling of '${action}' action is not supported.`, HttpStatus.BAD_REQUEST));
+  public async handle<T extends BaseRequest>(request: T): Promise<BaseResponse> {
+    let handler: <T extends BaseRequest>(request: T) => Promise<BaseResponse>;
+    switch (request.getType()) {
+      case 'ObjectQueryRequest':
+        handler = this._handlers['query'];
+        break;
+      case 'WriteRequest':
+        const writeRequest = request as WriteRequest;
+        handler = this._handlers[writeRequest.commit.getHeaders().operation];
+        if (!handler) {
+          throw new HubError({
+            errorCode: ErrorCode.BadRequest,
+            property: 'commit.protected.operation',
+            developerMessage: DeveloperMessage.IncorrectParameter,
+          });
+        }
+        break;
+      default:
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: '@type',
+          developerMessage: DeveloperMessage.IncorrectParameter,
+        });
     }
 
     return await handler.call(this, request);
