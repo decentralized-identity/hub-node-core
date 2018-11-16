@@ -1,71 +1,101 @@
-/**
- * Interface for an object stored in the Hub.
- */
-export interface StoredObject {
-  owner: string;
-  id: string;
-  schema: string;
-  meta?: object;
-  payload: any;
+import Commit from '../models/Commit';
+
+interface QueryEqualsFilter {
+  type: 'eq';
+  field: string;
+  value: string | string[];
 }
 
-/**
- * Options for creating an object in Hub.
- */
-export interface CreateDocumentOptions {
+interface QueryRequest {
+
+  // DID of the Hub owner
   owner: string;
-  schema: string;
-  id?: string;
-  meta?: object;
-  payload: any;
+
+  filters?: QueryEqualsFilter[];
+
+  // List of fields to return from the queried items. Currently only supports "rev" or "id"
+  // fields?: string[];
+
+  skip_token?: string;
+
 }
 
-/**
- * Options for reading objects in Hub.
- */
-export interface QueryDocumentsOptions {
-  owner: string;
-  schema: string;
+interface ObjectQueryRequest extends QueryRequest {
+
+  // filters[] currently accepts 'interface', 'context', 'type', and 'object_id'
+
 }
 
-/**
- * Options for updating an object in Hub.
- */
-export interface UpdateDocumentOptions {
-  owner: string;
-  schema: string;
-  id: string;
-  meta?: object;
-  payload: any;
+interface CommitQueryRequest extends QueryRequest {
+
+  // filters[] currently accepts 'object_id' and 'rev'
+
 }
 
-/**
- * Options for deleting an object in Hub.
- */
-export interface DeleteDocumentOptions {
-  owner: string;
-  schema: string;
-  id: string;
+interface QueryResponse<ResultType> {
+
+  results: ResultType[];
+
+  pagination: {
+    skip_token: string;
+  }
+
 }
 
-/**
- * Options common to all storage operations.
- */
-export interface DocumentOperationOptions {
-  owner: string;
-  schema: string;
+// TODO: Define interface for Hub object
+interface ObjectQueryResponse extends QueryResponse<any> {
+
 }
 
+interface CommitQueryResponse extends QueryResponse<Commit> {
+
+}
+
+interface CommitRequest {
+
+  // DID of the Hub owner
+  owner: string;
+
+  commit: Commit;
+
+}
+
+interface CommitResponse {
+
+  knownRevisions: string[];
+
+}
+
+
 /**
- * Interface for storing Hub data.
- * NOTE: This is subject to change as replication design solidifies.
+ * Interface for storing Hub data, which must be implemented by each backing database.
  */
 export default interface Store {
-  createDocument(options: CreateDocumentOptions): Promise<StoredObject>;
+  /**
+   * Adds one or more Commit objects to the store. This method is idempotent and it is acceptable to
+   * pass a previously seen Commit.
+   */
+  commit(request: CommitRequest): Promise<CommitResponse>;
 
-  queryDocuments(options: QueryDocumentsOptions): Promise<StoredObject[]>;
+  /**
+   * Queries the store for objects matching the specified filters.
+   *
+   * @param request A request specifying the details of which objects to query. This query must
+   * specify at least an owner DID, may also specify other constraints.
+   *
+   * @returns A promise for a response containing details of the matching objects, as well as other
+   * metadata such as pagination.
+   */
+  queryObjects(request: ObjectQueryRequest): Promise<ObjectQueryResponse>;
 
-  updateDocument(options: UpdateDocumentOptions): Promise<StoredObject>;
-
-  deleteDocument(options: DeleteDocumentOptions): Promise<void>;
+  /**
+   * Queries the store for commits matching the specified filters.
+   *
+   * @param request A request specifying the details of which commits to query. This query must
+   * specify at least an owner DID, may also specify other constraints.
+   *
+   * @returns A promise for a response containing details of the matching commits, as well as other
+   * metadata such as pagination.
+   */
+  queryCommits(request: CommitQueryRequest): Promise<CommitQueryResponse>;
 }
