@@ -1,9 +1,13 @@
 import Commit from '../models/Commit';
 
-interface QueryEqualsFilter {
+interface QueryFilter {
+  type: string;
+}
+
+interface QueryEqualsFilter extends QueryFilter {
   type: 'eq';
   field: string;
-  value: string | string[];
+  value: string|string[];
 }
 
 interface QueryRequest {
@@ -24,6 +28,8 @@ interface ObjectQueryRequest extends QueryRequest {
 
   // filters[] currently accepts 'interface', 'context', 'type', and 'object_id'
 
+  // TODO: Stores needs interface: 'Stores' and store_key: foo.
+  // Profile needs ???
 }
 
 interface CommitQueryRequest extends QueryRequest {
@@ -38,7 +44,7 @@ interface QueryResponse<ResultType> {
 
   pagination: {
     skip_token: string;
-  };
+  }
 
 }
 
