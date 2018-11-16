@@ -44,7 +44,7 @@ interface QueryResponse<ResultType> {
 
   pagination: {
     skip_token: string;
-  }
+  };
 
 }
 
