@@ -11,7 +11,7 @@ export default class WriteResponse extends BaseResponse {
 
   protected toJson(): any {
     const json = super.toJson();
-    json.revisions = this.revisions;
+    json.revision = this.revisions;
     return json;
   }
 }

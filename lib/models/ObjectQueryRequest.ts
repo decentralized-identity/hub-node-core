@@ -56,26 +56,26 @@ export default class ObjectQueryRequest extends BaseRequest {
     });
     this.queryContext = request.query.context;
     this.queryType = request.query.type;
-    // if Object_Ids filter is used
-    if ('object_ids' in request.query) {
-      if (typeof request.query.object_ids !== 'object' ||
-          !Array.isArray(request.query.object_ids)) {
+    // if object_id filter is used
+    if ('object_id' in request.query) {
+      if (typeof request.query.object_id !== 'object' ||
+          !Array.isArray(request.query.object_id)) {
         throw new HubError({
           errorCode: ErrorCode.BadRequest,
-          property: 'query.object_ids',
+          property: 'query.object_id',
           developerMessage: DeveloperMessage.IncorrectParameter,
         });
       }
-      request.query.object_ids.forEach((objectId: any, index: number) => {
+      request.query.object_id.forEach((objectId: any, index: number) => {
         if (typeof objectId !== 'string') {
           throw new HubError({
             errorCode: ErrorCode.BadRequest,
-            property: `query.object_ids[${index}]`,
+            property: `query.object_id[${index}]`,
             developerMessage: DeveloperMessage.IncorrectParameter,
           });
         }
       });
-      this.objectIds = request.query.object_ids;
+      this.objectIds = request.query.object_id;
     }
     // if filters are used
     if ('filters' in request.query) {

@@ -22,18 +22,18 @@ export default class CommitQueryRequest extends Request {
       request = JSON.parse(json);
     }
     if ('query' in request) {
-      // check object_ids
-      if ('object_ids' in request.query) {
-        const objectIds = request.query.object_ids;
-        CommitQueryRequest.validateStringArray(objectIds, 'query.object_ids');
+      // check object_id
+      if ('object_id' in request.query) {
+        const objectIds = request.query.object_id;
+        CommitQueryRequest.validateStringArray(objectIds, 'query.object_id');
         this.objectIds = objectIds;
       } else {
         this.objectIds = [];
       }
       // check revisions
-      if ('revisions' in request.query) {
-        const revisions = request.query.revisions;
-        CommitQueryRequest.validateStringArray(revisions, 'query.revisions');
+      if ('revision' in request.query) {
+        const revisions = request.query.revision;
+        CommitQueryRequest.validateStringArray(revisions, 'query.revision');
         this.revisions = revisions;
       } else {
         this.revisions = [];
