@@ -38,7 +38,7 @@ interface QueryResponse<ResultType> {
 
   pagination: {
     skip_token: string;
-  }
+  };
 
 }
 
@@ -65,7 +65,6 @@ interface CommitResponse {
   knownRevisions: string[];
 
 }
-
 
 /**
  * Interface for storing Hub data, which must be implemented by each backing database.
