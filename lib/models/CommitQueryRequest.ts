@@ -1,10 +1,10 @@
 import HubError, { ErrorCode, DeveloperMessage } from './HubError';
-import Request from './Request';
+import BaseRequest from './BaseRequest';
 
 /**
  * A hub request for type CommitQueryRequest
  */
-export default class CommitQueryRequest extends Request {
+export default class CommitQueryRequest extends BaseRequest {
   /** Ids of objects whos complete commit history should be returned */
   objectIds: string[];
   /** Ids of commits that should be returned */

@@ -43,7 +43,7 @@ export default abstract class Commit {
     this.headers = this.getProtectedHeaders();
 
     // check required protected headers
-    ['context', 'type', 'operation', 'committed_at', 'commit_strategy', 'sub', 'kid'].forEach((property) => {
+    ['interface', 'context', 'type', 'operation', 'committed_at', 'commit_strategy', 'sub', 'kid'].forEach((property) => {
       if (!(property in this.headers)) {
         throw new HubError({
           errorCode: ErrorCode.BadRequest,
