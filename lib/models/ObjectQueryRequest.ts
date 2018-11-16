@@ -5,6 +5,8 @@ import HubError, { ErrorCode, DeveloperMessage } from './HubError';
  * A hub request of type ObjectQueryRequest
  */
 export default class ObjectQueryRequest extends BaseRequest {
+  /** The interface being queried */
+  readonly interface: string;
   /** The context being queried */
   readonly queryContext: string;
   /** The type being queried */
@@ -45,7 +47,7 @@ export default class ObjectQueryRequest extends BaseRequest {
         developerMessage: DeveloperMessage.IncorrectParameter,
       });
     }
-    ['context', 'type'].forEach((property) => {
+    ['interface', 'context', 'type'].forEach((property) => {
       if (!(property in request.query)) {
         throw new HubError({
           errorCode: ErrorCode.BadRequest,
@@ -53,7 +55,15 @@ export default class ObjectQueryRequest extends BaseRequest {
           developerMessage: DeveloperMessage.MissingParameter,
         });
       }
+      if (typeof request.query[property] !== 'string') {
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: `query.${property}`,
+          developerMessage: DeveloperMessage.IncorrectParameter,
+        });
+      }
     });
+    this.interface = request.query.interface;
     this.queryContext = request.query.context;
     this.queryType = request.query.type;
     // if object_id filter is used
