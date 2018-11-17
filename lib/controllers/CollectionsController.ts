@@ -1,61 +1,96 @@
 import BaseController from './BaseController';
-import Validation from '../utilities/Validation';
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
+import { DidDocument } from '@decentralized-identity/did-common-typescript';
 
 /**
  * This class handles all the collection requests.
  */
 export default class CollectionsController extends BaseController {
   async handleCreateRequest(request: WriteRequest): Promise<WriteResponse> {
-    const headers = request.commit.getHeaders();
-    const result = await this.context.store.createDocument({
-      owner: request.sub,
-      schema: `${headers.context}${headers.context.endsWith('/') ? '' : '/'}${headers.type}`,
-
-    });
-
-    return new WriteResponse([]);
+    return await this.writeCommit(request);
   }
 
   async handleQueryRequest(request: ObjectQueryRequest): Promise<ObjectQueryResponse> {
-    const requestField = Validation.requiredValue(request.request, 'request');
+    const filters = [
+      {
+        field: 'interface',
+        value: request.interface,
+      },
+      {
+        field: 'context',
+        value: request.queryContext,
+      },
+      {
+        field: 'type',
+        value: request.queryType,
+      },
+    ];
 
-    const results = await this.context.store.queryDocuments({
-      owner: request.aud,
-      schema: Validation.requiredValue(requestField.schema, 'request.schema'),
-    });
+    if (request.objectIds) {
+      filters.push({
+        field: 'object_id',
+        value: request.objectIds,
+      });
+    }
 
-    return HubResponse.withObjects(results);
+    const queryRequest = {
+      filters,
+      owner: request.sub,
+    };
+
+    const response = await this.context.store.queryObjects(queryRequest);
+    console.log(response);
+    return new ObjectQueryResponse([]);
   }
 
   async handleDeleteRequest(request: WriteRequest): Promise<WriteResponse> {
-    const requestField = Validation.requiredValue(request.request, 'request');
-
-    await this.context.store.deleteDocument({
-      owner: request.aud,
-      schema: Validation.requiredValue(requestField.schema, 'request.schema'),
-      id: Validation.requiredValue(requestField.id, 'request.id'),
-    });
-
-    return HubResponse.withSuccess();
+    return await this.writeCommit(request);
   }
 
   async handleUpdateRequest(request: WriteRequest): Promise<WriteResponse> {
-    const requestField = Validation.requiredValue(request.request, 'request');
-    const payloadField = Validation.requiredValue(request.payload, 'payload');
+    return await this.writeCommit(request);
+  }
 
-    const result = await this.context.store.updateDocument({
-      owner: request.aud,
-      schema: Validation.requiredValue(requestField.schema, 'request.schema'),
-      id: Validation.requiredValue(requestField.id, 'request.id'),
-      meta: payloadField.meta,
-      payload: Validation.requiredValue(payloadField.data, 'request.payload'),
-    });
+  private async objectExists(request: WriteRequest): Promise<boolean> {
+    const filters = [
+      {
+        field: 'interface',
+        value: request.interface,
+      },
+      {
+        field: 'context',
+        value: request.queryContext,
+      },
+      {
+        field: 'type',
+        value: request.queryType,
+      },
+      {
+        field: 'object_id',
+        value: request.objectIds,
+      },
+    ];
 
-    return HubResponse.withObject(result);
+    const queryRequest = {
+      filters,
+      owner: request.sub,
+    };
+
+    const response = await this.context.store.queryObjects(queryRequest);
+    await queryCommits(commitQuery);
+
+  }
+
+  private async writeCommit(request: WriteRequest): Promise<WriteResponse> {
+    const commitRequest = {
+      owner: request.sub,
+      commit: request.commit,
+    };
+    const response = await this.context.store.commit(commitRequest);
+    return new WriteResponse(response.knownRevisions);
   }
 
 }

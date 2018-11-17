@@ -103,6 +103,7 @@ export default abstract class Commit {
 
 /** Combined headers for a commit */
 interface CommitHeaders {
+  interface: string;
   context: string;
   type: string;
   operation: Operation;
