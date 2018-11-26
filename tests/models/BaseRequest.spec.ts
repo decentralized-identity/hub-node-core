@@ -1,6 +1,6 @@
 import BaseRequest from '../../lib/models/BaseRequest';
 
-const context = 'https://schema.identity.foundation/0.1';
+export const Context = 'https://schema.identity.foundation/0.1';
 
 describe('BaseRequest', () => {
   describe('constructor', () => {
@@ -15,7 +15,7 @@ describe('BaseRequest', () => {
 
     it('should require an issuer field', () => {
       requestShouldError({
-        '@context': context,
+        '@context': Context,
         '@type': 'TestType',
         aud: 'did:example:hub.id',
         sub: 'did:example:alice.id',
@@ -24,7 +24,7 @@ describe('BaseRequest', () => {
 
     it('should require an Audience field', () => {
       requestShouldError({
-        '@context': context,
+        '@context': Context,
         '@type': 'TestType',
         iss: 'did:example:alice.id',
         sub: 'did:example:alice.id',
@@ -33,7 +33,7 @@ describe('BaseRequest', () => {
 
     it('should require a subject field', () => {
       requestShouldError({
-        '@context': context,
+        '@context': Context,
         '@type': 'TestType',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -61,7 +61,7 @@ describe('BaseRequest', () => {
 
     it('should require a @type field', () => {
       requestShouldError({
-        '@context': context,
+        '@context': Context,
         iss: 'did:example:alice.id',
         aud: 'did:example:bob.id',
       });
@@ -69,7 +69,7 @@ describe('BaseRequest', () => {
 
     it('should require @type field to be a string', () => {
       requestShouldError({
-        '@context': context,
+        '@context': Context,
         '@type': true,
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -81,7 +81,7 @@ describe('BaseRequest', () => {
       const sender = 'did:example:alice.id';
       const hub = 'did:example:hub.id';
       const request = new BaseRequest({
-        '@context': context,
+        '@context': Context,
         '@type': 'TestType',
         iss: sender,
         aud: hub,
@@ -97,7 +97,7 @@ describe('BaseRequest', () => {
     it('should return the type of the request', () => {
       const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
       const request = new BaseRequest({
-        '@context': context,
+        '@context': Context,
         '@type': type,
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
