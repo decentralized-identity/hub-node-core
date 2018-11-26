@@ -61,7 +61,7 @@ export default abstract class Commit {
         if (!('object_id' in this.headers)) {
           throw new HubError({
             errorCode: ErrorCode.BadRequest,
-            property: 'commit.protected.sub',
+            property: 'commit.protected.object_id',
             developerMessage: DeveloperMessage.MissingParameter,
           });
         }

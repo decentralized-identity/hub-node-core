@@ -9,7 +9,7 @@ const context = 'https://schema.identity.foundation/0.1';
 describe('BaseController', () => {
   const controller = new TestController();
 
-  async function dispatchCheckFor(operation: string, handler: any) {
+  async function dispatchCheckFor(operation: string, handler: any, object_id?: string) {
     const message = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
     const expectedRequest = new WriteRequest({
       iss: 'did:example:alice.id',
@@ -19,7 +19,15 @@ describe('BaseController', () => {
       '@type': 'WriteRequest',
       commit: {
         protected: Base64Url.encode(JSON.stringify({
+          interface: 'test',
+          context: 'example.com',
+          type: 'test',
           operation,
+          object_id,
+          'committed_at': new Date(Date.now()).toISOString(),
+          'commit_strategy': 'basic',
+          sub: 'did:example:alice.id',
+          kid: 'did:example:alice.id#key1',
         })),
         payload: '',
         signature: '',
@@ -51,29 +59,36 @@ describe('BaseController', () => {
   // });
 
   it('should dispatch Update requests', async () => {
-    await dispatchCheckFor(Operation.Update, 'handleUpdateRequest');
+    await dispatchCheckFor(Operation.Update, 'handleUpdateRequest', Math.round(Math.random() * 255).toString(16));
   });
 
   it('should dispatch Delete requests', async () => {
-    await dispatchCheckFor(Operation.Delete, 'handleDeleteRequest');
+    await dispatchCheckFor(Operation.Delete, 'handleDeleteRequest', Math.round(Math.random() * 255).toString(16));
   });
 
   it('should return errors for unknown actions', async () => {
-    const expectedRequest = new WriteRequest({
-      iss: 'did:example:alice.id',
-      aud: 'did:example:hub.id',
-      sub: 'did:example:alice.id',
-      '@context': context,
-      '@type': 'WriteRequest',
-      commit: {
-        protected: Base64Url.encode(JSON.stringify({
-          operation: 'TestOperation',
-        })),
-        payload: '',
-        signature: '',
-      },
-    });
     try {
+      const expectedRequest = new WriteRequest({
+        iss: 'did:example:alice.id',
+        aud: 'did:example:hub.id',
+        sub: 'did:example:alice.id',
+        '@context': context,
+        '@type': 'WriteRequest',
+        commit: {
+          protected: Base64Url.encode(JSON.stringify({
+            interface: 'test',
+            context: 'example.com',
+            type: 'test',
+            operation: 'TestOperation',
+            'committed_at': new Date(Date.now()).toISOString(),
+            'commit_strategy': 'basic',
+            sub: 'did:example:alice.id',
+            kid: 'did:example:alice.id#key1',
+          })),
+          payload: '',
+          signature: '',
+        },
+      });
       await controller.handle(expectedRequest);
       fail('did not throw an error');
     } catch (err) {
