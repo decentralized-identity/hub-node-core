@@ -32,7 +32,7 @@ describe('BaseController', () => {
       });
     });
     try {
-      const response = await controller.handle(expectedRequest);
+      await controller.handle(expectedRequest);
     } catch (err) {
       if (!(err instanceof HubError)) {
         fail(err);
