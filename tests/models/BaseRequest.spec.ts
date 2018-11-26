@@ -87,9 +87,9 @@ describe('BaseRequest', () => {
         aud: hub,
         sub: sender,
       });
-      expect(request.aud).toEqual(sender);
       expect(request.iss).toEqual(sender);
       expect(request.aud).toEqual(hub);
+      expect(request.sub).toEqual(sender);
     });
   });
 

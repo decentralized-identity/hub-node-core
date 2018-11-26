@@ -31,13 +31,15 @@ export default class BaseRequest {
         developerMessage: DeveloperMessage.IncorrectParameter,
       });
     }
-    if (!('@type' in request)) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: '@type',
-        developerMessage: DeveloperMessage.MissingParameter,
-      });
-    }
+    ['@type', 'iss', 'aud', 'sub'].forEach((property) => {
+      if (!(property in request)) {
+        throw new HubError({
+          property,
+          errorCode: ErrorCode.BadRequest,
+          developerMessage: DeveloperMessage.MissingParameter,
+        });
+      }
+    });
     if (typeof request['@type'] !== 'string') {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,

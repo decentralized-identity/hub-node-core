@@ -16,7 +16,7 @@ describe('BaseResponse', () => {
       const json = JSON.parse(response);
       expect(json['@context']).toBeDefined();
       expect(json['@type']).toBeDefined();
-      expect(json['@type']).toContain(/[Ee]rror/);
+      expect(json['@type']).toEqual('BaseResponse');
       expect(json['developer_message']).toBeDefined();
       expect(json['developer_message']).toEqual(message);
     });
