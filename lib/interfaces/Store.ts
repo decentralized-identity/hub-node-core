@@ -1,4 +1,5 @@
 import Commit from '../models/Commit';
+import { ObjectContainer } from '../models/ObjectQueryResponse';
 
 interface QueryFilter {
   type: string;
@@ -52,7 +53,7 @@ interface QueryResponse<ResultType> {
 }
 
 // TODO: Define interface for Hub object
-interface ObjectQueryResponse extends QueryResponse<any> {
+interface ObjectQueryResponse extends QueryResponse<ObjectContainer> {
 
 }
 
