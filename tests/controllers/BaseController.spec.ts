@@ -1,79 +1,89 @@
-import HubRequest from '../../lib/models/HubRequest';
-import HubResponse from '../../lib/models/HubResponse';
-import HubError from '../../lib/models/HubError';
+import HubError, { ErrorCode, DeveloperMessage } from '../../lib/models/HubError';
 import TestController from '../mocks/TestController';
+import WriteRequest from '../../lib/models/WriteRequest';
+import Base64Url from '@decentralized-identity/did-auth-jose/lib/utilities/Base64Url';
+import { Operation } from '../../lib/models/Commit';
+
+const context = 'https://schema.identity.foundation/0.1';
 
 describe('BaseController', () => {
   const controller = new TestController();
 
-  beforeEach(() => {
-    controller.removeAllHandlers();
-  });
-
-  async function dispatchCheckFor(action: string, done: () => void) {
-    const responseCode = Math.round(Math.random() * 500);
-    const expectedRequest = new HubRequest({
+  async function dispatchCheckFor(operation: string, handler: any) {
+    const message = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+    const expectedRequest = new WriteRequest({
       iss: 'did:example:alice.id',
-      aud: 'did:example:alice.id',
-      '@type': `Test/${action}`,
-      request: {
-        schema: 'null',
-        id: '0',
-      },
-      payload: {
-        data: {},
+      aud: 'did:example:hub.id',
+      sub: 'did:example:alice.id',
+      '@context': context,
+      '@type': 'WriteRequest',
+      commit: {
+        protected: Base64Url.encode(JSON.stringify({
+          operation,
+        })),
+        payload: '',
+        signature: '',
       },
     });
-    controller.setHandler(action, async (request) => {
-      expect(request).toBe(expectedRequest, 'Handler did not recieve the same request');
-      const response = HubResponse.withError(new HubError('', responseCode));
-      return response;
-    });
-    const response = await controller.handle(expectedRequest);
-    expect(response.getResponseCode()).toBe(responseCode, 'Expected handler was not called');
-    done();
-  }
-
-  it('should dispatch Create requests', async (done) => {
-    await dispatchCheckFor('Create', done);
-  });
-
-  it('should dispatch Read requests', async (done) => {
-    await dispatchCheckFor('Read', done);
-  });
-
-  it('should dispatch Update requests', async (done) => {
-    await dispatchCheckFor('Update', done);
-  });
-
-  it('should dispatch Delete requests', async (done) => {
-    await dispatchCheckFor('Delete', done);
-  });
-
-  it('should dispatch Execute requests', async (done) => {
-    await dispatchCheckFor('Execute', done);
-  });
-
-  it('should return errors for unknown actions', async (done) => {
-    const randomNumber = Math.round(Math.random() * 1000).toString();
-    const request = new HubRequest({
-      iss: 'did:example:alice.id',
-      aud: 'did:example:alice.id',
-      '@type': `Test/${randomNumber}`,
+    const spy = spyOn(controller, handler).and.callFake(() => {
+      throw new HubError({
+        errorCode: ErrorCode.NotImplemented,
+        developerMessage: message,
+      });
     });
     try {
-      const response = await controller.handle(request);
-      expect(response).toBeDefined();
-      const body = response.getResponseBody();
-      if (!body) {
-        fail('Response did not contain an error message');
-        return;
+      const response = await controller.handle(expectedRequest);
+    } catch (err) {
+      if (!(err instanceof HubError)) {
+        fail(err);
       }
-      expect(body.error).toBeDefined();
-      done();
-    } catch (reject) {
-      fail(reject);
-      done();
+      expect(err.developerMessage).toEqual(message);
+    }
+    expect(spy).toHaveBeenCalled();
+  }
+
+  it('should dispatch Create requests', async () => {
+    await dispatchCheckFor(Operation.Create, 'handleCreateRequest');
+  });
+
+  // it('should dispatch Read requests', async () => {
+  //   await dispatchCheckFor('Read', );
+  // });
+
+  it('should dispatch Update requests', async () => {
+    await dispatchCheckFor(Operation.Update, 'handleUpdateRequest');
+  });
+
+  it('should dispatch Delete requests', async () => {
+    await dispatchCheckFor(Operation.Delete, 'handleDeleteRequest');
+  });
+
+  it('should return errors for unknown actions', async () => {
+    const expectedRequest = new WriteRequest({
+      iss: 'did:example:alice.id',
+      aud: 'did:example:hub.id',
+      sub: 'did:example:alice.id',
+      '@context': context,
+      '@type': 'WriteRequest',
+      commit: {
+        protected: Base64Url.encode(JSON.stringify({
+          operation: 'TestOperation',
+        })),
+        payload: '',
+        signature: '',
+      },
+    });
+    try {
+      await controller.handle(expectedRequest);
+      fail('did not throw an error');
+    } catch (err) {
+      if (!(err instanceof HubError)) {
+        fail(err);
+      }
+      const testError = err as HubError;
+      expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+      expect(testError.property).toEqual('commit.protected.operation');
+      expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
     }
   });
 });

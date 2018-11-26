@@ -39,7 +39,7 @@ export default abstract class BaseController {
       case 'WriteRequest':
         const writeRequest = request as WriteRequest;
         BaseController.verifyConstraints(writeRequest);
-        switch (writeRequest.commit.getHeaders().operation) {
+        switch (writeRequest.commit.getProtectedHeaders().operation) {
           case Operation.Create:
             return await this.handleCreateRequest(writeRequest);
           case Operation.Update:

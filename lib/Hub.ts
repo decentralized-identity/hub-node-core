@@ -8,7 +8,6 @@ import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
 import HubError, { ErrorCode, DeveloperMessage } from './models/HubError';
-import Request from './models/Request';
 import BaseRequest from './models/BaseRequest';
 import ObjectQueryRequest from './models/ObjectQueryRequest';
 import WriteRequest from './models/WriteRequest';
@@ -79,20 +78,23 @@ export default class Hub {
 
     try {
       // If we get here, it means the Hub access token received is valid, proceed with handling the request.
-      const request = new Request(verifiedRequest.request);
+      const request = new BaseRequest(verifiedRequest.request);
       let response: BaseResponse;
       if (request.getType() === 'CommitQueryRequest') {
         // Commit requests go directly to the Storage layer
         // TODO: Implement storage commit queries
         throw new HubError({ errorCode: ErrorCode.NotImplemented });
       } else {
-        let objectRequest: BaseRequest;
         switch (request.getType()) {
           case 'ObjectQueryRequest':
-            objectRequest = new ObjectQueryRequest(verifiedRequest.request);
+            const queryRequest = new ObjectQueryRequest(verifiedRequest.request);
+            const queryController = this._controllers[queryRequest.interface];
+            response = await queryController.handle(queryRequest);
             break;
           case 'WriteRequest':
-            objectRequest = new WriteRequest(verifiedRequest.request);
+            const writeRequest = new WriteRequest(verifiedRequest.request);
+            const writeController = this._controllers[writeRequest.commit.getHeaders().interface];
+            response = await writeController.handle(writeRequest);
             break;
           default:
             throw new HubError({
@@ -101,9 +103,6 @@ export default class Hub {
               developerMessage: DeveloperMessage.IncorrectParameter,
             });
         }
-
-        const controller = this._controllers[objectRequest.interface];
-        response = await controller.handle(objectRequest);
       }
 
       // Sign then encrypt the response.

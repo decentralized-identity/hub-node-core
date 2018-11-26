@@ -6,7 +6,7 @@ import Commit from './Commit';
  */
 export default class CommitQueryResponse extends BaseResponse {
 
-  constructor (public readonly commits: Commit[], public readonly skipToken?: string, developerMessage?: string) {
+  constructor (public readonly commits: Commit[], public readonly skipToken: string | null, developerMessage?: string) {
     super(developerMessage);
     this.type = 'CommitQueryResponse';
   }

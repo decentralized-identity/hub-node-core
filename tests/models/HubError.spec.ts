@@ -1,14 +1,29 @@
-import HubError from '../../lib/models/HubError';
+import HubError, { ErrorCode } from '../../lib/models/HubError';
 
 describe('HubError', () => {
   describe('constructor', () => {
     it('should return the same code and message', () => {
-      const code = Math.round(Math.random() * 600);
       const message = Math.random().toString();
-      const error = new HubError(message, code);
+      const error = new HubError({
+        errorCode: ErrorCode.ServerError,
+        developerMessage: message,
+      });
       expect(error).toBeDefined();
-      expect(error.httpStatusCode).toEqual(code);
-      expect(error.message).toEqual(message);
+      expect(error.errorCode).toEqual(ErrorCode.ServerError);
+      expect(error.developerMessage).toEqual(message);
+    });
+  });
+
+  describe('toResponse', () => {
+    it('should have the same information as the error', () => {
+      const message = Math.random().toString();
+      const error = new HubError({
+        errorCode: ErrorCode.ServerError,
+        developerMessage: message,
+      });
+      const response = error.toResponse();
+      expect(response.errorCode).toEqual(error.errorCode);
+      expect(response.developerMessage).toEqual(error.developerMessage);
     });
   });
 });
