@@ -1,34 +1,54 @@
 import Commit from '../models/Commit';
 import { ObjectContainer } from '../models/ObjectQueryResponse';
 
-interface QueryFilter {
-  type: string;
-}
+/**
+ * Query filter which refines results to those where the specified `field` has the given `value`. If
+ * `value` is an array, matches any entry in the array.
+ */
+export interface QueryEqualsFilter {
 
-/** Equality filter for object level metadata */
-export interface QueryEqualsFilter extends QueryFilter {
+  /** Indicates an equality filter. */
   type: 'eq';
-  /** object metadata field to evaluate against */
+
+  /** Name of metadata field to be evaluated, e.g. `sub` or `commit_strategy`. */
   field: string;
-  /** acceptable value(s) for this field */
-  value: string|string[];
+
+  /** Value or values to search for. */
+  value: string | string[];
+
 }
 
-interface QueryRequest {
+/**
+ * Represents all possible types of query filters.
+ *
+ * This list can be expanded in the future (e.g. `QueryEqualsFilter | QueryLessThanFilter`) when
+ * additional filter types are supported.
+ */
+export type QueryFilter = QueryEqualsFilter;
 
-  // DID of the Hub owner
+/**
+ * Common parameters for Store requests.
+ */
+export interface QueryRequest {
+
+  /** The fully-qualified DID of the Hub owner. */
   owner: string;
 
-  filters?: QueryEqualsFilter[];
+  /** Optional filters to refine the entities returned. */
+  filters?: QueryFilter[];
 
   // List of fields to return from the queried items. Currently only supports "rev" or "id"
   // fields?: string[];
 
+  /** A previously returned pagination token, for iterating through pages of a query. */
   skip_token?: string;
 
 }
 
-interface ObjectQueryRequest extends QueryRequest {
+/**
+ * Store request to query over the objects in a particular Hub.
+ */
+export interface ObjectQueryRequest extends QueryRequest {
 
   // filters[] currently accepts 'interface', 'context', 'type', and 'object_id'
 
@@ -36,42 +56,61 @@ interface ObjectQueryRequest extends QueryRequest {
   // Profile needs ???
 }
 
-interface CommitQueryRequest extends QueryRequest {
+/**
+ * Store request to query over the individual commits in a particular Hub.
+ */
+export interface CommitQueryRequest extends QueryRequest {
 
   // filters[] currently accepts 'object_id' and 'rev'
 
 }
 
-interface QueryResponse<ResultType> {
+/**
+ * Common parameters for Store responses.
+ */
+export interface QueryResponse<ResultType> {
 
   results: ResultType[];
 
   pagination: {
-    skip_token: string;
+    skip_token: string | null;
   };
 
 }
 
-// TODO: Define interface for Hub object
-interface ObjectQueryResponse extends QueryResponse<ObjectContainer> {
+/**
+ * Response to a query over the objects in a particular Hub.
+ */
+export interface ObjectQueryResponse extends QueryResponse<ObjectContainer> {
 
 }
 
-interface CommitQueryResponse extends QueryResponse<Commit> {
+/**
+ * Response to a query over the individual commits in a particular Hub.
+ */
+export interface CommitQueryResponse extends QueryResponse<Commit> {
 
 }
 
-interface CommitRequest {
+/**
+ * A request to add a new commit to a Hub.
+ */
+export interface CommitRequest {
 
-  // DID of the Hub owner
+  /** The fully-qualified DID of the Hub owner. */
   owner: string;
 
+  /** The commit to add to the Store. */
   commit: Commit;
 
 }
 
-interface CommitResponse {
+/**
+ * The response to a `CommitRequest`.
+ */
+export interface CommitResponse {
 
+  /** The list of known revisions for the object that was modified. */
   knownRevisions: string[];
 
 }
