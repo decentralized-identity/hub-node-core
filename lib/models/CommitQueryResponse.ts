@@ -21,5 +21,6 @@ export default class CommitQueryResponse extends BaseResponse {
       commits: jwtCommits,
       skip_token: this.skipToken,
     });
+    return json;
   }
 }
