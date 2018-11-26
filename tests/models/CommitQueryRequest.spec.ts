@@ -71,5 +71,68 @@ describe('CommitQueryRequest', () => {
       expect(request.fields).toBeDefined();
     });
 
+    it('should validate and copy `object_id` if present', () => {
+      arrayCopyAndStringRequirement((object_id) => new CommitQueryRequest({
+        '@context': Context,
+        '@type': 'CommitQueryRequest',
+        iss: sender,
+        aud: hub,
+        sub: sender,
+        query: {
+          object_id,
+        }
+      }), 'query.object_id',
+      (request) => request.objectIds);
+    });
+
+    it('should validate and copy `revision` if present', () => {
+      arrayCopyAndStringRequirement((revision) => new CommitQueryRequest({
+        '@context': Context,
+        '@type': 'CommitQueryRequest',
+        iss: sender,
+        aud: hub,
+        sub: sender,
+        query: {
+          revision,
+        }
+      }), 'query.revision',
+      (request) => request.revisions);
+    });
+
+    it('should copy `skip_token` if present', () => {
+      const skip_token = Math.round(Math.random() * 255).toString(16);
+       const request = new CommitQueryRequest({
+        '@context': Context,
+        '@type': 'CommitQueryRequest',
+        iss: sender,
+        aud: hub,
+        sub: sender,
+        query: {
+          skip_token,
+        }
+      });
+      expect(request.skipToken).toEqual(skip_token);
+    });
+
+    it('should validate `skip_token` if present', () => {
+      try {
+        new CommitQueryRequest({
+          '@context': Context,
+          '@type': 'CommitQueryRequest',
+          iss: sender,
+          aud: hub,
+          sub: sender,
+          query: {
+            skip_token: true,
+          }
+        });
+        fail('invalid skip_token allowed')
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err);
+        }
+        expect(err.property).toEqual('query.skip_token');
+      }
+    });
   });
 });
