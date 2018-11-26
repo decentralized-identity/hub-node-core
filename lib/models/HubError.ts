@@ -22,6 +22,7 @@ export enum DeveloperMessage {
   MissingParameter = 'Required parameter is missing',
   IncorrectParameter = 'Required parameter is of the incorrect type',
   NotImplemented = 'Not Implemented',
+  AlreadyExists = 'Already exists',
 }
 
 interface HubErrorOptions {

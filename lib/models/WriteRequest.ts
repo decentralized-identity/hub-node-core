@@ -12,7 +12,7 @@ export default class WriteRequest extends BaseRequest {
 
   constructor(json: string | any) {
     super(json);
-    this.type = 'BaseRequest';
+    this.type = 'WriteRequest';
     let request = json;
     if (typeof json === 'string') {
       request = JSON.parse(json);

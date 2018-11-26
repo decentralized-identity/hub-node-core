@@ -29,9 +29,9 @@ export default class ObjectQueryResponse extends BaseResponse {
   /** Results of the Object Query */
   readonly objects: ObjectContainer[];
   /** Optional skip token to continue result returns */
-  readonly skipToken?: string;
+  // readonly skipToken?: string;
 
-  constructor(objects: ObjectContainer[], developerMessage?: string) {
+  constructor(objects: ObjectContainer[], public readonly skipToken?: string, developerMessage?: string) {
     super(developerMessage);
     this.type = 'ObjectQueryResponse';
     this.objects = objects;
