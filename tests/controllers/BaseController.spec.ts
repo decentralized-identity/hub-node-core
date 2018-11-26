@@ -1,7 +1,7 @@
 import HubError, { ErrorCode, DeveloperMessage } from '../../lib/models/HubError';
 import TestController from '../mocks/TestController';
 import WriteRequest from '../../lib/models/WriteRequest';
-import Base64Url from '@decentralized-identity/did-auth-jose/lib/utilities/Base64Url';
+import { Base64Url } from '@decentralized-identity/did-auth-jose'
 import { Operation } from '../../lib/models/Commit';
 
 const context = 'https://schema.identity.foundation/0.1';
