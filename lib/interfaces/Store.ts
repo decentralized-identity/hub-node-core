@@ -4,9 +4,12 @@ interface QueryFilter {
   type: string;
 }
 
-interface QueryEqualsFilter extends QueryFilter {
+/** Equality filter for object level metadata */
+export interface QueryEqualsFilter extends QueryFilter {
   type: 'eq';
+  /** object metadata field to evaluate against */
   field: string;
+  /** acceptable value(s) for this field */
   value: string|string[];
 }
 
