@@ -8,7 +8,7 @@ describe('SignedCommit', () => {
       const commit = TestCommit.create();
       try {
         new SignedCommit({
-          protected: commit.getProtectedString,
+          protected: commit.getProtectedString(),
           signature: 'sure',
         });
         fail('did not throw');
@@ -20,7 +20,7 @@ describe('SignedCommit', () => {
       }
       try {
         new SignedCommit({
-          protected: commit.getProtectedString,
+          protected: commit.getProtectedString(),
           payload: 'sure',
           signature: true,
         });
@@ -36,11 +36,29 @@ describe('SignedCommit', () => {
     it('should create', () => {
       const commitData = TestCommit.create();
       const commit = new SignedCommit({
-        protected: commitData.getProtectedString,
+        protected: commitData.getProtectedString(),
         payload: 'yup',
         signature: 'sure',
       });
       expect(commit).toBeDefined();
     });
   });
+
+  describe('toString', () => {
+    it('should generate the original base64', () => {
+      const commitData = TestCommit.create();
+      const payload = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(32);
+      const signature = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(32);
+      const commit = new SignedCommit({
+        payload,
+        signature,
+        protected: commitData.getProtectedString(),
+      });
+      expect(commit).toBeDefined();
+      const json = commit.toJson();
+      expect(json.protected).toEqual(commitData.getProtectedString());
+      expect(json.payload).toEqual(payload);
+      expect(json.signature).toEqual(signature);
+    });
+  })
 });
