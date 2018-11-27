@@ -18,7 +18,7 @@ export default class ObjectQueryRequest extends BaseRequest {
     /** Type of filter */
     type: string;
     /** Metadata property to filter on */
-    property: string;
+    field: string;
     /** Value the metadata property should be evaluated against */
     value: string;
   }[];
@@ -105,7 +105,7 @@ export default class ObjectQueryRequest extends BaseRequest {
             developerMessage: DeveloperMessage.IncorrectParameter,
           });
         }
-        ['type', 'property', 'value'].forEach((property) => {
+        ['type', 'field', 'value'].forEach((property) => {
           if (!(property in filter)) {
             throw new HubError({
               errorCode: ErrorCode.BadRequest,
@@ -126,7 +126,7 @@ export default class ObjectQueryRequest extends BaseRequest {
     }
     // if skip_token is included
     if ('skip_token' in request.query) {
-      if (request.query.skip_token !== 'string') {
+      if (typeof request.query.skip_token !== 'string') {
         throw new HubError({
           errorCode: ErrorCode.BadRequest,
           property: 'query.skip_token',
