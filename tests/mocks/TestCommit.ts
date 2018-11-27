@@ -50,4 +50,8 @@ export default class TestCommit extends Commit {
     }
   }
 
+  getProtectedString(): string {
+    return this.originalProtected;
+  }
+
 }

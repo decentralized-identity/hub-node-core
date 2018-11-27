@@ -1,0 +1,46 @@
+import SignedCommit from '../../lib/models/SignedCommit';
+import TestCommit from '../mocks/TestCommit';
+import HubError from '../../lib/models/HubError';
+
+describe('SignedCommit', () => {
+  describe('constructor', () => {
+    it('should require a payload and signature', () => {
+      const commit = TestCommit.create();
+      try {
+        new SignedCommit({
+          protected: commit.getProtectedString,
+          signature: 'sure',
+        });
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err);
+        }
+        expect(err.property).toEqual('commit.payload');
+      }
+      try {
+        new SignedCommit({
+          protected: commit.getProtectedString,
+          payload: 'sure',
+          signature: true,
+        });
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err);
+        }
+        expect(err.property).toEqual('commit.signature');
+      }
+    });
+
+    it('should create', () => {
+      const commitData = TestCommit.create();
+      const commit = new SignedCommit({
+        protected: commitData.getProtectedString,
+        payload: 'yup',
+        signature: 'sure',
+      });
+      expect(commit).toBeDefined();
+    });
+  });
+});
