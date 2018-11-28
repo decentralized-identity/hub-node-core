@@ -21,7 +21,7 @@ export default class SignedCommit extends Commit {
     if (typeof jws.signature !== 'string') {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
-        property: `commit.signature`,
+        property: 'commit.signature',
         developerMessage: DeveloperMessage.IncorrectParameter,
       });
     }

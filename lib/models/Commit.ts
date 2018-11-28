@@ -47,7 +47,7 @@ export default abstract class Commit {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
         property: 'commit.payload',
-        developerMessage: DeveloperMessage.MissingParameter
+        developerMessage: DeveloperMessage.MissingParameter,
       });
     }
     if (typeof jwt.payload !== 'string') {
@@ -84,7 +84,7 @@ export default abstract class Commit {
           throw new HubError({
             errorCode: ErrorCode.BadRequest,
             property: 'commit.protected.object_id',
-            developerMessage: 'object_id cannot be included in the protected headers'
+            developerMessage: 'object_id cannot be included in the protected headers',
           });
         }
         break;
@@ -121,7 +121,7 @@ export default abstract class Commit {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
         property: 'commit.protected.rev',
-        developerMessage: "'rev' cannot be included in protected headers"
+        developerMessage: "'rev' cannot be included in protected headers",
       });
     }
 
