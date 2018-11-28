@@ -4,9 +4,10 @@ import WriteRequest from '../../lib/models/WriteRequest';
 import { Context } from '../models/BaseRequest.spec';
 import { Base64Url } from '@decentralized-identity/did-auth-jose';
 import { Operation } from '../../lib/models/Commit';
-import HubError from '../../lib/models/HubError';
+import HubError, { ErrorCode } from '../../lib/models/HubError';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import * as store from '../../lib/interfaces/Store';
+import { ObjectContainer } from '../../lib/models/ObjectQueryResponse';
 
 const sender = 'did:example:alice.id';
 const hub = 'did:example:alice.id';
@@ -47,7 +48,7 @@ function createWriteCommit(operation: Operation, testHeader: string, additionalP
 
 function createQueryCommit(query: {[key: string]: any}): ObjectQueryRequest {
   const defaultQuery = Object.assign({
-    interface: 'Test',
+    interface: 'Collections',
     context: 'example.com',
     type: 'Test',   
   }, query);
@@ -58,6 +59,34 @@ function createQueryCommit(query: {[key: string]: any}): ObjectQueryRequest {
     aud: hub,
     sub: sender,
     query: defaultQuery,
+  });
+}
+
+function createSpyThatReturnsObjectsFor(contextObject: any, ids: string[]): jasmine.Spy {
+  return spyOn(contextObject.store, 'queryObjects').and.callFake((query: store.QueryRequest) => {
+    const results: ObjectContainer[] = [];
+    if (query.filters) {
+      query.filters.forEach((filter) => {
+        if (filter.field === 'object_id') {
+          (filter.value as string[]).forEach((id: string) => {
+            if (ids.includes(id)) {
+              results.push({
+                interface: 'Collections',
+                context: 'example.com',
+                type: 'test',
+                id,
+                created_at: new Date(Date.now()).toISOString(),
+                sub: sender,
+                commit_strategy: 'basic',
+              });
+            }
+          })
+        }
+      });
+    }
+    return {
+      results,
+    };
   });
 }
 
@@ -110,7 +139,7 @@ describe('CollectionsController', () => {
         queryRequest.filters.forEach((filter) => {
           switch(filter.field) {
             case 'interface':
-              expect(filter.value).toEqual('Test');
+              expect(filter.value).toEqual('Collections');
               expect(filter.type).toEqual('eq');
               countFound++;
               break;
@@ -188,5 +217,83 @@ describe('CollectionsController', () => {
     });
   });
 
-  
+  describe('handleDeleteRequest', () => {
+    it('should delete existing objects', async () => {
+      const ids = [correlationId()];
+      const spy = createSpyThatReturnsObjectsFor(context, ids);
+      const request = createWriteCommit(Operation.Delete, '', {
+        object_id: ids[0],
+      });
+      const deleteSpy = spyOn(context.store, 'commit').and.callFake((commit: store.CommitRequest) => {
+        expect(commit.owner).toEqual(sender);
+        expect(commit.commit.getProtectedHeaders().object_id).toEqual(ids[0]);
+        return {
+          knownRevisions: [ids[0]]
+        };
+      });
+      const response = await controller.handleDeleteRequest(request);
+      expect(spy).toHaveBeenCalled();
+      expect(deleteSpy).toHaveBeenCalled();
+      expect(response.revisions).toEqual([ids[0]]);
+    });
+    it('should fail if the object does not exist', async () => {
+      const id = correlationId();
+      const spy = createSpyThatReturnsObjectsFor(context, []);
+      const request = createWriteCommit(Operation.Delete, '', {
+        object_id: id,
+      });
+      const deleteSpy = spyOn(context.store, 'commit');
+      try {
+        await controller.handleDeleteRequest(request);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotFound);
+      }
+      expect(spy).toHaveBeenCalled();
+      expect(deleteSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleUpdateRequest', () => {
+    it('should update existing objects', async () => {
+      const ids = [correlationId()];
+      const spy = createSpyThatReturnsObjectsFor(context, ids);
+      const request = createWriteCommit(Operation.Update, '', {
+        object_id: ids[0],
+      });
+      const updateSpy = spyOn(context.store, 'commit').and.callFake((commit: store.CommitRequest) => {
+        expect(commit.owner).toEqual(sender);
+        expect(commit.commit.getProtectedHeaders().object_id).toEqual(ids[0]);
+        return {
+          knownRevisions: [ids[0]]
+        };
+      });
+      const response = await controller.handleUpdateRequest(request);
+      expect(spy).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalled();
+      expect(response.revisions).toEqual([ids[0]]);
+    });
+    it('should fail if the object does not exist', async () => {
+      const id = correlationId();
+      const spy = createSpyThatReturnsObjectsFor(context, []);
+      const request = createWriteCommit(Operation.Update, '', {
+        object_id: id,
+      });
+      const deleteSpy = spyOn(context.store, 'commit');
+      try {
+        await controller.handleUpdateRequest(request);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotFound);
+      }
+      expect(spy).toHaveBeenCalled();
+      expect(deleteSpy).not.toHaveBeenCalled();
+    });
+  });
 });

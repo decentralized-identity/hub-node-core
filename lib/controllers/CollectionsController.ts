@@ -58,7 +58,7 @@ export default class CollectionsController extends BaseController {
   }
 
   async handleDeleteRequest(request: WriteRequest): Promise<WriteResponse> {
-    if (!this.objectExists(request)) {
+    if (!await this.objectExists(request)) {
       throw new HubError({
         errorCode: ErrorCode.NotFound,
       });
@@ -67,7 +67,7 @@ export default class CollectionsController extends BaseController {
   }
 
   async handleUpdateRequest(request: WriteRequest): Promise<WriteResponse> {
-    if (!this.objectExists(request)) {
+    if (!await this.objectExists(request)) {
       throw new HubError({
         errorCode: ErrorCode.NotFound,
       });
@@ -85,7 +85,7 @@ export default class CollectionsController extends BaseController {
       },
       {
         field: 'object_id',
-        value: commitHeaders.object_id,
+        value: [commitHeaders.object_id],
         type: 'eq',
       },
       {
