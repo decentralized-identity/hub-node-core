@@ -37,7 +37,7 @@ describe('CommitQueryRequest', () => {
         fail('created the request without error');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toContain(fieldPath);
       }
@@ -129,7 +129,7 @@ describe('CommitQueryRequest', () => {
         fail('invalid skip_token allowed')
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('query.skip_token');
       }

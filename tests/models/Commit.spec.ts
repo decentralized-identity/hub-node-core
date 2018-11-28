@@ -19,7 +19,7 @@ describe('Commit', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err)
+          fail(err.message)
         }
         expect(err.property).toEqual('commit.protected');
       }
@@ -35,7 +35,7 @@ describe('Commit', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err)
+          fail(err.message)
         }
         expect(err.property).toEqual('commit.protected');
       }
@@ -161,7 +161,7 @@ describe('Commit', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err)
+          fail(err.message)
         }
         expect(err.property).toEqual('commit.payload');
       }
@@ -186,7 +186,7 @@ describe('Commit', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err)
+          fail(err.message)
         }
         expect(err.property).toEqual('commit.payload');
       }
@@ -212,7 +212,7 @@ describe('Commit', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err)
+          fail(err.message)
         }
         expect(err.property).toEqual('commit.protected.object_id');
       }
@@ -238,7 +238,7 @@ describe('Commit', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err)
+          fail(err.message)
         }
         expect(err.property).toEqual('commit.protected.rev');
       }

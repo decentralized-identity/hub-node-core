@@ -45,7 +45,7 @@ describe('BaseController', () => {
       await controller.handle(expectedRequest);
     } catch (err) {
       if (!(err instanceof HubError)) {
-        fail(err);
+        fail(err.message);
       }
       expect(err.developerMessage).toEqual(message);
     }
@@ -80,7 +80,7 @@ describe('BaseController', () => {
       await controller.handle(queryRequest);
     } catch (err) {
       if (!(err instanceof HubError)) {
-        fail(err);
+        fail(err.message);
       }
       expect(err.developerMessage).toEqual(message);
     }
@@ -122,7 +122,7 @@ describe('BaseController', () => {
       fail('did not throw an error');
     } catch (err) {
       if (!(err instanceof HubError)) {
-        fail(err);
+        fail(err.message);
       }
       const testError = err as HubError;
       expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
@@ -145,7 +145,7 @@ describe('BaseController', () => {
       fail('did not throw an error');
     } catch (err) {
       if (!(err instanceof HubError)) {
-        fail(err);
+        fail(err.message);
       }
       const testError = err as HubError;
       expect(testError.errorCode).toEqual(ErrorCode.BadRequest);

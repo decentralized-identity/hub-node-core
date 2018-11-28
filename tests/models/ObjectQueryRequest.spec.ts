@@ -49,7 +49,7 @@ describe('ObjectQueryRequest', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual(jsonPath);
       }
@@ -59,7 +59,7 @@ describe('ObjectQueryRequest', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual(`${jsonPath}[0]`);
       }
@@ -165,7 +165,7 @@ describe('ObjectQueryRequest', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('query.filters');
       }
@@ -192,7 +192,7 @@ describe('ObjectQueryRequest', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('query.filters[0].value');
       }
@@ -220,7 +220,7 @@ describe('ObjectQueryRequest', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('query.filters[0].field');
       }
@@ -244,7 +244,7 @@ describe('ObjectQueryRequest', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('query.skip_token');
       }
@@ -277,7 +277,7 @@ describe('ObjectQueryRequest', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('query');
       }
@@ -296,7 +296,7 @@ describe('ObjectQueryRequest', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('query');
       }
@@ -323,7 +323,7 @@ describe('ObjectQueryRequest', () => {
           fail('did not throw');
         } catch (err) {
           if (!(err instanceof HubError)) {
-            fail(err);
+            fail(err.message);
           }
           expect(err.property).toEqual(`query.${property}`);
         }
@@ -340,7 +340,7 @@ describe('ObjectQueryRequest', () => {
           fail('did not throw');
         } catch (err) {
           if (!(err instanceof HubError)) {
-            fail(err);
+            fail(err.message);
           }
           expect(err.property).toEqual(`query.${property}`);
         }

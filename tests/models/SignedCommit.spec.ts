@@ -14,7 +14,7 @@ describe('SignedCommit', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('commit.signature');
       }
@@ -27,7 +27,7 @@ describe('SignedCommit', () => {
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
-          fail(err);
+          fail(err.message);
         }
         expect(err.property).toEqual('commit.signature');
       }
