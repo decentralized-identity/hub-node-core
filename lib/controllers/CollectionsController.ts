@@ -50,6 +50,7 @@ export default class CollectionsController extends BaseController {
     const queryRequest = {
       filters,
       owner: request.sub,
+      skip_token: request.skipToken,
     };
 
     const response = await this.context.store.queryObjects(queryRequest);
