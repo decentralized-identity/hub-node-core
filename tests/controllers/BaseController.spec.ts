@@ -4,6 +4,7 @@ import WriteRequest from '../../lib/models/WriteRequest';
 import { Base64Url } from '@decentralized-identity/did-auth-jose'
 import { Operation } from '../../lib/models/Commit';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
+import BaseRequest from '../../lib/models/BaseRequest';
 
 const context = 'https://schema.identity.foundation/0.1';
 
@@ -94,7 +95,7 @@ describe('BaseController', () => {
     await dispatchCheckFor(Operation.Delete, 'handleDeleteRequest', Math.round(Math.random() * 255).toString(16));
   });
 
-  it('should return errors for unknown actions', async () => {
+  it('should return errors for unknown operations', async () => {
     try {
       const expectedRequest = new WriteRequest({
         iss: 'did:example:alice.id',
@@ -126,6 +127,65 @@ describe('BaseController', () => {
       const testError = err as HubError;
       expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
       expect(testError.property).toEqual('commit.protected.operation');
+      expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
+    }
+  });
+
+  it('should return errors for unknown types', async () => {
+    try {
+      const expectedRequest = new BaseRequest({
+        iss: 'did:example:alice.id',
+        aud: 'did:example:hub.id',
+        sub: 'did:example:alice.id',
+        '@context': context,
+        '@type': 'UnknownRequestType',
+      });
+      expectedRequest['type'] = 'UnknownRequestType';
+      await controller.handle(expectedRequest);
+      fail('did not throw an error');
+    } catch (err) {
+      if (!(err instanceof HubError)) {
+        fail(err);
+      }
+      const testError = err as HubError;
+      expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+      expect(testError.property).toEqual('@type');
+      expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
+    }
+  });
+
+  it('should throw if the commit subject does not match the request subject', async() => {
+    try {
+      const badRequest = new WriteRequest({
+        iss: 'did:example:alice.id',
+        aud: 'did:example:hub.id',
+        sub: 'did:example:alice.id',
+        '@context': context,
+        '@type': 'WriteRequest',
+        commit: {
+          protected: Base64Url.encode(JSON.stringify({
+            interface: 'test',
+            context: 'example.com',
+            type: 'testype',
+            operation: 'create',
+            'committed_at': new Date(Date.now()).toISOString(),
+            'commit_strategy': 'basic',
+            sub: 'did:example:bob.id',
+            kid: 'did:example:bob.id#key1',
+          })),
+          payload: '',
+          signature: '',
+        },
+      });
+      await controller.handle(badRequest);
+      fail('did not throw an error');
+    } catch (err) {
+      if (!(err instanceof HubError)) {
+        fail(err.message);
+      }
+      const testError = err as HubError;
+      expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+      expect(testError.property).toEqual('commit.protected.sub');
       expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
     }
   });
