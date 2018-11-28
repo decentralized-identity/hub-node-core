@@ -3,6 +3,7 @@ import TestController from '../mocks/TestController';
 import WriteRequest from '../../lib/models/WriteRequest';
 import { Base64Url } from '@decentralized-identity/did-auth-jose'
 import { Operation } from '../../lib/models/Commit';
+import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 
 const context = 'https://schema.identity.foundation/0.1';
 
@@ -54,9 +55,36 @@ describe('BaseController', () => {
     await dispatchCheckFor(Operation.Create, 'handleCreateRequest');
   });
 
-  // it('should dispatch Read requests', async () => {
-  //   await dispatchCheckFor('Read', );
-  // });
+  it('should dispatch Read requests', async () => {
+    const message = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+    const queryRequest = new ObjectQueryRequest({
+      '@context': 'https://schema.identity.foundation/0.1',
+      '@type': 'ObjectQueryRequest',
+      iss: 'did:example:alice.id',
+      aud: 'did:example:hub.id',
+      sub: 'did:example:alice.id',
+      query: {
+        interface: 'Base',
+        context: 'example.com',
+        type: 'test',
+      }
+    });
+    const spy = spyOn(controller, 'handleQueryRequest').and.callFake(() => {
+      throw new HubError({
+        errorCode: ErrorCode.NotImplemented,
+        developerMessage: message,
+      });
+    });
+    try {
+      await controller.handle(queryRequest);
+    } catch (err) {
+      if (!(err instanceof HubError)) {
+        fail(err);
+      }
+      expect(err.developerMessage).toEqual(message);
+    }
+    expect(spy).toHaveBeenCalled();
+  });
 
   it('should dispatch Update requests', async () => {
     await dispatchCheckFor(Operation.Update, 'handleUpdateRequest', Math.round(Math.random() * 255).toString(16));

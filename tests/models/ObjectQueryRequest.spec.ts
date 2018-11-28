@@ -23,7 +23,25 @@ describe('ObjectQueryRequest', () => {
       expect(request.queryType).toEqual('test');
     });
 
-
+    it('should construct an empty response from a string', () => {
+      const json = {
+        '@context': Context,
+        '@type': 'ObjectQueryRequest',
+        iss: 'did:example:alice.id',
+        aud: 'did:example:hub.id',
+        sub: 'did:example:alice.id',
+        query: {
+          interface: 'Test',
+          context: 'example.com',
+          type: 'test', 
+        }
+      };
+      const request = new ObjectQueryRequest(JSON.stringify(json));
+      expect(request).toBeDefined();
+      expect(request.interface).toEqual('Test');
+      expect(request.queryContext).toEqual('example.com');
+      expect(request.queryType).toEqual('test');
+    });
 
     function validateArray(formRequest: (array: any) => ObjectQueryRequest, jsonPath: string) {
       try {
@@ -263,6 +281,70 @@ describe('ObjectQueryRequest', () => {
         }
         expect(err.property).toEqual('query');
       }
-    })
+    });
+
+    it('should ensure query is the righ type', () => {
+      try {
+        new ObjectQueryRequest({
+          '@context': Context,
+          '@type': 'ObjectQueryRequest',
+          iss: 'did:example:alice.id',
+          aud: 'did:example:hub.id',
+          sub: 'did:example:alice.id',
+          query: 'yes',
+        });
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err);
+        }
+        expect(err.property).toEqual('query');
+      }
+    });
+
+    it('should ensure query contains interface, context, and type', () => {
+      const correctQuery = {
+        interface: 'Test',
+        context: 'example.com',
+        type: 'test',
+      };
+      ['interface', 'context', 'type'].forEach((property) => {
+        let missingQuery: any = Object.assign({}, correctQuery);
+        delete missingQuery[property];
+        try {
+          new ObjectQueryRequest({
+            '@context': Context,
+            '@type': 'ObjectQueryRequest',
+            iss: 'did:example:alice.id',
+            aud: 'did:example:hub.id',
+            sub: 'did:example:alice.id',
+            query: missingQuery,
+          });
+          fail('did not throw');
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err);
+          }
+          expect(err.property).toEqual(`query.${property}`);
+        }
+        missingQuery[property] = true;
+        try {
+          new ObjectQueryRequest({
+            '@context': Context,
+            '@type': 'ObjectQueryRequest',
+            iss: 'did:example:alice.id',
+            aud: 'did:example:hub.id',
+            sub: 'did:example:alice.id',
+            query: missingQuery,
+          });
+          fail('did not throw');
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err);
+          }
+          expect(err.property).toEqual(`query.${property}`);
+        }
+      });
+    });
   });
 });
