@@ -37,6 +37,7 @@ export default class TestCommit extends Commit {
     const protectedString = Base64Url.encode(JSON.stringify(headers));
     return new TestCommit({
       protected: protectedString,
+      payload: 'testCommit',
     });
   }
 

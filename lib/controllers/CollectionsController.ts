@@ -11,7 +11,7 @@ import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
  */
 export default class CollectionsController extends BaseController {
   async handleCreateRequest(request: WriteRequest): Promise<WriteResponse> {
-    if (request.commit.getProtectedHeaders().object_id && this.objectExists(request)) {
+    if (request.commit.getProtectedHeaders().object_id) {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
         developerMessage: DeveloperMessage.AlreadyExists,

@@ -23,7 +23,7 @@ export default class TestController extends BaseController {
     if (context) {
       super(context);
     } else {
-      super(new TestContext);
+      super(new TestContext());
     }
   }
 }

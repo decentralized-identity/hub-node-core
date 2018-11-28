@@ -4,19 +4,19 @@ import HubError from '../../lib/models/HubError';
 
 describe('SignedCommit', () => {
   describe('constructor', () => {
-    it('should require a payload and signature', () => {
+    it('should require a signature', () => {
       const commit = TestCommit.create();
       try {
         new SignedCommit({
           protected: commit.getProtectedString(),
-          signature: 'sure',
+          payload: 'sure',
         });
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
           fail(err);
         }
-        expect(err.property).toEqual('commit.payload');
+        expect(err.property).toEqual('commit.signature');
       }
       try {
         new SignedCommit({

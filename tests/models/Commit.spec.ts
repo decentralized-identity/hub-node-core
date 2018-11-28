@@ -1,5 +1,5 @@
-import Commit from '../../lib/models/Commit';
-import HubError from '../../lib/models/HubError';
+import Commit, { Operation } from '../../lib/models/Commit';
+import HubError, { DeveloperMessage } from '../../lib/models/HubError';
 import Base64Url from '@decentralized-identity/did-auth-jose/lib/utilities/Base64Url';
 
 class SimpleCommit extends Commit {
@@ -14,6 +14,7 @@ describe('Commit', () => {
       try {
         new SimpleCommit({
           header: 'not the right kind of header',
+          payload: 'foo',
         });
         fail('did not throw');
       } catch (err) {
@@ -29,6 +30,7 @@ describe('Commit', () => {
       try {
         new SimpleCommit({
           protected: 1,
+          payload: 'foo',
         });
         fail('did not throw');
       } catch (err) {
@@ -57,6 +59,7 @@ describe('Commit', () => {
         try {
           new SimpleCommit({
             protected: stringHeaders,
+            payload: 'foo',
           });
           fail(`did not throw when missing ${property}`);
         } catch (err) {
@@ -85,6 +88,7 @@ describe('Commit', () => {
         try {
           new SimpleCommit({
             protected: stringHeaders,
+            payload: 'foo',
           });
           fail(`did not throw when missing object_id for ${property}`);
         } catch (err) {
@@ -92,6 +96,22 @@ describe('Commit', () => {
             fail(err.message);
           }
           expect(err.property).toEqual('commit.protected.object_id');
+          expect(err.developerMessage).toEqual(DeveloperMessage.MissingParameter);
+        }
+      improperCommit['object_id'] = true;
+        stringHeaders = Base64Url.encode(JSON.stringify(improperCommit));
+        try {
+          new SimpleCommit({
+            protected: stringHeaders,
+            payload: 'foo',
+          });
+          fail(`did not throw when object_id was a string for ${property}`);
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.property).toEqual('commit.protected.object_id');
+          expect(err.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
         }
       });
     });
@@ -111,6 +131,7 @@ describe('Commit', () => {
           }));
         new SimpleCommit({
           'protected': protectedString,
+          payload: 'foo',
         });
         fail(`did not throw when operation was ${operation}`);
       } catch (err) {
@@ -119,6 +140,108 @@ describe('Commit', () => {
         }
         expect(err.property).toEqual('commit.protected.operation');
       }
+    });
+
+    
+    it("should require payload", () => {
+      const protectedString = Base64Url.encode(JSON.stringify({
+          interface: 'Test',
+          context: 'example.com',
+          type: 'test',
+          operation: Operation.Create,
+          committed_at: new Date(Date.now()).toISOString(),
+          commit_strategy: 'basic',
+          sub: 'did:example:alice.id',
+          kid: 'did:example:alice.id#key-1',
+        }));
+      try {
+        new SimpleCommit({
+          protected: protectedString,
+        });
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err)
+        }
+        expect(err.property).toEqual('commit.payload');
+      }
     })
+
+    it("should require payload be a string", () => {
+      const protectedString = Base64Url.encode(JSON.stringify({
+          interface: 'Test',
+          context: 'example.com',
+          type: 'test',
+          operation: Operation.Create,
+          committed_at: new Date(Date.now()).toISOString(),
+          commit_strategy: 'basic',
+          sub: 'did:example:alice.id',
+          kid: 'did:example:alice.id#key-1',
+        }));
+      try {
+        new SimpleCommit({
+          protected: protectedString,
+          payload: 1,
+        });
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err)
+        }
+        expect(err.property).toEqual('commit.payload');
+      }
+    });
+
+    it('should throw if Create includes an object_id', () => {
+      const protectedString = Base64Url.encode(JSON.stringify({
+        interface: 'Test',
+        context: 'example.com',
+        type: 'test',
+        operation: Operation.Create,
+        committed_at: new Date(Date.now()).toISOString(),
+        commit_strategy: 'basic',
+        sub: 'did:example:alice.id',
+        kid: 'did:example:alice.id#key-1',
+        object_id: 'The hash of this entire document, somehow'
+      }));
+      try {
+        new SimpleCommit({
+          protected: protectedString,
+          payload: 'foo',
+        });
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err)
+        }
+        expect(err.property).toEqual('commit.protected.object_id');
+      }
+    });
+  
+    it('should throw if rev is in the protected headers', () => {
+      const protectedString = Base64Url.encode(JSON.stringify({
+        interface: 'Test',
+        context: 'example.com',
+        type: 'test',
+        operation: Operation.Create,
+        committed_at: new Date(Date.now()).toISOString(),
+        commit_strategy: 'basic',
+        sub: 'did:example:alice.id',
+        kid: 'did:example:alice.id#key-1',
+        rev: 'The hash of this entire document, somehow'
+      }));
+      try {
+        new SimpleCommit({
+          protected: protectedString,
+          payload: 'foo',
+        });
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err)
+        }
+        expect(err.property).toEqual('commit.protected.rev');
+      }
+    });
   })
 })
