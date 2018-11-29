@@ -4,11 +4,13 @@ import HubResponse from '../../lib/models/HubResponse';
 import ProfileController, { PROFILE_SCHEMA } from '../../lib/controllers/ProfileController';
 import TestContext from '../mocks/TestContext';
 import HubError from '../../lib/models/HubError';
+import TestAuthorization from '../mocks/TestAuthorization';
 
 const did = 'did:test:alice.id';
 
 describe('ProfileController', () => {
   let testContext: TestContext;
+  let testAuthorization: TestAuthorization;
   let storeCreate: jasmine.Spy;
   let storeQuery: jasmine.Spy;
   let storeUpdate: jasmine.Spy;
@@ -18,6 +20,7 @@ describe('ProfileController', () => {
   let request: HubRequest;
   beforeEach(() => {
     testContext = new TestContext();
+    testAuthorization = new TestAuthorization();
     storeCreate = spyOn(testContext.store, 'createDocument');
     storeQuery = spyOn(testContext.store, 'queryDocuments');
     storeUpdate = spyOn(testContext.store, 'updateDocument');
@@ -26,7 +29,7 @@ describe('ProfileController', () => {
     spyOn(HubResponse, 'withObject').and.callFake((obj: any) => obj);
     spyOn(HubResponse, 'withObjects').and.callFake((obj: any) => obj);
     spyOn(HubResponse, 'withError').and.callFake((obj: any) => obj);
-    controller = new ProfileController(testContext);
+    controller = new ProfileController(testContext, testAuthorization);
     request = new HubRequest({
       iss: did,
       aud: did,

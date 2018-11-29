@@ -3,6 +3,7 @@ import Context from '../interfaces/Context';
 import HubError from '../models/HubError';
 import HubRequest from '../models/HubRequest';
 import HubResponse from '../models/HubResponse';
+import AuthorizationController from './AuthorizationController';
 
 /**
  * Abstract controller class for every interface controllers to inherit.
@@ -36,7 +37,7 @@ export default abstract class BaseController {
    *
    * @param context The context object containing all the injected components.
    */
-  constructor(protected context: Context) { }
+  constructor(protected context: Context, private authorization: AuthorizationController) { }
 
   /**
    * Handles the Hub request.
@@ -47,6 +48,10 @@ export default abstract class BaseController {
 
     if (!handler) {
       return HubResponse.withError(new HubError(`Handling of '${action}' action is not supported.`, HttpStatus.BAD_REQUEST));
+    }
+
+    if (!await this.authorization.authorize(request)) {
+      return HubResponse.withError(new HubError('Unauthorized request.', HttpStatus.FORBIDDEN));
     }
 
     return await handler.call(this, request);
