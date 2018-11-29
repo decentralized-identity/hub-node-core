@@ -38,7 +38,7 @@ export default abstract class BaseController {
     const grants = await this.authorization.apiAuthorize(request);
     if (grants.length === 0) {
       throw new HubError({
-        errorCode: ErrorCode.PermissionsRequired
+        errorCode: ErrorCode.PermissionsRequired,
       });
     }
     switch (request.getType()) {
