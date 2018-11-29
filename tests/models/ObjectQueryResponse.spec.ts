@@ -1,4 +1,5 @@
-import ObjectQueryResponse, { ObjectContainer } from '../../lib/models/ObjectQueryResponse';
+import ObjectQueryResponse from '../../lib/models/ObjectQueryResponse';\
+import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 
 describe('ObjectQueryResponse', () => {
   function createObject(): ObjectContainer {
@@ -7,6 +8,7 @@ describe('ObjectQueryResponse', () => {
       context: 'example.com',
       type: 'test',
       id: Math.round(Math.random() * 255).toString(16),
+      created_by: 'did:example:bob.id',
       created_at: new Date(Date.now()).toISOString(),
       sub: 'did:example:alice.id',
       commit_strategy: 'basic',
