@@ -163,6 +163,13 @@ export default abstract class Commit {
   }
 
   /**
+   * Gets the payload
+   */
+  getPayload(): any {
+    return JSON.parse(Base64Url.decode(this.originalPayload));
+  }
+
+  /**
    * Gets the JSON Serialized form of this commit
    */
   abstract toJson(): any;

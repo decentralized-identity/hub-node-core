@@ -1,5 +1,6 @@
 
-export const PERMISSION_GRANT_SCHEMA = 'schema.identity.foundation/0.1/PermissionGrant';
+export const PERMISSION_GRANT_CONTEXT = 'schema.identity.foundation/0.1';
+export const PERMISSION_GRANT_TYPE = 'PermissionGrant';
 
 /**
  * Represents a Permission Grant object
@@ -8,6 +9,15 @@ export default interface PermissionGrant {
   owner: string;
   grantee: string;
   allow: string;
-  object_type: string;
+  context: string;
+  type: string;
   created_by?: string;
 }
+
+export const ownerPermission: PermissionGrant = {
+  owner: '*',
+  grantee: '*',
+  allow: 'CRUD',
+  context: '*',
+  type: '*',
+};

@@ -7,6 +7,7 @@ import ObjectQueryResponse from '../models/ObjectQueryResponse';
 import BaseRequest from '../models/BaseRequest';
 import BaseResponse from '../models/BaseResponse';
 import { Operation } from '../models/Commit';
+import AuthorizationController from './AuthorizationController';
 
 /**
  * Abstract controller class for every interface controllers to inherit.
@@ -27,12 +28,13 @@ export default abstract class BaseController {
    *
    * @param context The context object containing all the injected components.
    */
-  constructor(protected context: Context) { }
+  constructor(protected context: Context, protected authorization: AuthorizationController) { }
 
   /**
    * Handles the Hub request.
    */
   public async handle(request: BaseRequest): Promise<BaseResponse> {
+    await this.authorization.apiAuthorize(request);
     switch (request.getType()) {
       case 'ObjectQueryRequest':
         return await this.handleQueryRequest(request as ObjectQueryRequest);

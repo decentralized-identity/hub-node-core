@@ -45,7 +45,7 @@ export default class SignedCommit extends Commit {
     }
     return {
       protected: this.originalProtected,
-      headers: additionalHeaders,
+      header: additionalHeaders,
       payload: this.originalPayload,
       signature: this.originalSignature,
     } as any;

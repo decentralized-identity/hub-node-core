@@ -13,6 +13,7 @@ import ObjectQueryRequest from './models/ObjectQueryRequest';
 import WriteRequest from './models/WriteRequest';
 import BaseResponse from './models/BaseResponse';
 import Response from './models/Response';
+import AuthorizationController from './controllers/AuthorizationController';
 
 /**
  * Core class that handles Hub requests.
@@ -26,25 +27,28 @@ export default class Hub {
 
   private _authentication: Authentication;
 
+  private _authorization: AuthorizationController;
+
   /**
    * Hub constructor.
    *
    * @param context Components for initializing the Hub.
    */
   public constructor(private context: Context) {
-    this._controllers = {
-      collections: new CollectionsController(this.context),
-      actions: new ActionsController(this.context),
-      permissions: new PermissionsController(this.context),
-      profile: new ProfileController(this.context),
-    };
-
     this._authentication = new Authentication({
       resolver: this.context.resolver,
       keys: this.context.keys,
       cryptoSuites: this.context.cryptoSuites,
     });
 
+    this._authorization = new AuthorizationController(context.store);
+
+    this._controllers = {
+      collections: new CollectionsController(this.context, this._authorization),
+      actions: new ActionsController(this.context, this._authorization),
+      permissions: new PermissionsController(this.context, this._authorization),
+      profile: new ProfileController(this.context, this._authorization),
+    };
   }
 
   /**
