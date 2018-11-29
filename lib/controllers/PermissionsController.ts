@@ -6,6 +6,7 @@ import ObjectQueryResponse, { ObjectContainer } from '../models/ObjectQueryRespo
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import AuthorizationController from './AuthorizationController';
+import StoreUtils from '../utilities/StoreUtils';
 
 /**
  * This class handles all the permission requests.
@@ -13,7 +14,7 @@ import AuthorizationController from './AuthorizationController';
 export default class PermissionsController extends BaseController {
 
   async handleQueryRequest(request: ObjectQueryRequest, grants: PermissionGrant[]): Promise<ObjectQueryResponse> {
-    // verify context and type
+    // verify context and type, not using validateSchema as is a ObjectQuerRequest
     if (request.queryContext !== PERMISSION_GRANT_CONTEXT || request.queryType !== PERMISSION_GRANT_TYPE) {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
@@ -46,79 +47,81 @@ export default class PermissionsController extends BaseController {
     return new ObjectQueryResponse(prunedResults, results.pagination.skip_token);
   }
 
-  async handleCreateRequest(request: HubRequest): Promise<WriteResponse> {
+  async handleCreateRequest(request: WriteRequest, _: PermissionGrant[]): Promise<WriteResponse> {
     PermissionsController.validateSchema(request);
-    const permission = PermissionsController.getPermissionGrant(request);
+    PermissionsController.validatePermissionGrant(request);
 
-    const result = await this.context.store.createDocument({
-      owner: request.aud,
-      schema: PERMISSION_GRANT_SCHEMA,
-      payload: permission,
-    });
-
-    return HubResponse.withObject(result);
+    return StoreUtils.writeCommit(request, this.context.store);
   }
 
-  async handleDeleteRequest(request: WriteRequest): Promise<WriteResponse> {
+  async handleDeleteRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
     PermissionsController.validateSchema(request);
+    await this.validateObjectExists(request, grants);
 
-    if (!request.request || !request.request.id) {
-      throw new HubError('request.id is required', 400);
-    }
-
-    const id = request.request.id;
-
-    await this.context.store.deleteDocument({
-      id,
-      owner: request.aud,
-      schema: PERMISSION_GRANT_SCHEMA,
-    });
-
-    return HubResponse.withSuccess();
+    return StoreUtils.writeCommit(request, this.context.store);
   }
 
-  async handleUpdateRequest(request: WriteRequest): Promise<WriteResponse> {
+  async handleUpdateRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
     PermissionsController.validateSchema(request);
-    const permission = PermissionsController.getPermissionGrant(request);
-    if (!request.request || !request.request.id) {
-      throw new HubError('request.id is required', 400);
-    }
+    await this.validateObjectExists(request, grants);
+    PermissionsController.validatePermissionGrant(request);
 
-    const id = request.request.id;
-
-    const result = await this.context.store.updateDocument({
-      id,
-      owner: request.aud,
-      schema: PERMISSION_GRANT_SCHEMA,
-      payload: permission,
-    });
-
-    return HubResponse.withObject(result);
+    return StoreUtils.writeCommit(request, this.context.store);
   }
 
   // given a hub request, attempts to retrieve the PermissionGrant from it's payload
   private static getPermissionGrant(request: WriteRequest): PermissionGrant {
-    if (!request.payload) {
-      throw new HubError('request.payload required', 400);
-    }
-    const permission = request.payload.data as PermissionGrant;
-    if (!permission.owner ||
-        !permission.grantee ||
-        !permission.allow ||
-        !permission.object_type ||
-        !permission.created_by) {
-      throw new HubError('request.payload.data must be a PermissionGrant.', 400);
-    }
+    const permission = request.commit.getPayload() as PermissionGrant;
+    ['owner', 'grantee', 'allow', 'context', 'type'].forEach((property) => {
+      if (!(permission as any)[property]) {
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: `commit.payload.${property}`,
+          developerMessage: DeveloperMessage.MissingParameter,
+        });
+      } if (typeof (permission as any)[property] !== 'string') {
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          property: `commit.payload.${property}`,
+          developerMessage: DeveloperMessage.IncorrectParameter,
+        });
+      }
+    });
     return permission;
   }
 
   // given a hub request, validates the request contains the permission grant schema
   private static validateSchema(request: WriteRequest) {
-    if (!request.request || !request.request.schema) {
-      throw new HubError('request.schema required', 400);
+    const headers = request.commit.getHeaders();
+    if (headers.context !== PERMISSION_GRANT_CONTEXT ||
+      headers.type !== PERMISSION_GRANT_TYPE) {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+      });
     }
-    if (request.request.schema !== PERMISSION_GRANT_SCHEMA) {
-      throw new HubError(`request.schema must be ${PERMISSION_GRANT_SCHEMA}`, 400);
+  }
+
+  private static validatePermissionGrant(request: WriteRequest) {
+    // validates the permission
+    const permission = PermissionsController.getPermissionGrant(request);
+
+    // forbid CREATE created_by conflicts
+    if (permission.created_by &&
+      permission.created_by &&
+      /C/.test(permission.allow)) {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'commit.payload.created_by',
+        developerMessage: 'Create permission cannot be given when created_by is used',
+      });
+    }
+  }
+
+  private async validateObjectExists(request: WriteRequest, grants: PermissionGrant[]) {
+    if (!await StoreUtils.objectExists(request, this.context.store, grants)) {
+      throw new HubError({
+        errorCode: ErrorCode.NotFound,
+      });
     }
   }
 }

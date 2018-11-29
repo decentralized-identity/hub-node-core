@@ -7,6 +7,7 @@ import { QueryEqualsFilter } from '../interfaces/Store';
 import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
 import PermissionGrant from '../models/PermissionGrant';
 import AuthorizationController from './AuthorizationController';
+import StoreUtils from '../utilities/StoreUtils';
 
 /**
  * This class handles all the collection requests.
@@ -19,7 +20,7 @@ export default class CollectionsController extends BaseController {
         developerMessage: DeveloperMessage.AlreadyExists,
       });
     }
-    return await this.writeCommit(request);
+    return StoreUtils.writeCommit(request, this.context.store);
   }
 
   async handleQueryRequest(request: ObjectQueryRequest, grants: PermissionGrant[]): Promise<ObjectQueryResponse> {
@@ -61,84 +62,21 @@ export default class CollectionsController extends BaseController {
   }
 
   async handleDeleteRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
-    if (!await this.objectExists(request, grants)) {
+    if (!await StoreUtils.objectExists(request, this.context.store, grants)) {
       throw new HubError({
         errorCode: ErrorCode.NotFound,
       });
     }
-    return await this.writeCommit(request);
+    return StoreUtils.writeCommit(request, this.context.store);
   }
 
   async handleUpdateRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
-    if (!await this.objectExists(request, grants)) {
+    if (!await StoreUtils.objectExists(request, this.context.store, grants)) {
       throw new HubError({
         errorCode: ErrorCode.NotFound,
       });
     }
-    return await this.writeCommit(request);
-  }
-
-  private async objectExists(request: WriteRequest, grants?: PermissionGrant[]): Promise<boolean> {
-    const commitHeaders = request.commit.getProtectedHeaders();
-    const filters: QueryEqualsFilter[] = [
-      {
-        field: 'interface',
-        value: commitHeaders.interface,
-        type: 'eq',
-      },
-      {
-        field: 'object_id',
-        value: [commitHeaders.object_id],
-        type: 'eq',
-      },
-      {
-        field: 'context',
-        value: commitHeaders.context,
-        type: 'eq',
-      },
-      {
-        field: 'type',
-        value: commitHeaders.type,
-        type: 'eq',
-      },
-    ];
-
-    const queryRequest = {
-      filters,
-      owner: commitHeaders.sub,
-    };
-
-    const response = await this.context.store.queryObjects(queryRequest);
-
-    if (response.results.length > 1) {
-      throw new HubError({
-        errorCode: ErrorCode.ServerError,
-      });
-    } else if (response.results.length === 1 && grants) {
-      let authorized = false;
-      grants.forEach((grant) => {
-        if ((!grant.created_by) ||
-          (response.results[0].created_by === grant.created_by)) {
-          authorized = true;
-        }
-      });
-      if (!authorized) {
-        throw new HubError({
-          errorCode: ErrorCode.PermissionsRequired,
-        });
-      }
-    }
-
-    return response.results.length > 0;
-  }
-
-  private async writeCommit(request: WriteRequest): Promise<WriteResponse> {
-    const commitRequest = {
-      owner: request.sub,
-      commit: request.commit,
-    };
-    const response = await this.context.store.commit(commitRequest);
-    return new WriteResponse(response.knownRevisions);
+    return StoreUtils.writeCommit(request, this.context.store);
   }
 
 }
