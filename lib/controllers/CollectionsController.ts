@@ -5,12 +5,14 @@ import ObjectQueryResponse from '../models/ObjectQueryResponse';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import { QueryEqualsFilter } from '../interfaces/Store';
 import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
+import PermissionGrant from '../models/PermissionGrant';
+import AuthorizationController from './AuthorizationController';
 
 /**
  * This class handles all the collection requests.
  */
 export default class CollectionsController extends BaseController {
-  async handleCreateRequest(request: WriteRequest): Promise<WriteResponse> {
+  async handleCreateRequest(request: WriteRequest, _: PermissionGrant[]): Promise<WriteResponse> {
     if (request.commit.getProtectedHeaders().object_id) {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
@@ -20,7 +22,7 @@ export default class CollectionsController extends BaseController {
     return await this.writeCommit(request);
   }
 
-  async handleQueryRequest(request: ObjectQueryRequest): Promise<ObjectQueryResponse> {
+  async handleQueryRequest(request: ObjectQueryRequest, grants: PermissionGrant[]): Promise<ObjectQueryResponse> {
     const filters: QueryEqualsFilter[] = [
       {
         field: 'interface',
@@ -54,11 +56,12 @@ export default class CollectionsController extends BaseController {
     };
 
     const response = await this.context.store.queryObjects(queryRequest);
-    return new ObjectQueryResponse(response.results, response.pagination.skip_token);
+    const prunedResults = await AuthorizationController.pruneResults(response.results, grants);
+    return new ObjectQueryResponse(prunedResults, response.pagination.skip_token);
   }
 
-  async handleDeleteRequest(request: WriteRequest): Promise<WriteResponse> {
-    if (!await this.objectExists(request)) {
+  async handleDeleteRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
+    if (!await this.objectExists(request, grants)) {
       throw new HubError({
         errorCode: ErrorCode.NotFound,
       });
@@ -66,8 +69,8 @@ export default class CollectionsController extends BaseController {
     return await this.writeCommit(request);
   }
 
-  async handleUpdateRequest(request: WriteRequest): Promise<WriteResponse> {
-    if (!await this.objectExists(request)) {
+  async handleUpdateRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
+    if (!await this.objectExists(request, grants)) {
       throw new HubError({
         errorCode: ErrorCode.NotFound,
       });
@@ -75,7 +78,7 @@ export default class CollectionsController extends BaseController {
     return await this.writeCommit(request);
   }
 
-  private async objectExists(request: WriteRequest): Promise<boolean> {
+  private async objectExists(request: WriteRequest, grants?: PermissionGrant[]): Promise<boolean> {
     const commitHeaders = request.commit.getProtectedHeaders();
     const filters: QueryEqualsFilter[] = [
       {
@@ -106,6 +109,25 @@ export default class CollectionsController extends BaseController {
     };
 
     const response = await this.context.store.queryObjects(queryRequest);
+
+    if (response.results.length > 1) {
+      throw new HubError({
+        errorCode: ErrorCode.ServerError,
+      });
+    } else if (response.results.length === 1 && grants) {
+      let authorized = false;
+      grants.forEach((grant) => {
+        if ((!grant.created_by) ||
+          (response.results[0].created_by === grant.created_by)) {
+          authorized = true;
+        }
+      });
+      if (!authorized) {
+        throw new HubError({
+          errorCode: ErrorCode.PermissionsRequired,
+        });
+      }
+    }
 
     return response.results.length > 0;
   }

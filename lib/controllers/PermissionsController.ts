@@ -5,6 +5,7 @@ import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse, { ObjectContainer } from '../models/ObjectQueryResponse';
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
+import AuthorizationController from './AuthorizationController';
 
 /**
  * This class handles all the permission requests.
@@ -41,27 +42,7 @@ export default class PermissionsController extends BaseController {
       ],
     });
 
-    const createdByRestrictions: string[] = [];
-    let allPermissions = false;
-    grants.forEach((grant) => {
-      if (!grant.created_by || allPermissions) {
-        allPermissions = true;
-        return;
-      }
-      createdByRestrictions.push(grant.created_by);
-    });
-
-    if (allPermissions) {
-      return new ObjectQueryResponse(results.results, results.pagination.skip_token);
-    }
-
-    const prunedResults: ObjectContainer[] = [];
-    results.results.forEach((result) => {
-      if (createdByRestrictions.includes(result.created_by) {
-        prunedResults.push(result);
-      }
-    });
-
+    const prunedResults = await AuthorizationController.pruneResults(results.results, grants);
     return new ObjectQueryResponse(prunedResults, results.pagination.skip_token);
   }
 

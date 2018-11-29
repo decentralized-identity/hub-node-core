@@ -7,6 +7,7 @@ import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import { Operation } from '../models/Commit';
 import { ObjectQueryResponse } from '../interfaces/Store';
 import CommitStrategyBasic from '../utilities/CommitStrategyBasic';
+import { ObjectContainer } from '../models/ObjectQueryResponse';
 
 /**
  * Internal controller for authorizing requests to an Identity Hub
@@ -126,5 +127,40 @@ export default class AuthorizationController {
     } while (potentialPermissions.pagination.skip_token !== null);
 
     return matchingGrants;
+  }
+
+  /**
+   * Given a set of results and applicable permission grants, prunes the results to those permitted by the grants
+   * @param results Object results to be pruned
+   * @param grants Permission Grants used to prune the results
+   * @returns A subset of results permitted by grants
+   */
+  static async pruneResults(results: ObjectContainer[], grants: PermissionGrant[]): Promise<ObjectContainer[]> {
+
+    const createdByRestrictions: string[] = [];
+    let allPermissions = false;
+    grants.forEach((grant) => {
+      if (!grant.created_by || allPermissions) {
+        allPermissions = true;
+        return;
+      }
+      createdByRestrictions.push(grant.created_by);
+    });
+
+    if (allPermissions) {
+      return results;
+    }
+
+    throw new HubError({
+      errorCode: ErrorCode.PermissionsRequired,
+    });
+
+    // const prunedResults: ObjectContainer[] = [];
+    // results.forEach((result) => {
+    //   if (createdByRestrictions.includes(result.created_by)) {
+    //     prunedResults.push(result);
+    //   }
+    // });
+    // return prunedResults;
   }
 }
