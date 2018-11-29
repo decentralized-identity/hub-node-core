@@ -1,6 +1,6 @@
+import base64url from 'base64url';
 import Commit, { Operation } from '../../lib/models/Commit';
 import HubError, { DeveloperMessage } from '../../lib/models/HubError';
-import Base64Url from '@decentralized-identity/did-auth-jose/lib/utilities/Base64Url';
 
 class SimpleCommit extends Commit {
   toJson() {
@@ -55,7 +55,7 @@ describe('Commit', () => {
       for (const property in validCommit) {
         let improperCommit: any = Object.assign({}, validCommit);
         delete improperCommit[property];
-        let stringHeaders = Base64Url.encode(JSON.stringify(improperCommit));
+        let stringHeaders = base64url.encode(JSON.stringify(improperCommit));
         try {
           new SimpleCommit({
             protected: stringHeaders,
@@ -84,7 +84,7 @@ describe('Commit', () => {
       ['update', 'delete'].forEach((property) => {
         let improperCommit: any = Object.assign({}, validCommit);
         improperCommit['operation'] = property;
-        let stringHeaders = Base64Url.encode(JSON.stringify(improperCommit));
+        let stringHeaders = base64url.encode(JSON.stringify(improperCommit));
         try {
           new SimpleCommit({
             protected: stringHeaders,
@@ -99,7 +99,7 @@ describe('Commit', () => {
           expect(err.developerMessage).toEqual(DeveloperMessage.MissingParameter);
         }
       improperCommit['object_id'] = true;
-        stringHeaders = Base64Url.encode(JSON.stringify(improperCommit));
+        stringHeaders = base64url.encode(JSON.stringify(improperCommit));
         try {
           new SimpleCommit({
             protected: stringHeaders,
@@ -119,7 +119,7 @@ describe('Commit', () => {
     it('should throw for unknown operations', () => {
       try {
         const operation = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-        const protectedString = Base64Url.encode(JSON.stringify({
+        const protectedString = base64url.encode(JSON.stringify({
             operation,
             interface: 'Test',
             context: 'example.com',
@@ -144,7 +144,7 @@ describe('Commit', () => {
 
     
     it("should require payload", () => {
-      const protectedString = Base64Url.encode(JSON.stringify({
+      const protectedString = base64url.encode(JSON.stringify({
           interface: 'Test',
           context: 'example.com',
           type: 'test',
@@ -168,7 +168,7 @@ describe('Commit', () => {
     })
 
     it("should require payload be a string", () => {
-      const protectedString = Base64Url.encode(JSON.stringify({
+      const protectedString = base64url.encode(JSON.stringify({
           interface: 'Test',
           context: 'example.com',
           type: 'test',
@@ -193,7 +193,7 @@ describe('Commit', () => {
     });
 
     it('should throw if Create includes an object_id', () => {
-      const protectedString = Base64Url.encode(JSON.stringify({
+      const protectedString = base64url.encode(JSON.stringify({
         interface: 'Test',
         context: 'example.com',
         type: 'test',
@@ -219,7 +219,7 @@ describe('Commit', () => {
     });
   
     it('should throw if rev is in the protected headers', () => {
-      const protectedString = Base64Url.encode(JSON.stringify({
+      const protectedString = base64url.encode(JSON.stringify({
         interface: 'Test',
         context: 'example.com',
         type: 'test',

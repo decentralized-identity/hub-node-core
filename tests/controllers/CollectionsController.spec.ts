@@ -1,8 +1,8 @@
+import base64url from 'base64url';
 import CollectionsController from '../../lib/controllers/CollectionsController';
 import TestContext from '../mocks/TestContext';
 import WriteRequest from '../../lib/models/WriteRequest';
 import { Context } from '../models/BaseRequest.spec';
-import { Base64Url } from '@decentralized-identity/did-auth-jose';
 import { Operation } from '../../lib/models/Commit';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
@@ -35,7 +35,7 @@ function createWriteCommit(operation: Operation, testHeader: string, additionalP
     aud: hub,
     sub: sender,
     commit: {
-      protected: Base64Url.encode(JSON.stringify(protectedHeaders)),
+      protected: base64url.encode(JSON.stringify(protectedHeaders)),
       header: {
         iss: sender,
         test: testHeader,

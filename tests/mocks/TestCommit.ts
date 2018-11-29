@@ -1,5 +1,5 @@
+import base64url from 'base64url';
 import Commit, { Operation } from "../../lib/models/Commit";
-import Base64Url from "@decentralized-identity/did-auth-jose/lib/utilities/Base64Url";
 
 interface TestCommitOptions {
   interface?: string;
@@ -34,7 +34,7 @@ export default class TestCommit extends Commit {
       headers.kid = 'did:example:alice.id#key-1';
     }
     headers.committed_at = new Date(Date.now()).toISOString();
-    const protectedString = Base64Url.encode(JSON.stringify(headers));
+    const protectedString = base64url.encode(JSON.stringify(headers));
     return new TestCommit({
       protected: protectedString,
       payload: 'testCommit',

@@ -1,4 +1,4 @@
-import Base64Url from '@decentralized-identity/did-auth-jose/lib/utilities/Base64Url';
+import base64url from 'base64url';
 import { DidDocument } from '@decentralized-identity/did-common-typescript';
 import HubError, { ErrorCode, DeveloperMessage } from './HubError';
 import * as crypto from 'crypto';
@@ -159,14 +159,14 @@ export default abstract class Commit {
    * Gets the protected headers
    */
   getProtectedHeaders(): any {
-    return JSON.parse(Base64Url.decode(this.originalProtected));
+    return JSON.parse(base64url.decode(this.originalProtected));
   }
 
   /**
    * Gets the payload
    */
   getPayload(): any {
-    return JSON.parse(Base64Url.decode(this.originalPayload));
+    return JSON.parse(base64url.decode(this.originalPayload));
   }
 
   /**

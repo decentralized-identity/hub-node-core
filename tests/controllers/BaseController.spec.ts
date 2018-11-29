@@ -1,7 +1,7 @@
+import base64url from 'base64url';
 import HubError, { ErrorCode, DeveloperMessage } from '../../lib/models/HubError';
 import TestController from '../mocks/TestController';
 import WriteRequest from '../../lib/models/WriteRequest';
-import { Base64Url } from '@decentralized-identity/did-auth-jose'
 import { Operation } from '../../lib/models/Commit';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import BaseRequest from '../../lib/models/BaseRequest';
@@ -20,7 +20,7 @@ describe('BaseController', () => {
       '@context': context,
       '@type': 'WriteRequest',
       commit: {
-        protected: Base64Url.encode(JSON.stringify({
+        protected: base64url.encode(JSON.stringify({
           interface: 'test',
           context: 'example.com',
           type: 'test',
@@ -104,7 +104,7 @@ describe('BaseController', () => {
         '@context': context,
         '@type': 'WriteRequest',
         commit: {
-          protected: Base64Url.encode(JSON.stringify({
+          protected: base64url.encode(JSON.stringify({
             interface: 'test',
             context: 'example.com',
             type: 'test',
@@ -163,7 +163,7 @@ describe('BaseController', () => {
         '@context': context,
         '@type': 'WriteRequest',
         commit: {
-          protected: Base64Url.encode(JSON.stringify({
+          protected: base64url.encode(JSON.stringify({
             interface: 'test',
             context: 'example.com',
             type: 'testype',
