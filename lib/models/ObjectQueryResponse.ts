@@ -12,6 +12,8 @@ export interface ObjectContainer {
   type: string;
   /** ID of the object */
   id: string;
+  /** Issuer of the initial create commit */
+  created_by: string;
   /** Time at which the object was created at */
   created_at: string;
   /** Subject of the object (object owner) */
