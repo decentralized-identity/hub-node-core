@@ -7,7 +7,7 @@ import { Operation } from '../../lib/models/Commit';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import * as store from '../../lib/interfaces/Store';
-import { ObjectContainer } from '../../lib/models/ObjectQueryResponse';
+import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 
 const sender = 'did:example:alice.id';
 const hub = 'did:example:alice.id';

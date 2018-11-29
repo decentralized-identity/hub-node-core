@@ -7,7 +7,7 @@ import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import { Operation } from '../models/Commit';
 import { ObjectQueryResponse } from '../interfaces/Store';
 import CommitStrategyBasic from '../utilities/CommitStrategyBasic';
-import { ObjectContainer } from '../models/ObjectQueryResponse';
+import ObjectContainer from '../interfaces/ObjectContainer';
 
 /**
  * Internal controller for authorizing requests to an Identity Hub

@@ -2,7 +2,9 @@ import BaseController from './BaseController';
 import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
 import PermissionGrant, { PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
-import ObjectQueryResponse, { ObjectContainer } from '../models/ObjectQueryResponse';
+import ObjectQueryResponse from '../models/ObjectQueryResponse';
+import ObjectContainer from '../interfaces/ObjectContainer';
+
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import AuthorizationController from './AuthorizationController';
