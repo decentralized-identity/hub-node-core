@@ -4,7 +4,7 @@
 import Hub from './Hub';
 
 // Interfaces
-import ObjectContainer from './models/ObjectQueryRequest';
+import {ObjectContainer} from './models/ObjectQueryResponse';
 import Store from './interfaces/Store';
 
 // Models

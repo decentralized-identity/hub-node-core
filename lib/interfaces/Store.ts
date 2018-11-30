@@ -1,5 +1,5 @@
 import Commit from '../models/Commit';
-import ObjectContainer from '../interfaces/ObjectContainer';
+import ObjectContainer from '../models/ObjectQueryResponse';
 
 /**
  * Query filter which refines results to those where the specified `field` has the given `value`. If
