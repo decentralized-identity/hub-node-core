@@ -1,115 +1,98 @@
-import * as HttpStatus from 'http-status';
-import BaseController from './BaseController';
-import HubError from '../models/HubError';
-import HubRequest from '../models/HubRequest';
-import HubResponse from '../models/HubResponse';
-import Validation from '../utilities/Validation';
-import { StoredObject } from '../interfaces/Store';
 
-export const PROFILE_SCHEMA: string = 'https://schema.identity.foundation/0.1/Profile';
+import BaseController from './BaseController';
+import HubError, { ErrorCode } from '../models/HubError';
+import ObjectQueryRequest from '../models/ObjectQueryRequest';
+import ObjectQueryResponse, { ObjectContainer } from '../models/ObjectQueryResponse';
+import PermissionGrant from '../models/PermissionGrant';
+import WriteRequest from '../models/WriteRequest';
+import WriteResponse from '../models/WriteResponse';
+import StoreUtils from '../utilities/StoreUtils';
+
+export const PROFILE_CONTEXT = 'schema.identity.foundation/0.1';
+export const PROFILE_TYPE = 'Profile';
 
 /**
  * This class handles all the profile requests.
  */
-// export default class ProfileController extends BaseController {
-//   async handleCreateRequest(request: HubRequest): Promise<HubResponse> {
-//     return await this.upsert(request);
-//   }
+export default class ProfileController extends BaseController {
+  async handleQueryRequest(request: ObjectQueryRequest, _: PermissionGrant[]): Promise<ObjectQueryResponse> {
+    // audiance is used here because you are allowed to read another's profile
+    const profiles = await this.getProfiles(request.sub);
+    if (profiles.length > 0) {
+      return new ObjectQueryResponse([profiles[0]], null);
+    }
+    return new ObjectQueryResponse([], null);
+  }
 
-//   async handleExecuteRequest(request: HubRequest): Promise<HubResponse> {
-//     throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
-//   }
+  async handleCreateRequest(request: WriteRequest, _: PermissionGrant[]): Promise<WriteResponse> {
+    ProfileController.validateSchema(request);
+    const profiles = await this.getProfiles(request.sub);
+    if (profiles.length > 0) {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        developerMessage: `Profile already exists. Please issue update for object_id: '${profiles[0].id}'`,
+      });
+    }
 
-//   async handleReadRequest(request: HubRequest): Promise<HubResponse> {
-//     // audiance is used here because you are allowed to read another's profile
-//     const result = await this.getProfile(request.aud);
+    return await StoreUtils.writeCommit(request, this.context.store);
+  }
 
-//     if (result) {
-//       return HubResponse.withObject(result);
-//     }
+  async handleDeleteRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
+    ProfileController.validateSchema(request);
+    if (!await StoreUtils.objectExists(request, this.context.store, grants)) {
+      throw new HubError({
+        errorCode: ErrorCode.NotFound,
+      });
+    }
 
-//     return HubResponse.withObject(this.getEmptyObjectForDid(request.aud));
-//   }
+    return StoreUtils.writeCommit(request, this.context.store);
+  }
 
-//   async handleDeleteRequest(request: HubRequest): Promise<HubResponse> {
-//     const profiles = await this.context.store.queryDocuments({
-//       owner: request.iss,
-//       schema: PROFILE_SCHEMA,
-//     });
+  async handleUpdateRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
+    ProfileController.validateSchema(request);
+    if (!await StoreUtils.objectExists(request, this.context.store, grants)) {
+      throw new HubError({
+        errorCode: ErrorCode.NotFound,
+      });
+    }
 
-//     await profiles.forEach(async (profile) => {
-//       await this.context.store.deleteDocument({
-//         owner: request.iss,
-//         schema: PROFILE_SCHEMA,
-//         id: profile.id,
-//       });
-//     });
+    // we cannot help if they already have multiple profiles
+    return StoreUtils.writeCommit(request, this.context.store);
+  }
 
-//     return HubResponse.withSuccess();
-//   }
+  // gets all the profiles on the first page for this user
+  private async getProfiles(owner: string): Promise<ObjectContainer[]> {
+    const profiles = await this.context.store.queryObjects({
+      owner,
+      filters: [
+        {
+          field: 'interface',
+          type: 'eq',
+          value: 'Profile',
+        },
+        {
+          field: 'context',
+          type: 'eq',
+          value: PROFILE_CONTEXT,
+        },
+        {
+          field: 'type',
+          type: 'eq',
+          value: PROFILE_TYPE,
+        },
+      ],
+    });
+    return profiles.results;
+  }
 
-//   async handleUpdateRequest(request: HubRequest): Promise<HubResponse> {
-//     return await this.upsert(request);
-//   }
-
-//   /**
-//    * Retrieves the profile of the did, if found
-//    */
-//   private async getProfile(did: string): Promise<StoredObject | undefined> {
-//     const results = await this.context.store.queryDocuments({
-//       owner: did,
-//       schema: PROFILE_SCHEMA,
-//     });
-
-//     if (results.length > 1) {
-//       console.log(`{"type": "warn", "message": "More than one profile exists for ${did}"}`);
-//     }
-
-//     return results[0];
-//   }
-
-//   /**
-//    * Returns a blank object
-//    * @param did The did of the owner of the object
-//    */
-//   private getEmptyObjectForDid(did: string): StoredObject {
-//     return {
-//       owner: did,
-//       id: '',
-//       schema: PROFILE_SCHEMA,
-//       payload: {},
-//     };
-//   }
-
-//   /**
-//    * Given a request, creates or updates the profile object
-//    * @param request The request used to create or update the profile object
-//    */
-//   private async upsert(request: HubRequest): Promise<HubResponse> {
-//     const payloadField = Validation.requiredValue(request.payload, 'payload');
-
-//     const profile = await this.getProfile(request.iss);
-
-//     // Update if one exists
-//     if (profile) {
-//       const result = await this.context.store.updateDocument({
-//         owner: request.iss,
-//         schema: PROFILE_SCHEMA,
-//         id: profile.id,
-//         meta: payloadField.meta,
-//         payload: Validation.requiredValue(payloadField.data, 'request.payload'),
-//       });
-
-//       return HubResponse.withObject(result);
-//     }
-
-//     // No pre-existing Profile, generate a new one
-//     const result = await this.context.store.createDocument({
-//       owner: request.iss,
-//       schema: PROFILE_SCHEMA,
-//       meta: payloadField.meta,
-//       payload: Validation.requiredValue(payloadField.data, 'request.payload'),
-//     });
-//     return HubResponse.withObject(result);
-//   }
+  // given a hub request, validates the request contains the permission grant schema
+  private static validateSchema(request: WriteRequest) {
+    const headers = request.commit.getHeaders();
+    if (headers.context !== PROFILE_CONTEXT ||
+      headers.type !== PROFILE_TYPE) {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+      });
+    }
+  }
 }
