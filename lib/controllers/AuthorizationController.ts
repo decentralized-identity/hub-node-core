@@ -1,5 +1,5 @@
 import { Store } from '../index';
-import PermissionGrant, { ownerPermission, PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
+import PermissionGrant, { OWNER_PERMISSION, PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
 import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
 import BaseRequest from '../models/BaseRequest';
 import WriteRequest from '../models/WriteRequest';
@@ -7,7 +7,7 @@ import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import { Operation } from '../models/Commit';
 import { ObjectQueryResponse } from '../interfaces/Store';
 import CommitStrategyBasic from '../utilities/CommitStrategyBasic';
-import ObjectContainer from '../interfaces/ObjectContainer';
+import { ObjectContainer } from '../models/ObjectQueryResponse';
 
 /**
  * Internal controller for authorizing requests to an Identity Hub
@@ -49,8 +49,8 @@ export default class AuthorizationController {
    */
   async apiAuthorize(request: BaseRequest): Promise<PermissionGrant[]> {
     // if the request is to their own hub, always allow
-    if (request.iss === request.aud) {
-      return [ownerPermission];
+    if (request.iss === request.sub) {
+      return [OWNER_PERMISSION];
     }
     const requester = request.iss;
     const owner = request.sub;

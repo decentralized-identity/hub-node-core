@@ -1,5 +1,4 @@
-import ObjectQueryResponse from '../../lib/models/ObjectQueryResponse';\
-import ObjectContainer from '../../lib/interfaces/ObjectContainer';
+import ObjectQueryResponse, { ObjectContainer } from '../../lib/models/ObjectQueryResponse';
 
 describe('ObjectQueryResponse', () => {
   function createObject(): ObjectContainer {

@@ -14,7 +14,7 @@ export default interface PermissionGrant {
   created_by?: string;
 }
 
-export const ownerPermission: PermissionGrant = {
+export const OWNER_PERMISSION: PermissionGrant = {
   owner: '*',
   grantee: '*',
   allow: 'CRUD',
