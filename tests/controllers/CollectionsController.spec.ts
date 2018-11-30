@@ -10,7 +10,7 @@ import * as store from '../../lib/interfaces/Store';
 import { ObjectContainer } from '../../lib/models/ObjectQueryResponse';
 import TestAuthorization from '../mocks/TestAuthorization';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
-import PermissionGrant, { OWNER_PERMISSION } from '../../lib/models/PermissionGrant';
+import PermissionGrant from '../../lib/models/PermissionGrant';
 
 const sender = 'did:example:alice.id';
 const hub = 'did:example:alice.id';
