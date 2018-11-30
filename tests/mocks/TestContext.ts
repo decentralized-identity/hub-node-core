@@ -1,4 +1,4 @@
-import Store from '../../lib/interfaces/Store';
+import { Store } from '../../lib/interfaces/Store';
 import Context from '../../lib/interfaces/Context';
 import TestStore from './TestStore';
 import { CryptoSuite, PrivateKey, PrivateKeyRsa } from '@decentralized-identity/did-auth-jose';

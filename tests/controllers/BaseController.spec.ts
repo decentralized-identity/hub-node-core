@@ -5,11 +5,15 @@ import WriteRequest from '../../lib/models/WriteRequest';
 import { Operation } from '../../lib/models/Commit';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import BaseRequest from '../../lib/models/BaseRequest';
+import TestContext from '../mocks/TestContext';
+import TestAuthorization from '../mocks/TestAuthorization';
 
 const context = 'https://schema.identity.foundation/0.1';
 
 describe('BaseController', () => {
-  const controller = new TestController();
+  const testContext = new TestContext();
+  const auth = new TestAuthorization();
+  const controller = new TestController(testContext, auth);
 
   async function dispatchCheckFor(operation: string, handler: any, object_id?: string) {
     const message = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -55,6 +59,41 @@ describe('BaseController', () => {
   it('should dispatch Create requests', async () => {
     await dispatchCheckFor(Operation.Create, 'handleCreateRequest');
   });
+
+  it('should throw for unauthorized requests', async () => {
+    const expectedRequest = new WriteRequest({
+      iss: 'did:example:alice.id',
+      aud: 'did:example:hub.id',
+      sub: 'did:example:bob.id',
+      '@context': context,
+      '@type': 'WriteRequest',
+      commit: {
+        protected: base64url.encode(JSON.stringify({
+          interface: 'test',
+          context: 'example.com',
+          type: 'test',
+          operation: Operation.Create,
+          'committed_at': new Date(Date.now()).toISOString(),
+          'commit_strategy': 'basic',
+          sub: 'did:example:bob.id',
+          kid: 'did:example:bob.id#key1',
+        })),
+        payload: '',
+        signature: '',
+      },
+    });
+    spyOn(auth, 'apiAuthorize').and.returnValue([]);
+    try {
+      await controller.handle(expectedRequest);
+      fail('Did not throw');
+    } catch (err) {
+      if (!(err instanceof HubError)) {
+        fail(err.message);
+      }
+      expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+    }
+
+  })
 
   it('should dispatch Read requests', async () => {
     const message = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);

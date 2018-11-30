@@ -1,4 +1,4 @@
-import Store, { CommitResponse, CommitRequest, ObjectQueryRequest,
+import { Store, CommitResponse, CommitRequest, ObjectQueryRequest,
   ObjectQueryResponse, CommitQueryRequest, CommitQueryResponse } from '../../lib/interfaces/Store';
 
 export default class TestStore implements Store {
