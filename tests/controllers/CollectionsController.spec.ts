@@ -9,6 +9,8 @@ import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import * as store from '../../lib/interfaces/Store';
 import { ObjectContainer } from '../../lib/models/ObjectQueryResponse';
 import TestAuthorization from '../mocks/TestAuthorization';
+import AuthorizationController from '../../lib/controllers/AuthorizationController';
+import PermissionGrant, { OWNER_PERMISSION } from '../../lib/models/PermissionGrant';
 
 const sender = 'did:example:alice.id';
 const hub = 'did:example:alice.id';
@@ -96,6 +98,11 @@ describe('CollectionsController', () => {
   const context = new TestContext();
   const auth = new TestAuthorization();
   const controller = new CollectionsController(context, auth);
+
+  beforeEach(() => {
+    spyOn(AuthorizationController, 'pruneResults').and.callFake((results: ObjectContainer[], _:PermissionGrant[]) => { return results; });
+  });
+
   describe('handleCreateRequest', () => {
     it('should call the storage layer', async () => {
       const id = correlationId();
