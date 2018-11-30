@@ -8,14 +8,14 @@ import { Store, CommitQueryResponse } from '../interfaces/Store';
  */
 export default class CommitStrategyBasic {
 
-  private static async getPermissionCommits(owner: string, permissionId: string, store: Store, skipToken?: string): Promise<CommitQueryResponse> {
+  private static async getCommits(owner: string, objectId: string, store: Store, skipToken?: string): Promise<CommitQueryResponse> {
     return store.queryCommits({
       owner,
       filters: [
         {
           field: 'object_id',
           type: 'eq',
-          value: permissionId,
+          value: objectId,
         },
       ],
       skip_token: skipToken,
@@ -32,9 +32,9 @@ export default class CommitStrategyBasic {
   public static async resolveObject(owner: string, objectId: string, store: Store): Promise<Commit|null> {
     let latestCommit: Commit | null = null;
     let latestDate: Date;
-    const permissionCommits = await CommitStrategyBasic.getPermissionCommits(owner, objectId, store);
+    const returnedCommits = await CommitStrategyBasic.getCommits(owner, objectId, store);
     do {
-      permissionCommits.results.forEach((permissionCommit) => {
+      returnedCommits.results.forEach((permissionCommit) => {
         const headers = permissionCommit.getHeaders();
         if (headers.commit_strategy !== 'basic') {
           return;
@@ -45,7 +45,7 @@ export default class CommitStrategyBasic {
           latestDate = date;
         }
       });
-    } while (permissionCommits.pagination.skip_token !== null);
+    } while (returnedCommits.pagination.skip_token !== null);
     return latestCommit;
   }
 }

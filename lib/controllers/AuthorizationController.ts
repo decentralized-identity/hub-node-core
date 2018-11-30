@@ -97,18 +97,16 @@ export default class AuthorizationController {
     }
 
     const matchingGrants: PermissionGrant[] = [];
-
     let potentialPermissions = await this.getPermissions(owner);
-
     do {
-      potentialPermissions.results.forEach(async (permissionFound) => {
+      for (const permissionFound of potentialPermissions.results) {
         // only handle commit strategies we understand
         if (permissionFound.commit_strategy !== 'basic') {
-          return;
+          continue;
         }
         const commit = await CommitStrategyBasic.resolveObject(owner, permissionFound.id, this.store);
         if (!commit) {
-          return;
+          continue;
         }
         const grant = commit.getPayload() as PermissionGrant;
         if (grant.owner !== owner || // just a double check
@@ -118,22 +116,24 @@ export default class AuthorizationController {
           !operation.test(grant.allow) || // the permision must grant the operation
           (isCreate && grant.created_by && grant.created_by !== requester) // created_by must match requester for create commits
           ) {
-          return;
+          continue;
         }
         matchingGrants.push(grant);
-      });
-      potentialPermissions = await this.getPermissions(owner, potentialPermissions.pagination.skip_token);
+      }
+      if (potentialPermissions.pagination.skip_token !== null) {
+        potentialPermissions = await this.getPermissions(owner, potentialPermissions.pagination.skip_token);
+      }
     } while (potentialPermissions.pagination.skip_token !== null);
 
     return matchingGrants;
   }
 
-  /**
-   * Given a set of results and applicable permission grants, prunes the results to those permitted by the grants
-   * @param results Object results to be pruned
-   * @param grants Permission Grants used to prune the results
-   * @returns A subset of results permitted by grants
-   */
+    /**
+     * Given a set of results and applicable permission grants, prunes the results to those permitted by the grants
+     * @param results Object results to be pruned
+     * @param grants Permission Grants used to prune the results
+     * @returns A subset of results permitted by grants
+     */
   static async pruneResults(results: ObjectContainer[], grants: PermissionGrant[]): Promise<ObjectContainer[]> {
 
     const createdByRestrictions: string[] = [];
@@ -154,12 +154,12 @@ export default class AuthorizationController {
       errorCode: ErrorCode.PermissionsRequired,
     });
 
-    // const prunedResults: ObjectContainer[] = [];
-    // results.forEach((result) => {
-    //   if (createdByRestrictions.includes(result.created_by)) {
-    //     prunedResults.push(result);
-    //   }
-    // });
-    // return prunedResults;
+      // const prunedResults: ObjectContainer[] = [];
+      // results.forEach((result) => {
+      //   if (createdByRestrictions.includes(result.created_by)) {
+      //     prunedResults.push(result);
+      //   }
+      // });
+      // return prunedResults;
   }
 }

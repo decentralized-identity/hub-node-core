@@ -14,7 +14,7 @@ interface TestCommitOptions {
 
 export default class TestCommit extends Commit {
 
-  public static create(options?: TestCommitOptions): TestCommit {
+  public static create(options?: TestCommitOptions, data?: any): TestCommit {
     let headers: any = Object.assign({}, options);
     ['interface', 'type', 'commit_strategy'].forEach((property) => {
       if (!headers[property]) {
@@ -37,7 +37,7 @@ export default class TestCommit extends Commit {
     const protectedString = base64url.encode(JSON.stringify(headers));
     return new TestCommit({
       protected: protectedString,
-      payload: 'testCommit',
+      payload: (data ? base64url.encode(JSON.stringify(data)) : 'testCommit'),
     });
   }
 
