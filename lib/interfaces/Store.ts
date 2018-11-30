@@ -118,7 +118,7 @@ export interface CommitResponse {
 /**
  * Interface for storing Hub data, which must be implemented by each backing database.
  */
-export default interface Store {
+export interface Store {
   /**
    * Adds one or more Commit objects to the store. This method is idempotent and it is acceptable to
    * pass a previously seen Commit.

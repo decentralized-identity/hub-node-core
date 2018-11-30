@@ -1,5 +1,5 @@
 import Commit from '../models/Commit';
-import Store, { CommitQueryResponse } from '../interfaces/Store';
+import { Store, CommitQueryResponse } from '../interfaces/Store';
 
 /**
  * Resolves objects using the 'basic' commit strategy

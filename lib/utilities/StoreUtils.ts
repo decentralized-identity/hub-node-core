@@ -1,4 +1,4 @@
-import Store, { QueryEqualsFilter } from '../interfaces/Store';
+import { Store, QueryEqualsFilter } from '../interfaces/Store';
 import PermissionGrant from '../models/PermissionGrant';
 import WriteRequest from '../models/WriteRequest';
 import HubError, { ErrorCode } from '../models/HubError';

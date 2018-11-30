@@ -1,11 +1,10 @@
-import { Store } from '../index';
 import PermissionGrant, { OWNER_PERMISSION, PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
 import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
 import BaseRequest from '../models/BaseRequest';
 import WriteRequest from '../models/WriteRequest';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import { Operation } from '../models/Commit';
-import { ObjectQueryResponse } from '../interfaces/Store';
+import { Store, ObjectQueryResponse } from '../interfaces/Store';
 import CommitStrategyBasic from '../utilities/CommitStrategyBasic';
 import { ObjectContainer } from '../models/ObjectQueryResponse';
 
