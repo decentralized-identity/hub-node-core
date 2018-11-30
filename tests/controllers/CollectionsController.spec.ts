@@ -7,7 +7,7 @@ import { Operation } from '../../lib/models/Commit';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import * as store from '../../lib/interfaces/Store';
-import { ObjectContainer } from '../../lib/models/ObjectQueryResponse';
+import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import TestAuthorization from '../mocks/TestAuthorization';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
 import PermissionGrant from '../../lib/models/PermissionGrant';
