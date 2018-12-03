@@ -9,6 +9,8 @@ import Commit, { Operation } from '../../lib/models/Commit';
 import base64url from 'base64url';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import { CommitQueryRequest, CommitQueryResponse } from '../../lib/interfaces/Store';
+import BaseRequest from '../../lib/models/BaseRequest';
+import HubError, { ErrorCode } from '../../lib/models/HubError';
 
 describe('AuthorizationController', () => {
   let store: jasmine.Spy;
@@ -66,12 +68,11 @@ describe('AuthorizationController', () => {
       expect(grants.length > 0).toBeFalsy();
       expect(store).toHaveBeenCalled();
     });
-    
-    function returnPermissionObject(grants: PermissionGrant[]) {
-      const asObjects: ObjectContainer[] = [];
-      const asCommits: {[id: string]: Commit} = {};
+
+    function returnPermissions(grants: PermissionGrant[]) {
+      const asCommits: Commit[] = [];
       grants.forEach((grant) => {
-        const commit = TestCommit.create({
+        asCommits.push(TestCommit.create({
           interface: 'Permissions',
           context: PERMISSION_GRANT_CONTEXT,
           type: PERMISSION_GRANT_TYPE,
@@ -79,8 +80,14 @@ describe('AuthorizationController', () => {
           commit_strategy: 'basic',
           sub: 'did:example:alice.id',
           kid: 'did:example:alice.id#key-1',
-        }, grant);
-        asCommits[commit.getHeaders().rev] = commit;
+        }, grant));
+      });
+      returnPermissionObject(asCommits);
+    }
+    
+    function returnPermissionObject(commits: Commit[]) {
+      const asObjects: ObjectContainer[] = [];
+      commits.forEach((commit) => {
         asObjects.push({
           interface: 'Permissions',
           context: PERMISSION_GRANT_CONTEXT,
@@ -98,6 +105,14 @@ describe('AuthorizationController', () => {
           skip_token: null
         }
       });
+      returnPermissionCommits(commits);
+    }
+
+    function returnPermissionCommits(commits: Commit[]) {
+      const asCommits: {[id: string]: Commit} = {};
+      commits.forEach((commit) => {
+        asCommits[commit.getHeaders().rev] = commit;
+      })
       commitsStore.and.callFake((query: CommitQueryRequest): Promise<CommitQueryResponse> => {
         return new Promise((resolve, reject) => {
           if (!query.filters) {
@@ -116,31 +131,132 @@ describe('AuthorizationController', () => {
                     skip_token: null,
                   }});
                   return;
-                }
-                resolve({
-                  results: [
-                    asCommits[filter.value[0]]
-                  ],
-                  pagination: {
-                    skip_token: null,
-                  }});
-                  return;
-                }
-                fail('could not find an object_id filter');
-                reject();
+              }
+              resolve({
+                results: [
+                  asCommits[filter.value[0]]
+                ],
+                pagination: {
+                  skip_token: null,
+                }});
                 return;
-              });
+              }
+              fail('could not find an object_id filter');
+              reject();
+              return;
             });
           });
+        });
+      }
+      
+      async function checkPermissionFor(operation: Operation, allowString: string) {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const object_id = (operation !== Operation.Create ? type : undefined);
+        const request = new WriteRequest({
+          iss: sender,
+          aud: 'did:example:hub.id',
+          sub: owner,
+          '@context': Context,
+          '@type': 'WriteRequest',
+          commit: {
+            protected: base64url.encode(JSON.stringify({
+              interface: 'Test',
+              context: 'example.com',
+              type,
+              operation,
+              object_id,
+              committed_at: new Date(Date.now()).toISOString(),
+              commit_strategy: 'basic',
+              sub: owner,
+              kid: `${sender}#key-1`
+            })),
+            payload: 'foo',
+            signature: 'bar'
+          }
+        });
+        const permission = {
+          owner,
+          grantee: sender,
+          allow: allowString,
+          context: 'example.com',
+          type,
         }
-        
-        
-        
-        async function checkPermissionFor(operation: Operation, allowString: string) {
-          const owner = 'did:example:alice.id';
-          const sender = `${owner}-not`;
-          const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-          const object_id = (operation !== Operation.Create ? type : undefined);
+        returnPermissions([permission]);
+        const returnedPermissions = await auth.apiAuthorize(request)
+        expect(returnedPermissions.length > 0).toBeTruthy();
+        expect(returnedPermissions[0]).toEqual(permission);
+      }
+      
+      it('should accept for create requests', async () => {
+        await checkPermissionFor(Operation.Create, 'C----');
+      });
+      it('should accept for read requests', async () => {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const request = new ObjectQueryRequest({
+          iss: sender,
+          aud: 'did:example:hub.id',
+          sub: owner,
+          '@context': Context,
+          '@type': 'ObjectQueryRequest',
+          query: {
+            interface: 'Collections',
+            context: 'example.com',
+            type,
+          }
+        });
+        const permission = {
+          owner,
+          grantee: sender,
+          allow: '-R---',
+          context: 'example.com',
+          type,
+        }
+        returnPermissions([permission]);
+        const returnedPermissions = await auth.apiAuthorize(request)
+        expect(returnedPermissions.length > 0).toBeTruthy();
+        expect(returnedPermissions[0]).toEqual(permission);
+      });
+
+      it('should accept for update requests', async () => {
+        await checkPermissionFor(Operation.Update, '--U--');
+      });
+
+      it('should accept for delete requests', async () => {
+        await checkPermissionFor(Operation.Delete, '---D-');
+      });
+
+      it('should reject for unknown request types', async () => {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const request = new BaseRequest({
+          iss: sender,
+          aud: 'did:example:hub.id',
+          sub: owner,
+          '@context': Context,
+          '@type': type,
+        });
+        try {
+          await auth.apiAuthorize(request);
+          fail('did not throw');
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+          expect(err.property).toEqual('@type');
+        }
+      });
+
+      it('should throw for unknown commit operations', async() => {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        try {
           const request = new WriteRequest({
             iss: sender,
             aud: 'did:example:hub.id',
@@ -152,8 +268,7 @@ describe('AuthorizationController', () => {
                 interface: 'Test',
                 context: 'example.com',
                 type,
-                operation,
-                object_id,
+                operation: 'unknown',
                 committed_at: new Date(Date.now()).toISOString(),
                 commit_strategy: 'basic',
                 sub: owner,
@@ -163,182 +278,160 @@ describe('AuthorizationController', () => {
               signature: 'bar'
             }
           });
-          const permission = {
-            owner,
-            grantee: sender,
-            allow: allowString,
-            context: 'example.com',
-            type,
+          await auth.apiAuthorize(request);
+          fail('did not throw');
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
           }
-          returnPermissionObject([permission])
-          const returnedPermissions = await auth.apiAuthorize(request)
-          expect(returnedPermissions.length > 0).toBeTruthy();
-          expect(returnedPermissions[0]).toEqual(permission);
+          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+          expect(err.property).toEqual('commit.protected.operation');
         }
-        
-        it('should accept for create requests', async () => {
-          await checkPermissionFor(Operation.Create, 'C----');
+      });
+
+      it('should ignore permissions not using the \'basic\' commit_strategy', async () => {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const grantObject = {
+          interface: 'Permissions',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE,
+          id: 'complex-permission',
+          created_by: owner, 
+          created_at: new Date(Date.now()).toISOString(),
+          sub: owner,
+          commit_strategy: 'not-basic-totally-complex-commit-strategy',
+        }
+        store.and.returnValue({
+          results: [grantObject],
+          pagination: {
+            skip_token: null
+          }
         });
-        it('should accept for read requests', async () => {
-          const owner = 'did:example:alice.id';
-          const sender = `${owner}-not`;
-          const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-          const request = new ObjectQueryRequest({
-            iss: sender,
-            aud: 'did:example:hub.id',
-            sub: owner,
-            '@context': Context,
-            '@type': 'ObjectQueryRequest',
-            query: {
-              interface: 'Collections',
+        const request = new WriteRequest({
+          iss: sender,
+          aud: 'did:example:hub.id',
+          sub: owner,
+          '@context': Context,
+          '@type': 'WriteRequest',
+          commit: {
+            protected: base64url.encode(JSON.stringify({
+              interface: 'Test',
+              context: 'example.com',
+              type: 'someSortOfType',
+              operation: Operation.Create,
+              committed_at: new Date(Date.now()).toISOString(),
+              commit_strategy: 'basic',
+              sub: owner,
+              kid: `${sender}#key-1`
+            })),
+            payload: 'foo',
+            signature: 'bar'
+          }
+        });
+        const permissions = await auth.apiAuthorize(request);
+        expect(permissions.length).toEqual(0);
+      });
+
+      it('should ignore permission objects with no valid commits', async() => {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const permissionCommit = TestCommit.create({
+          interface: 'Permissions',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE,
+          operation: Operation.Create,
+          commit_strategy: 'complex',
+          sub: owner,
+          kid: `${owner}#key-1`,
+        }, {
+          owner,
+          grantee: sender,
+          allow: '--U--',
+          context: 'example.com',
+          type,
+        });
+        const grantObject = {
+          interface: 'Permissions',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE,
+          id: permissionCommit.getHeaders().rev,
+          created_by: owner, 
+          created_at: new Date(Date.now()).toISOString(),
+          sub: owner,
+          commit_strategy: 'basic',
+        }
+        store.and.returnValue({
+          results: [grantObject],
+          pagination: {
+            skip_token: null
+          }
+        });
+        returnPermissionCommits([permissionCommit]);
+
+        const request = new WriteRequest({
+          iss: sender,
+          aud: 'did:example:hub.id',
+          sub: owner,
+          '@context': Context,
+          '@type': 'WriteRequest',
+          commit: {
+            protected: base64url.encode(JSON.stringify({
+              interface: 'Test',
               context: 'example.com',
               type,
-            }
-          });
-          const permission = {
-            owner,
-            grantee: sender,
-            allow: '-R---',
-            context: 'example.com',
-            type,
+              operation: Operation.Create,
+              committed_at: new Date(Date.now()).toISOString(),
+              commit_strategy: 'basic',
+              sub: owner,
+              kid: `${sender}#key-1`
+            })),
+            payload: 'foo',
+            signature: 'bar'
           }
-          returnPermissionObject([permission])
-          const returnedPermissions = await auth.apiAuthorize(request)
-          expect(returnedPermissions.length > 0).toBeTruthy();
-          expect(returnedPermissions[0]).toEqual(permission);
         });
-        it('should accept for update requests', async () => {
-          await checkPermissionFor(Operation.Update, '--U--');
+        const permissions = await auth.apiAuthorize(request);
+        expect(permissions.length).toEqual(0);
+      });
+
+      it('should ignore CREATE permissions in a created_by conflict', async() => {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const grant: PermissionGrant = {
+          owner,
+          grantee: sender,
+          context: 'example.com',
+          type,
+          allow: 'C----',
+          created_by: owner
+        }
+        returnPermissions([grant]);
+        const request = new WriteRequest({
+          iss: sender,
+          aud: 'did:example:hub.id',
+          sub: owner,
+          '@context': Context,
+          '@type': 'WriteRequest',
+          commit: {
+            protected: base64url.encode(JSON.stringify({
+              interface: 'Test',
+              context: 'example.com',
+              type,
+              operation: Operation.Create,
+              committed_at: new Date(Date.now()).toISOString(),
+              commit_strategy: 'basic',
+              sub: owner,
+              kid: `${sender}#key-1`
+            })),
+            payload: 'foo',
+            signature: 'bar'
+          }
         });
-        it('should accept for delete requests', async () => {
-          await checkPermissionFor(Operation.Delete, '---D-');
-        });
-        
-        // it('should require the request field', async () => {
-        //   const owner = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
-        //   const sender = `${owner}-not`;
-        
-        //   const request = new HubRequest({
-        //     iss: sender,
-        //     aud: owner,
-        //     '@type': 'unknown/create',
-        //     payload: {
-        //       data: {
-        //         // nothing needs to be here
-        //       },
-        //     },
-        //   });
-        
-        //   try {
-        //     await auth.authorize(request);
-        //     fail('Did not require request field');
-        //   } catch (err) {
-        //     expect(err.message).toContain('request');
-        //   }
-        // });
-        
-        // it('should require the schema field', async () => {
-        //   const owner = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
-        //   const sender = `${owner}-not`;
-        
-        //   const request = new HubRequest({
-        //     iss: sender,
-        //     aud: owner,
-        //     '@type': 'unknown/create',
-        //     request: {
-        //     },
-        //     payload: {
-        //       data: {
-        //         // nothing needs to be here
-        //       },
-        //     },
-        //   });
-        
-        //   try {
-        //     await auth.authorize(request);
-        //     fail('Did not require schema field');
-        //   } catch (err) {
-        //     expect(err.message).toContain('schema');
-        //   }
-        // });
-        
-        // it('should ignore other permission grants by grantee', async() => {
-        //   const owner = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
-        //   const sender = `${owner}-not`;
-        //   const grantee = `${owner}-grantee`;
-        //   const schema = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-        //   const request = new HubRequest({
-        //     iss: sender,
-        //     aud: owner,
-        //     '@type': 'unknown/read',
-        //     request: {
-        //       schema,
-        //     },
-        //   });
-        //   store.and.returnValues([createPermissionGrant(owner, grantee, schema, '-R---')]);
-        //   expect(await auth.authorize(request)).toBeFalsy();
-        //   expect(store).toHaveBeenCalled();
-        // });
-        
-        // it('should ignore other permission grants by schema', async() => {
-        //   const owner = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
-        //   const sender = `${owner}-not`;
-        //   const schema = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-        //   const permissionSchema = `${schema}-not`;
-        //   const request = new HubRequest({
-        //     iss: sender,
-        //     aud: owner,
-        //     '@type': 'unknown/read',
-        //     request: {
-        //       schema,
-        //     },
-        //   });
-        //   store.and.returnValues([createPermissionGrant(owner, sender, permissionSchema, '-R---')]);
-        //   expect(await auth.authorize(request)).toBeFalsy();
-        //   expect(store).toHaveBeenCalled();
-        // });
-        
-        // it('should ignore other permission grants by operation', async() => {
-        //   const owner = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
-        //   const sender = `${owner}-not`;
-        //   const schema = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-        //   const request = new HubRequest({
-        //     iss: sender,
-        //     aud: owner,
-        //     '@type': 'unknown/create',
-        //     request: {
-        //       schema,
-        //     },
-        //     payload: {
-        //       data: {
-        //         // nothing needs to be here
-        //       },
-        //     },
-        //   });
-        //   store.and.returnValues([createPermissionGrant(owner, sender, schema, '-R---')]);
-        //   expect(await auth.authorize(request)).toBeFalsy();
-        //   expect(store).toHaveBeenCalled();
-        // });
-        
-        // it('should fail if the operation could not be identified', async() => {
-        //   const owner = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
-        //   const sender = `${owner}-not`;
-        //   const schema = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-        //   const request = new HubRequest({
-        //     iss: sender,
-        //     aud: owner,
-        //     '@type': 'unknown/unknown',
-        //     request: {
-        //       schema,
-        //     },
-        //   });
-        //   try {
-        //     await auth.authorize(request);
-        //     fail('Did not fail for unknown operation');
-        //   } catch (err) {
-        //     expect(err.message).toContain('operation');
-        //   }
-        // })
+        const permissions = await auth.apiAuthorize(request);
+        expect(permissions.length).toEqual(0);
       });
     });
+  });
     
