@@ -91,6 +91,50 @@ describe('PermissionsController', () => {
     });
   });
 
+  describe('validateStrategy', () => {
+    it('should require the \'basic\' strategy', async () => {
+      const owner = `did:example:${getHex()}`;
+      const hub = 'did:example:hub';
+      const sender = `${owner}-not`;
+
+      let commit = TestCommit.create({
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        commit_strategy: 'totally-not-basic',
+      }, {
+        owner,
+        grantee: sender,
+        allow: 'C----',
+        context: 'example.com',
+        type: 'foo'
+      });
+      let writeRequest = new WriteRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        commit: {
+          protected: commit.getProtectedString(),
+          payload: commit.getPayloadString(),
+          signature: 'baz'
+        },
+      });
+      try {
+        await controller.handleCreateRequest(writeRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.property).toEqual(`commit.protected.commit_strategy`);
+      }
+    });
+  })
+
   describe('getPermisionGrant', () => {
     it('should verify all parameters exist', async () => {
       const owner = `did:example:${getHex()}`;
