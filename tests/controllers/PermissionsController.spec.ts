@@ -122,16 +122,18 @@ describe('PermissionsController', () => {
           signature: 'baz'
         },
       });
-      try {
-        await controller.handleCreateRequest(writeRequest, []);
-        fail('did not throw');
-      } catch (err) {
-        if (!(err instanceof HubError)) {
-          fail(err.message);
+      await [controller.handleCreateRequest, controller.handleUpdateRequest].forEach(async (handler) => {
+        try {
+          await handler(writeRequest, []);
+          fail('did not throw');
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+          expect(err.property).toEqual(`commit.protected.commit_strategy`);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
-        expect(err.property).toEqual(`commit.protected.commit_strategy`);
-      }
+      })
     });
   })
 
@@ -304,5 +306,113 @@ describe('PermissionsController', () => {
       expect(result.revisions[0]).toEqual(response);
       expect(spy).toHaveBeenCalled();
     })
+  });
+
+  describe('validateObjectExists', () => {
+    it('should throw if the object does not exist', async () => {
+      const owner = `did:example:${getHex()}`;
+      const hub = 'did:example:hub';
+      const sender = `${owner}-not`;
+      const commit = TestCommit.create({
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        commit_strategy: 'basic',
+      }, {
+        owner,
+        grantee: sender,
+        allow: 'C----',
+        context: 'example.com',
+        type: 'foo',
+      } as PermissionGrant);
+      const writeRequest = new WriteRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        commit: {
+          protected: commit.getProtectedString(),
+          payload: commit.getPayloadString(),
+          signature: 'baz'
+        },
+      });
+      const spy = spyOn(StoreUtils, 'objectExists').and.callFake((request: WriteRequest, _: Store, __: PermissionGrant[]) => {
+        expect(request).toEqual(writeRequest);
+        return false;
+      });
+      try {
+        await controller.handleUpdateRequest(writeRequest, []);
+        fail('should have thrown');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotFound);
+        expect(spy).toHaveBeenCalled();
+      }
+      try {
+        await controller.handleDeleteRequest(writeRequest, []);
+        fail('should have thrown');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotFound);
+        expect(spy).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe('handleUpdateRequest and handleDeleteRequest', () => {
+    it('should call store', async () => {
+      const owner = `did:example:${getHex()}`;
+      const hub = 'did:example:hub';
+      const sender = `${owner}-not`;
+      const commit = TestCommit.create({
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        commit_strategy: 'basic',
+      }, {
+        owner,
+        grantee: sender,
+        allow: 'C----',
+        context: 'example.com',
+        type: 'foo',
+      } as PermissionGrant);
+      const writeRequest = new WriteRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        commit: {
+          protected: commit.getProtectedString(),
+          payload: commit.getPayloadString(),
+          signature: 'baz'
+        },
+      });
+      const spy = spyOn(StoreUtils, 'objectExists').and.callFake((request: WriteRequest, _: Store, __: PermissionGrant[]) => {
+        expect(request).toEqual(writeRequest);
+        return true;
+      });
+      const response = getHex();
+      const spyWrite = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, storeCalled: Store) => {
+        expect(storeCalled).toEqual(context.store);
+        expect(request).toEqual(writeRequest);
+        return new WriteResponse([response]);
+      });
+      let result = await controller.handleUpdateRequest(writeRequest, []);
+      expect(result.revisions[0]).toEqual(response);
+      expect(spy).toHaveBeenCalled();
+      expect(spyWrite).toHaveBeenCalled();
+      result = await controller.handleDeleteRequest(writeRequest, []);
+      expect(result.revisions[0]).toEqual(response);
+      expect(spy).toHaveBeenCalled();
+      expect(spyWrite).toHaveBeenCalled();
+    });
   })
 });
