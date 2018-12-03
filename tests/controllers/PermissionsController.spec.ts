@@ -36,7 +36,8 @@ describe('PermissionsController', () => {
           protected: TestCommit.create({
             sub: owner,
             kid: `${owner}#key-1`,
-            type: PERMISSION_GRANT_TYPE
+            type: PERMISSION_GRANT_TYPE,
+            commit_strategy: 'basic',
           }).getProtectedString(),
           payload: 'foo',
           signature: 'bar'
@@ -70,6 +71,7 @@ describe('PermissionsController', () => {
             sub: owner,
             kid: `${owner}#key-1`,
             context: PERMISSION_GRANT_CONTEXT,
+            commit_strategy: 'basic',
           }).getProtectedString(),
           payload: 'foo',
           signature: 'bar'
@@ -112,6 +114,7 @@ describe('PermissionsController', () => {
           kid: `${owner}#key-1`,
           context: PERMISSION_GRANT_CONTEXT,
           type: PERMISSION_GRANT_TYPE,
+          commit_strategy: 'basic',
         }, permission);
         let writeRequest = new WriteRequest({
           '@context': Context,
@@ -143,6 +146,7 @@ describe('PermissionsController', () => {
           kid: `${owner}#key-1`,
           context: PERMISSION_GRANT_CONTEXT,
           type: PERMISSION_GRANT_TYPE,
+          commit_strategy: 'basic',
         }, permission);
         writeRequest = new WriteRequest({
           '@context': Context,
@@ -181,6 +185,7 @@ describe('PermissionsController', () => {
         kid: `${owner}#key-1`,
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
+        commit_strategy: 'basic',
       }, {
         owner,
         grantee: sender,
@@ -224,6 +229,7 @@ describe('PermissionsController', () => {
         kid: `${owner}#key-1`,
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
+        commit_strategy: 'basic',
       }, {
         owner,
         grantee: sender,

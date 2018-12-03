@@ -50,6 +50,7 @@ export default class PermissionsController extends BaseController {
 
   async handleCreateRequest(request: WriteRequest, _: PermissionGrant[]): Promise<WriteResponse> {
     PermissionsController.validateSchema(request);
+    PermissionsController.validateStrategy(request);
     PermissionsController.validatePermissionGrant(request);
 
     return StoreUtils.writeCommit(request, this.context.store);
@@ -64,8 +65,9 @@ export default class PermissionsController extends BaseController {
 
   async handleUpdateRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
     PermissionsController.validateSchema(request);
-    await this.validateObjectExists(request, grants);
+    PermissionsController.validateStrategy(request);
     PermissionsController.validatePermissionGrant(request);
+    await this.validateObjectExists(request, grants);
 
     return StoreUtils.writeCommit(request, this.context.store);
   }
@@ -99,6 +101,16 @@ export default class PermissionsController extends BaseController {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
       });
+    }
+  }
+
+  private static validateStrategy(request: WriteRequest) {
+    const headers = request.commit.getHeaders();
+    if (headers.commit_strategy !== 'basic') {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'commit.protected.commit_strategy',
+      })
     }
   }
 
