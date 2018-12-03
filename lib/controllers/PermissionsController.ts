@@ -110,7 +110,7 @@ export default class PermissionsController extends BaseController {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
         property: 'commit.protected.commit_strategy',
-      })
+      });
     }
   }
 
