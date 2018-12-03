@@ -433,5 +433,68 @@ describe('AuthorizationController', () => {
         expect(permissions.length).toEqual(0);
       });
     });
+
+    describe('pruneResults', () => {
+      function createObjects(context: string, type: string): ObjectContainer[] {
+        const count = Math.round(Math.random() * 10) + 1;
+        const objects: ObjectContainer[] = [];
+        for (let i = 0; i < count; i++) {
+          objects.push({
+            interface: 'Collections',
+            context,
+            type,
+            id: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
+            sub: 'did:example:alice.id',
+            created_by: 'did:example:alice.id',
+            created_at: new Date(Date.now()).toISOString(),
+            commit_strategy: 'basic'
+          });  
+        }
+        return objects;
+      }
+
+      it('should allow if there exists any permission grant that allows reading', async () => {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const context = 'example.com';
+        const type = 'testType';
+        const objects = createObjects(context, type);
+        const grant: PermissionGrant = {
+          owner,
+          grantee: sender,
+          allow: '-R---',
+          context,
+          type
+        }
+        const results = await AuthorizationController.pruneResults(objects, [grant]);
+        expect(results.length).toEqual(objects.length);
+        expect(results).toEqual(objects);
+      });
+
+      it('should fail if the query is unrestricted but the permissions are restricted', async () => {
+        const owner = 'did:example:alice.id';
+        const sender = `${owner}-not`;
+        const context = 'example.com';
+        const type = 'testType';
+        const objects = createObjects(context, type);
+        const grant: PermissionGrant = {
+          owner,
+          grantee: sender,
+          allow: '-R---',
+          context,
+          type,
+          created_by: owner
+        }
+        try {
+          await AuthorizationController.pruneResults(objects, [grant]);
+          fail('did not throw');
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+        }
+      });
+    });
   });
     
