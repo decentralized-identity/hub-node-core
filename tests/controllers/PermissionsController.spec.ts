@@ -9,6 +9,10 @@ import PermissionGrant, { PERMISSION_GRANT_TYPE, PERMISSION_GRANT_CONTEXT } from
 import StoreUtils from '../../lib/utilities/StoreUtils';
 import WriteResponse from '../../lib/models/WriteResponse';
 import { Store } from '../../lib/interfaces/Store';
+import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
+import { QueryEqualsFilter } from '../../lib/interfaces/Store';
+import ObjectContainer from '../../lib/interfaces/ObjectContainer';
+import AuthorizationController from '../../lib/controllers/AuthorizationController';
 
 function getHex(): string {
   return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -414,5 +418,170 @@ describe('PermissionsController', () => {
       expect(spy).toHaveBeenCalled();
       expect(spyWrite).toHaveBeenCalled();
     });
-  })
+  });
+
+  describe('handleQueryRequest', () => {
+
+    it('should verify the context', async () => {
+      const owner = `did:example:${getHex()}`;
+      const hub = 'did:example:hub';
+      const sender = `${owner}-not`;
+      const queryRequest = new ObjectQueryRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        query: {
+          interface: 'Permissions',
+          context: 'not the right one',
+          type: PERMISSION_GRANT_TYPE
+        }
+      });
+      const spy = spyOn(context.store, "queryObjects");
+      try {
+        await controller.handleQueryRequest(queryRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+      }
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should verify the type', async () => {
+      const owner = `did:example:${getHex()}`;
+      const hub = 'did:example:hub';
+      const sender = `${owner}-not`;
+      const queryRequest = new ObjectQueryRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        query: {
+          interface: 'Permissions',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: 'incorrect type',
+        }
+      });
+      const spy = spyOn(context.store, "queryObjects");
+      try {
+        await controller.handleQueryRequest(queryRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+      }
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should query store with the correct filters', async () => {
+      const owner = `did:example:${getHex()}`;
+      const hub = 'did:example:hub';
+      const sender = `${owner}-not`;
+      const queryRequest = new ObjectQueryRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        query: {
+          interface: 'Permissions',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE
+        }
+      });
+      const spy = spyOn(context.store, "queryObjects").and.callFake((query: any) => {
+        expect(query.owner).toEqual(owner);
+        expect(query.filters).toBeDefined();
+        expect(query.filters.length).toEqual(3);
+        let found = 0;
+        query.filters.forEach((filter: QueryEqualsFilter) => {
+          switch (filter.field) {
+            case 'interface':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual('Permissions');
+              found++;
+              break;
+            case 'context':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual(PERMISSION_GRANT_CONTEXT);
+              found++;
+              break;
+            case 'type':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual(PERMISSION_GRANT_TYPE);
+              found++;
+              break;
+            default:
+              fail('unknown filter passed to store');
+          }
+        });
+        expect(found).toEqual(3);
+        return {
+          results: [],
+          pagination: {
+            skip_token: null,
+          },
+        };
+      });
+      controller.handleQueryRequest(queryRequest, []);
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should prune results', async () => {
+      const owner = `did:example:${getHex()}`;
+      const hub = 'did:example:hub';
+      const sender = `${owner}-not`;
+      const queryRequest = new ObjectQueryRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        query: {
+          interface: 'Permissions',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE
+        }
+      });
+      const grant: PermissionGrant = {
+        owner,
+        grantee: sender,
+        allow: '-R---',
+        context: 'example.com',
+        type: 'foobarbaz'
+      }
+      const objectId = getHex();
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: [{
+          interface: 'Permissions',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE,
+          id: objectId,
+          created_by: owner,
+          created_at: new Date(Date.now()).toISOString(),
+          sub: owner,
+          commit_strategy: 'basic'
+        } as ObjectContainer],
+        pagination: {
+          skip_token: null,
+        },
+      });
+      const pruneSpy = spyOn(AuthorizationController, 'pruneResults').and.callFake((objects: ObjectContainer[], grants: PermissionGrant[]) => {
+        expect(grants[0]).toEqual(grant);
+        expect(objects[0].id).toEqual(objectId);
+        return objects;
+      });
+      const result = await controller.handleQueryRequest(queryRequest, [grant]);
+      expect(spy).toHaveBeenCalled();
+      expect(pruneSpy).toHaveBeenCalled();
+      expect(result.objects[0].id).toEqual(objectId);
+    });
+  });
 });
