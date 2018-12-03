@@ -108,7 +108,6 @@ export default class PermissionsController extends BaseController {
 
     // forbid CREATE created_by conflicts
     if (permission.created_by &&
-      permission.created_by &&
       /C/.test(permission.allow)) {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,

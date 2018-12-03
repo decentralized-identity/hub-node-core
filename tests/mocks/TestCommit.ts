@@ -55,4 +55,8 @@ export default class TestCommit extends Commit {
     return this.originalProtected;
   }
 
+  getPayloadString(): string {
+    return this.originalPayload;
+  }
+
 }
