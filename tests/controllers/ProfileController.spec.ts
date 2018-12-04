@@ -9,6 +9,8 @@ import { ObjectQueryRequest, Store } from '../../lib/interfaces/Store';
 import StoreUtils from '../../lib/utilities/StoreUtils';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import { Operation } from '../../lib/models/Commit';
+import PermissionGrant from '../../lib/models/PermissionGrant';
+import WriteResponse from '../../lib/models/WriteResponse';
 
 function getHex(): string {
   return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -245,4 +247,103 @@ describe('ProfileController', () => {
       expect(spy).toHaveBeenCalled();
     });
   });
+
+  describe('handleUpdateRequest and handleDeleteRequest', () => {
+    it('should fail if the profile does not exist', async () => {
+      const commit = TestCommit.create({
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PROFILE_CONTEXT,
+        type: PROFILE_TYPE,
+        commit_strategy: 'basic',
+        operation: Operation.Update,
+        object_id: getHex(),
+      }, {
+        title: 'Test'
+      });
+      const writeRequest = new WriteRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        commit: {
+          protected: commit.getProtectedString(),
+          payload: commit.getPayloadString(),
+          signature: 'bar'
+        },
+      });
+      const grant: PermissionGrant = {
+        owner,
+        grantee: sender,
+        context: PROFILE_CONTEXT,
+        type: PROFILE_TYPE,
+        allow: '--U--'
+      };
+      const spy = spyOn(StoreUtils, 'objectExists').and.callFake((request: WriteRequest, store: Store, grants: PermissionGrant[]) => {
+        expect(grants[0]).toEqual(grant);
+        expect(store).toEqual(context.store);
+        expect(request).toEqual(writeRequest);
+        return false;
+      });
+      try {
+        await controller.handleUpdateRequest(writeRequest, [grant]);
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotFound);
+      }
+
+      try {
+        await controller.handleDeleteRequest(writeRequest, [grant]);
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotFound);
+      }
+
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should create if the object already exists', async () => {
+      const commit = TestCommit.create({
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PROFILE_CONTEXT,
+        type: PROFILE_TYPE,
+        commit_strategy: 'basic',
+        operation: Operation.Update,
+        object_id: getHex(),
+      }, {
+        title: 'Test'
+      });
+      const writeRequest = new WriteRequest({
+        '@context': Context,
+        '@type': 'WriteRequest',
+        iss: sender,
+        aud: hub,
+        sub: owner,
+        commit: {
+          protected: commit.getProtectedString(),
+          payload: commit.getPayloadString(),
+          signature: 'bar'
+        },
+      });
+      const spy = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, store: Store) => {
+        expect(store).toEqual(context.store);
+        expect(request).toEqual(writeRequest);
+        return new WriteResponse([request.commit.getHeaders().object_id]);
+      });
+      spyOn(StoreUtils, 'objectExists').and.returnValue(true);
+
+      let result = await controller.handleUpdateRequest(writeRequest, []);
+      expect(result.revisions[0]).toEqual(commit.getHeaders().object_id);
+
+      result = await controller.handleDeleteRequest(writeRequest, []);
+      expect(result.revisions[0]).toEqual(commit.getHeaders().object_id);
+      expect(spy).toHaveBeenCalled();
+    })
+  })
 });
