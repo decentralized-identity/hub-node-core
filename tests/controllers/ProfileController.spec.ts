@@ -5,12 +5,13 @@ import ProfileController, { PROFILE_TYPE, PROFILE_CONTEXT } from '../../lib/cont
 import WriteRequest from '../../lib/models/WriteRequest';
 import { Context } from '../models/BaseRequest.spec';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
-import { ObjectQueryRequest, Store } from '../../lib/interfaces/Store';
+import { Store } from '../../lib/interfaces/Store';
 import StoreUtils from '../../lib/utilities/StoreUtils';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import { Operation } from '../../lib/models/Commit';
 import PermissionGrant from '../../lib/models/PermissionGrant';
 import WriteResponse from '../../lib/models/WriteResponse';
+import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 
 function getHex(): string {
   return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -118,15 +119,12 @@ describe('ProfileController', () => {
           signature: 'bar'
         },
       });
-      const spy = spyOn(context.store, "queryObjects").and.callFake((request: ObjectQueryRequest) => {
+      const spy = spyOn(context.store, "queryObjects").and.callFake((request: any) => {
         expect(request.owner).toEqual(owner);
         expect(request.filters).toBeDefined();
-        if (!request.filters) {
-          return;
-        }
         expect(request.filters.length).toEqual(3);
         let countFound = 0;
-        request.filters.forEach((filter) => {
+        request.filters.forEach((filter: any) => {
           switch (filter.field) {
             case 'interface':
               expect(filter.type).toEqual('eq');
@@ -344,6 +342,58 @@ describe('ProfileController', () => {
       result = await controller.handleDeleteRequest(writeRequest, []);
       expect(result.revisions[0]).toEqual(commit.getHeaders().object_id);
       expect(spy).toHaveBeenCalled();
-    })
+    });
+  });
+
+  describe('handleQueryRequest', () => {
+    const query = new ObjectQueryRequest({
+      iss: sender,
+      aud: hub,
+      sub: owner,
+      '@context': Context,
+      '@type': 'ObjectQueryRequest',
+      query: {
+        interface: 'Profile',
+        context: PROFILE_CONTEXT,
+        type: PROFILE_TYPE,
+      }
+    });
+    it('should return empty if no profile exists', async () => {
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: [],
+        pagination: {
+          skip_token: null,
+        },
+      });
+      const results = await controller.handleQueryRequest(query, []);
+      expect(results.objects.length).toEqual(0);
+      expect(spy).toHaveBeenCalled();
+    });
+    it('should return a random profile if multiple exist', async () => {
+      const profiles: ObjectContainer[] = [];
+      const count = Math.round(Math.random() * 10) + 1;
+      for(let i = 0; i < count; i++) {
+        profiles.push({
+        interface: 'Profile',
+        context: PROFILE_CONTEXT,
+        type: PROFILE_TYPE,
+        id: getHex(),
+        created_by: owner,
+        created_at: new Date(Date.now()).toISOString(),
+        sub: owner,
+        commit_strategy: 'basic'
+        });
+      }
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: profiles,
+        pagination: {
+          skip_token: null,
+        },
+      });
+      const results = await controller.handleQueryRequest(query, []);
+      expect(results.objects.length).toEqual(1);
+      expect(profiles.includes(results.objects[0])).toBeTruthy();
+      expect(spy).toHaveBeenCalled();
+    });
   })
 });
