@@ -16,7 +16,7 @@ describe('AuthorizationController', () => {
   let store: jasmine.Spy;
   let commitsStore: jasmine.Spy;
   let auth: AuthorizationController;
-  
+
   beforeEach(() => {
     const context = new TestContext();
     store = spyOn(context.store, 'queryObjects');
@@ -472,7 +472,7 @@ describe('AuthorizationController', () => {
             created_by: 'did:example:alice.id',
             created_at: new Date(Date.now()).toISOString(),
             commit_strategy: 'basic'
-          });  
+          });
         }
         return objects;
       }
