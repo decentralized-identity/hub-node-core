@@ -64,8 +64,14 @@ describe('AuthorizationController', () => {
         },
       });
       store.and.returnValue({results: [], pagination: {skip_token: null}});
-      const grants = await auth.apiAuthorize(request);
-      expect(grants.length > 0).toBeFalsy();
+      try {
+        await auth.apiAuthorize(request);
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+      }
       expect(store).toHaveBeenCalled();
     });
 
@@ -326,11 +332,17 @@ describe('AuthorizationController', () => {
               kid: `${sender}#key-1`
             })),
             payload: 'foo',
-            signature: 'bar'
+            signature: 'bar',
           }
         });
-        const permissions = await auth.apiAuthorize(request);
-        expect(permissions.length).toEqual(0);
+        try {
+          await auth.apiAuthorize(request);
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+        }
       });
 
       it('should ignore permission objects with no valid commits', async() => {
@@ -391,8 +403,14 @@ describe('AuthorizationController', () => {
             signature: 'bar'
           }
         });
-        const permissions = await auth.apiAuthorize(request);
-        expect(permissions.length).toEqual(0);
+        try {
+          await auth.apiAuthorize(request);
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+        }
       });
 
       it('should ignore CREATE permissions in a created_by conflict', async() => {
@@ -429,8 +447,14 @@ describe('AuthorizationController', () => {
             signature: 'bar'
           }
         });
-        const permissions = await auth.apiAuthorize(request);
-        expect(permissions.length).toEqual(0);
+        try {
+          await auth.apiAuthorize(request);
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+        }
       });
     });
 
