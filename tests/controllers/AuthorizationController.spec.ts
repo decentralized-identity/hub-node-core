@@ -7,10 +7,11 @@ import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import Commit, { Operation } from '../../lib/models/Commit';
 import base64url from 'base64url';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
-import { CommitQueryRequest, CommitQueryResponse } from '../../lib/interfaces/Store';
+import * as store from '../../lib/interfaces/Store';
 import BaseRequest from '../../lib/models/BaseRequest';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import TestContext from '../mocks/TestContext';
+import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
 
 describe('AuthorizationController', () => {
   let store: jasmine.Spy;
@@ -24,7 +25,7 @@ describe('AuthorizationController', () => {
     auth = new AuthorizationController(context);
   });
   
-  describe('authorize', () => {
+  describe('authorizeApi', () => {
     it('should allow did owner without rules', async () => {
       const did = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
       const commit = TestCommit.create();
@@ -119,7 +120,7 @@ describe('AuthorizationController', () => {
       commits.forEach((commit) => {
         asCommits[commit.getHeaders().rev] = commit;
       })
-      commitsStore.and.callFake((query: CommitQueryRequest): Promise<CommitQueryResponse> => {
+      commitsStore.and.callFake((query: store.CommitQueryRequest): Promise<store.CommitQueryResponse> => {
         return new Promise((resolve, reject) => {
           if (!query.filters) {
             fail('must query for permission grant object');
@@ -452,6 +453,25 @@ describe('AuthorizationController', () => {
         } catch (err) {
           if (!(err instanceof HubError)) {
             fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+        }
+      });
+
+      it('should reject apiAuthorize for CommitQueryrequests', async () => {
+        const request = new CommitQueryRequest({
+          iss: 'did:example:alice.id',
+          aud: 'did:example:hub.id',
+          sub: 'did:example:bob.id',
+          '@context': Context,
+          '@type': 'CommitQueryRequest',
+        });
+        try {
+          await auth.apiAuthorize(request)
+          fail('should throw')
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message)
           }
           expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
         }
