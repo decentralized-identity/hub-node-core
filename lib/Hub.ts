@@ -14,6 +14,8 @@ import WriteRequest from './models/WriteRequest';
 import BaseResponse from './models/BaseResponse';
 import Response from './models/Response';
 import AuthorizationController from './controllers/AuthorizationController';
+import CommitQueryRequest from './models/CommitQueryRequest';
+import CommitController from './controllers/CommitController';
 
 /**
  * Core class that handles Hub requests.
@@ -24,6 +26,8 @@ export default class Hub {
    * Map of controllers that can be selected based on the interface name.
    */
   private _controllers: { [name: string]: BaseController };
+
+  private _commitController: CommitController;
 
   private _authentication: Authentication;
 
@@ -41,7 +45,7 @@ export default class Hub {
       cryptoSuites: this.context.cryptoSuites,
     });
 
-    this._authorization = new AuthorizationController(context.store);
+    this._authorization = new AuthorizationController(this.context);
 
     this._controllers = {
       collections: new CollectionsController(this.context, this._authorization),
@@ -49,6 +53,7 @@ export default class Hub {
       permissions: new PermissionsController(this.context, this._authorization),
       profile: new ProfileController(this.context, this._authorization),
     };
+    this._commitController = new CommitController(this.context, this._authorization);
   }
 
   /**
@@ -84,29 +89,27 @@ export default class Hub {
       // If we get here, it means the Hub access token received is valid, proceed with handling the request.
       const request = new BaseRequest(verifiedRequest.request);
       let response: BaseResponse;
-      if (request.getType() === 'CommitQueryRequest') {
-        // Commit requests go directly to the Storage layer
-        // TODO: Implement storage commit queries
-        throw new HubError({ errorCode: ErrorCode.NotImplemented });
-      } else {
-        switch (request.getType()) {
-          case 'ObjectQueryRequest':
-            const queryRequest = new ObjectQueryRequest(verifiedRequest.request);
-            const queryController = this._controllers[queryRequest.interface];
-            response = await queryController.handle(queryRequest);
-            break;
-          case 'WriteRequest':
-            const writeRequest = new WriteRequest(verifiedRequest.request);
-            const writeController = this._controllers[writeRequest.commit.getHeaders().interface];
-            response = await writeController.handle(writeRequest);
-            break;
-          default:
-            throw new HubError({
-              errorCode: ErrorCode.BadRequest,
-              property: '@type',
-              developerMessage: DeveloperMessage.IncorrectParameter,
-            });
-        }
+      switch (request.getType()) {
+        case 'CommitQueryRequest':
+          const commitRequest = new CommitQueryRequest(verifiedRequest.request);
+          response = await this._commitController.handle(commitRequest);
+          break;
+        case 'ObjectQueryRequest':
+          const queryRequest = new ObjectQueryRequest(verifiedRequest.request);
+          const queryController = this._controllers[queryRequest.interface];
+          response = await queryController.handle(queryRequest);
+          break;
+        case 'WriteRequest':
+          const writeRequest = new WriteRequest(verifiedRequest.request);
+          const writeController = this._controllers[writeRequest.commit.getHeaders().interface];
+          response = await writeController.handle(writeRequest);
+          break;
+        default:
+          throw new HubError({
+            errorCode: ErrorCode.BadRequest,
+            property: '@type',
+            developerMessage: DeveloperMessage.IncorrectParameter,
+          });
       }
 
       // Sign then encrypt the response.

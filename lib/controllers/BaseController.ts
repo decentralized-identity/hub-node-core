@@ -28,6 +28,7 @@ export default abstract class BaseController {
    * Constructor for the BaseController.
    *
    * @param context The context object containing all the injected components.
+   * @param authorization An authorization controller object for authorization checks
    */
   constructor(protected context: Context, protected authorization: AuthorizationController) { }
 
