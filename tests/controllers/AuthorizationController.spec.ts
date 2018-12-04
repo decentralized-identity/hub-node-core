@@ -473,7 +473,7 @@ describe('AuthorizationController', () => {
           if (!(err instanceof HubError)) {
             fail(err.message)
           }
-          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+          expect(err.errorCode).toEqual(ErrorCode.ServerError);
         }
       });
     });
