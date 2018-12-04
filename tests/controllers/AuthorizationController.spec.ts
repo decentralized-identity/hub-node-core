@@ -1,4 +1,3 @@
-import TestStore from '../mocks/TestStore';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
 import WriteRequest from '../../lib/models/WriteRequest';
 import TestCommit from '../mocks/TestCommit';
@@ -11,6 +10,7 @@ import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import { CommitQueryRequest, CommitQueryResponse } from '../../lib/interfaces/Store';
 import BaseRequest from '../../lib/models/BaseRequest';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
+import TestContext from '../mocks/TestContext';
 
 describe('AuthorizationController', () => {
   let store: jasmine.Spy;
@@ -18,10 +18,10 @@ describe('AuthorizationController', () => {
   let auth: AuthorizationController;
   
   beforeEach(() => {
-    const testStore = new TestStore();
-    store = spyOn(testStore, 'queryObjects');
-    commitsStore = spyOn(testStore, 'queryCommits');
-    auth = new AuthorizationController(testStore);
+    const context = new TestContext();
+    store = spyOn(context.store, 'queryObjects');
+    commitsStore = spyOn(context.store, 'queryCommits');
+    auth = new AuthorizationController(context);
   });
   
   describe('authorize', () => {
