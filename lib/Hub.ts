@@ -72,7 +72,9 @@ export default class Hub {
       console.log(error);
       return {
         ok: false,
-        body: Buffer.from(''),
+        body: Buffer.from(new HubError({
+          errorCode: ErrorCode.AuthenticationFailed,
+        }).toResponse().toString()),
       };
     }
 

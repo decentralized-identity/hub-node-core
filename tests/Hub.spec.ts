@@ -9,6 +9,7 @@ import {
          PrivateKey,
         CryptoFactory} from '@decentralized-identity/did-auth-jose';
 import { Context } from './models/BaseRequest.spec';
+import { ErrorCode } from '../lib';
 
 describe('Hub', () => {
 
@@ -107,10 +108,9 @@ describe('Hub', () => {
       expect(httpresponse.ok).toEqual(true);
       expect(httpresponse.body).toBeDefined();
       const response = await unwrapResponse(hubkey, hubkey, httpresponse.body);
-      expect(response.error_code).toEqual('bad_request');
+      expect(response.error_code).toEqual(ErrorCode.BadRequest);
       expect(response.target).toEqual('@type');
     });
-      
   })
 
   it('should send back an OK HttpResponse for requesting an access token.', async () => {
@@ -126,7 +126,7 @@ describe('Hub', () => {
     expect(response.split('.').length).toEqual(3); // compact JWS comes in the form header.content.signature
   });
 
-  it('should fail validation and send back a httpStatus.Bad_Request', async () => { 
+  it('should fail validation and send back an authentication failure', async () => { 
 
     const did = new DidDocument({
       '@context': 'https://w3id.org/did/v1',
@@ -160,7 +160,6 @@ describe('Hub', () => {
     expect(httpresponse.body).toBeDefined();
     console.log(httpresponse.body.toString('utf-8'));
     const response = JSON.parse(httpresponse.body.toString('utf-8'));
-    expect(response.error_code).toEqual('bad_request');
-    console.log(response);
+    expect(response.error_code).toEqual(ErrorCode.AuthenticationFailed);
   });
 });
