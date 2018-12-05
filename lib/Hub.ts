@@ -7,7 +7,7 @@ import ActionsController from './controllers/ActionsController';
 import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
-import HubError, { ErrorCode, DeveloperMessage } from './models/HubError';
+import HubError, { ErrorCode } from './models/HubError';
 import BaseRequest from './models/BaseRequest';
 import ObjectQueryRequest from './models/ObjectQueryRequest';
 import WriteRequest from './models/WriteRequest';
@@ -108,7 +108,7 @@ export default class Hub {
           throw new HubError({
             errorCode: ErrorCode.BadRequest,
             property: '@type',
-            developerMessage: DeveloperMessage.IncorrectParameter,
+            developerMessage: `Request format unknown: ${request.getType()}`,
           });
       }
 
