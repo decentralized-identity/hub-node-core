@@ -12,6 +12,7 @@ import BaseRequest from '../../lib/models/BaseRequest';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import TestContext from '../mocks/TestContext';
 import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
+import SignedCommit from '../../lib/models/SignedCommit';
 
 describe('AuthorizationController', () => {
   let store: jasmine.Spy;
@@ -540,5 +541,102 @@ describe('AuthorizationController', () => {
         }
       });
     });
+
+  describe('authorizeCommitRequest', () => {
+    it('should allow the owner', async () => {
+      const request = new CommitQueryRequest({
+        iss: 'did:example:alice.id',
+        aud: 'did:example:hub.id',
+        sub: 'did:example:alice.id',
+        '@context': Context,
+        '@type': 'CommitQueryRequest',
+      });
+      const commit = TestCommit.create();
+      const grant = await auth.authorizeCommitRequest(request, [commit]);
+      expect(grant.length).toEqual(1);
+    });
+
+    it('should create allow a commit read with the corresponding grant', async () => {
+      const commit = TestCommit.create({
+        commit_strategy: 'basic',
+        context: 'PERMISSION_GRANT_CONTEXT',
+        type: PERMISSION_GRANT_TYPE,
+      }, {
+        owner: 'did:example:alice.id',
+        grantee: 'did:example:bob.id',
+        allow: '-R---',
+        context: 'example.com',
+        type: 'test',
+      } as PermissionGrant);
+      const dataCommit = TestCommit.create({
+        context: 'example.com',
+        type: 'test',
+        sub: 'did:example:alice.id',
+      });
+      store.and.callFake((request: store.ObjectQueryRequest) => {
+        if (!request.filters) {
+          return;
+        }
+        const results: ObjectContainer[] = []
+        request.filters.forEach((filter) => {
+          if (filter.field === 'object_id') {
+            results.push({
+              interface: 'Collections',
+              context: 'example.com',
+              type: 'test',
+              id: dataCommit.getHeaders().rev,
+              created_by: 'did:example:alice.id',
+              created_at: new Date(Date.now()).toISOString(),
+              sub: 'did:example:alice.id',
+              commit_strategy: 'basic',
+            })
+          }
+          if (filter.field === 'interface' && filter.value === 'permissions') {
+            results.push({
+              interface: 'Permissions',
+              context: PERMISSION_GRANT_CONTEXT,
+              type: PERMISSION_GRANT_TYPE,
+              id: commit.getHeaders().rev,
+              created_by: 'did:example:alice.id',
+              created_at: new Date(Date.now()).toISOString(),
+              sub: 'did:example:alice.id',
+              commit_strategy: 'basic',
+            });
+          }
+        });
+        return {
+          results,
+          pagination: {
+            skip_token: null,
+          },
+        }
+      });
+      commitsStore.and.returnValue({
+        results: [
+          new SignedCommit({
+            protected: commit.getProtectedString(),
+            payload: commit.getPayloadString(),
+            signature: 'foo',
+          }),
+        ],
+        pagination: {
+          skip_token: null,
+        },
+      });
+
+      const commitRequest = new CommitQueryRequest({
+        iss: 'did:example:bob.id',
+        aud: 'did:example:hub.id',
+        sub: 'did:example:alice.id',
+        '@context': Context,
+        '@type': 'CommitQueryRequest',
+        query: {
+          rev: [commit.getHeaders().rev],
+        },
+      });
+
+      const grants = await auth.authorizeCommitRequest(commitRequest, [dataCommit]);
+      expect(grants.length).toEqual(1);
+    });
   });
-    
+});
