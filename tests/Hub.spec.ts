@@ -10,6 +10,10 @@ import {
         CryptoFactory} from '@decentralized-identity/did-auth-jose';
 import { Context } from './models/BaseRequest.spec';
 import { ErrorCode } from '../lib';
+import CommitQueryRequest from '../lib/models/CommitQueryRequest';
+import ObjectQueryRequest from '../lib/models/ObjectQueryRequest';
+import TestCommit from './mocks/TestCommit';
+import WriteRequest from '../lib/models/WriteRequest';
 
 describe('Hub', () => {
 
@@ -31,6 +35,16 @@ describe('Hub', () => {
 
     hubkey = await testContext.createPrivateKey(hubKid);
     hubPublicKey = hubkey.getPublicKey();
+    hubKeys = {};
+    hubKeys[hubKid] = hubkey;
+    testContext.keys = hubKeys;
+
+    testResolver = new unitTestExports.TestResolver();
+    testContext.resolver = testResolver;
+    done();
+  });
+
+  beforeEach(() => {
     hubDID = new DidDocument({
       '@context': 'https://w3id.org/did/v1',
       id: hubId,
@@ -42,15 +56,8 @@ describe('Hub', () => {
       }],
     });
 
-    hubKeys = {};
-    hubKeys[hubKid] = hubkey;
-    testContext.keys = hubKeys;
-
-    testResolver = new unitTestExports.TestResolver();
     testResolver.setHandle(async (_: string) => { return hubDID; });
-    testContext.resolver = testResolver;
-    done();
-  });
+  })
 
   const header = {
     alg: 'RS256',
@@ -161,5 +168,133 @@ describe('Hub', () => {
     console.log(httpresponse.body.toString('utf-8'));
     const response = JSON.parse(httpresponse.body.toString('utf-8'));
     expect(response.error_code).toEqual(ErrorCode.AuthenticationFailed);
+  });
+
+  it('should dispatch CommitQueryRequests to the commitController', async() => {
+    const hub = new Hub(testContext);
+    const commitController = hub['_commitController'];
+
+    const commitRequest = {
+      iss: hubId,
+      aud: hubId,
+      sub: hubId,
+      '@context': Context,
+      '@type': 'CommitQueryRequest',
+      query: {
+        object_id: ['foobar'],
+      },
+    };
+    const spy = spyOn(commitController, 'handle').and.callFake((request: CommitQueryRequest) => {
+      expect(request.objectIds).toEqual(commitRequest.query.object_id);
+    });
+    const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(commitRequest));
+    await hub.handleRequest(requestString);
+    expect(spy).toHaveBeenCalled();
+  });
+
+  describe('handleRequest', () => {
+    ['Collections', 'Permissions', 'Profile', 'Actions'].forEach((hubInterface) => {
+      it(`should dispatch ObjectQueryRequest to ${hubInterface}Controller correctly`, async() => {
+        const hub = new Hub(testContext);
+        const controller = hub['_controllers'][hubInterface];
+
+        const objectQueryRequest = {
+          iss: hubId,
+          aud: hubId,
+          sub: hubId,
+          '@context': Context,
+          '@type': 'ObjectQueryRequest',
+          query: {
+            interface: hubInterface,
+            context: 'example.com',
+            type: 'test',
+          },
+        };
+
+        const spy = spyOn(controller, 'handle').and.callFake((request: ObjectQueryRequest) => {
+          expect(request.queryContext).toEqual(objectQueryRequest.query.context);
+          expect(request.queryType).toEqual(objectQueryRequest.query.type);
+        });
+        const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(objectQueryRequest));
+        await hub.handleRequest(requestString);
+        expect(spy).toHaveBeenCalled();
+      });
+
+      it(`should dispatch WriteRequest to ${hubInterface}Controller correctly`, async() => {
+        const hub = new Hub(testContext);
+        const controller = hub['_controllers'][hubInterface];
+
+        const commit = TestCommit.create({
+          interface: hubInterface,
+          sub: hubId,
+          kid: hubKid,
+          context: 'example.com',
+          type: 'foobar',
+        });
+
+        const objectQueryRequest = {
+          iss: hubId,
+          aud: hubId,
+          sub: hubId,
+          '@context': Context,
+          '@type': 'WriteRequest',
+          commit: {
+            protected: commit.getProtectedString(),
+            payload: commit.getPayloadString(),
+            signature: 'foo',
+          },
+        };
+
+        const spy = spyOn(controller, 'handle').and.callFake((request: WriteRequest) => {
+          expect(request.commit.getHeaders().context).toEqual(commit.getHeaders().context);
+          expect(request.commit.getHeaders().type).toEqual(commit.getHeaders().type);
+        });
+        const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(objectQueryRequest));
+        await hub.handleRequest(requestString);
+        expect(spy).toHaveBeenCalled();
+      });
+    });
+
+    it('should call getAuthorizedResponse', async() => {
+      const hub = new Hub(testContext);
+      const controller = hub['_controllers']['Actions'];
+
+      const commit = TestCommit.create({
+        interface: 'Actions',
+        sub: hubId,
+        kid: hubKid,
+        context: 'example.com',
+        type: 'foobar',
+      });
+
+      const objectQueryRequest = {
+        iss: hubId,
+        aud: hubId,
+        sub: hubId,
+        '@context': Context,
+        '@type': 'WriteRequest',
+        commit: {
+          protected: commit.getProtectedString(),
+          payload: commit.getPayloadString(),
+          signature: 'foo',
+        },
+      };
+
+      const testValue = 'foobar';
+      const spy = spyOn(controller, 'handle').and.callFake((request: WriteRequest) => {
+        expect(request.commit.getHeaders().context).toEqual(commit.getHeaders().context);
+        expect(request.commit.getHeaders().type).toEqual(commit.getHeaders().type);
+        return {
+          toString(): string {
+            return testValue;
+          },
+        };
+      });
+      const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(objectQueryRequest));
+      const response = await hub.handleRequest(requestString);
+      expect(spy).toHaveBeenCalled();
+      expect(response.ok).toBeTruthy();
+      expect(await unwrapResponse(hubkey, hubkey, response.body)).toEqual(testValue);
+    })
   });
 });

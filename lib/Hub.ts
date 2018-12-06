@@ -48,10 +48,10 @@ export default class Hub {
     this._authorization = new AuthorizationController(this.context);
 
     this._controllers = {
-      collections: new CollectionsController(this.context, this._authorization),
-      actions: new ActionsController(this.context, this._authorization),
-      permissions: new PermissionsController(this.context, this._authorization),
-      profile: new ProfileController(this.context, this._authorization),
+      Collections: new CollectionsController(this.context, this._authorization),
+      Actions: new ActionsController(this.context, this._authorization),
+      Permissions: new PermissionsController(this.context, this._authorization),
+      Profile: new ProfileController(this.context, this._authorization),
     };
     this._commitController = new CommitController(this.context, this._authorization);
   }

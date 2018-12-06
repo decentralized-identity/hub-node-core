@@ -41,7 +41,7 @@ export default class AuthorizationController {
         {
           field: 'interface',
           type: 'eq',
-          value: 'permissions',
+          value: 'Permissions',
         },
       ],
       skip_token: (skipToken === null ? undefined : skipToken),

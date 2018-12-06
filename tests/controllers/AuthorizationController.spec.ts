@@ -591,7 +591,7 @@ describe('AuthorizationController', () => {
               commit_strategy: 'basic',
             })
           }
-          if (filter.field === 'interface' && filter.value === 'permissions') {
+          if (filter.field === 'interface' && filter.value === 'Permissions') {
             results.push({
               interface: 'Permissions',
               context: PERMISSION_GRANT_CONTEXT,
