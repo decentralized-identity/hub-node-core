@@ -295,6 +295,62 @@ describe('Hub', () => {
       expect(spy).toHaveBeenCalled();
       expect(response.ok).toBeTruthy();
       expect(await unwrapResponse(hubkey, hubkey, response.body)).toEqual(testValue);
-    })
+    });
+
+    it('should throw for incorrect interfaces in ObjectQueryRequests', async() => {
+      const hub = new Hub(testContext);
+
+      const objectQueryRequest = {
+        iss: hubId,
+        aud: hubId,
+        sub: hubId,
+        '@context': Context,
+        '@type': 'ObjectQueryRequest',
+        query: {
+          interface: 'Unknown',
+          context: 'example.com',
+          type: 'test',
+        },
+      };
+
+      const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(objectQueryRequest));
+      const response = await hub.handleRequest(requestString);
+      expect(response.ok).toBeTruthy();
+      const error = await unwrapResponse(hubkey, hubkey, response.body);
+      expect(error.error_code).toEqual(ErrorCode.BadRequest);
+      expect(error.target).toEqual('query.interface');
+    });
+
+    it('should throw for incorrect interfaces in WriteRequests', async() => {
+      const hub = new Hub(testContext);
+
+      const commit = TestCommit.create({
+        interface: 'Unknown',
+        sub: hubId,
+        kid: hubKid,
+        context: 'example.com',
+        type: 'foobar',
+      });
+
+      const objectQueryRequest = {
+        iss: hubId,
+        aud: hubId,
+        sub: hubId,
+        '@context': Context,
+        '@type': 'WriteRequest',
+        commit: {
+          protected: commit.getProtectedString(),
+          payload: commit.getPayloadString(),
+          signature: 'foo',
+        },
+      };
+
+      const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(objectQueryRequest));
+      const response = await hub.handleRequest(requestString);
+      expect(response.ok).toBeTruthy();
+      const error = await unwrapResponse(hubkey, hubkey, response.body);
+      expect(error.error_code).toEqual(ErrorCode.BadRequest);
+      expect(error.target).toEqual('commit.protected.interface');
+    });
   });
 });

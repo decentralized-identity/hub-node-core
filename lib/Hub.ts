@@ -99,11 +99,23 @@ export default class Hub {
         case 'ObjectQueryRequest':
           const queryRequest = new ObjectQueryRequest(verifiedRequest.request);
           const queryController = this._controllers[queryRequest.interface];
+          if (!queryController) {
+            throw new HubError({
+              errorCode: ErrorCode.BadRequest,
+              property: 'query.interface',
+            });
+          }
           response = await queryController.handle(queryRequest);
           break;
         case 'WriteRequest':
           const writeRequest = new WriteRequest(verifiedRequest.request);
           const writeController = this._controllers[writeRequest.commit.getHeaders().interface];
+          if (!writeController) {
+            throw new HubError({
+              errorCode: ErrorCode.BadRequest,
+              property: 'commit.protected.interface',
+            });
+          }
           response = await writeController.handle(writeRequest);
           break;
         default:
