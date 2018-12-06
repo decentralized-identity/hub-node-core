@@ -25,23 +25,23 @@ export default class CommitController {
    */
   public async handle(request: CommitQueryRequest): Promise<CommitQueryResponse> {
 
-    if (request.fields) {
+    if (request.fields && request.fields.length > 0) {
       throw new HubError({
         errorCode: ErrorCode.NotImplemented,
-        property: 'field',
+        property: 'fields',
         developerMessage: 'A new type of response is required',
       });
     }
 
     const filters: store.QueryEqualsFilter[] = [];
-    if (request.objectIds) {
+    if (request.objectIds && request.objectIds.length > 0) {
       filters.push({
         field: 'object_id',
         type: 'eq',
         value: request.objectIds,
       });
     }
-    if (request.revisions) {
+    if (request.revisions && request.revisions.length > 0) {
       filters.push({
         field: 'rev',
         type: 'eq',
