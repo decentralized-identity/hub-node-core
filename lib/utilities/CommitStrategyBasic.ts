@@ -32,7 +32,8 @@ export default class CommitStrategyBasic {
   public static async resolveObject(owner: string, objectId: string, store: Store): Promise<Commit|null> {
     let latestCommit: Commit | null = null;
     let latestDate: Date;
-    const returnedCommits = await CommitStrategyBasic.getCommits(owner, objectId, store);
+    let returnedCommits = await CommitStrategyBasic.getCommits(owner, objectId, store);
+    let continueCommitQuery = true;
     do {
       returnedCommits.results.forEach((permissionCommit) => {
         const headers = permissionCommit.getHeaders();
@@ -45,7 +46,12 @@ export default class CommitStrategyBasic {
           latestDate = date;
         }
       });
-    } while (returnedCommits.pagination.skip_token !== null);
+      if (returnedCommits.pagination.skip_token !== null) {
+        returnedCommits = await CommitStrategyBasic.getCommits(owner, objectId, store, returnedCommits.pagination.skip_token);
+      } else {
+        continueCommitQuery = false;
+      }
+    } while (continueCommitQuery);
     return latestCommit;
   }
 }

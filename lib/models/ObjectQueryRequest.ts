@@ -1,5 +1,6 @@
 import BaseRequest from './BaseRequest';
 import HubError, { ErrorCode, DeveloperMessage } from './HubError';
+import { QueryFilter } from '../interfaces/Store';
 
 /**
  * A hub request of type ObjectQueryRequest
@@ -14,14 +15,7 @@ export default class ObjectQueryRequest extends BaseRequest {
   /** Optional object Ids to filter on */
   readonly objectIds?: string[];
   /** Optional metadata filters to use */
-  readonly filters?: {
-    /** Type of filter */
-    type: string;
-    /** Metadata property to filter on */
-    field: string;
-    /** Value the metadata property should be evaluated against */
-    value: string;
-  }[];
+  readonly filters?: QueryFilter[];
   /** Optional skip token, if included in the request */
   readonly skipToken?: string;
 

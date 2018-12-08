@@ -3,16 +3,19 @@ import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
 import BaseRequest from '../models/BaseRequest';
 import WriteRequest from '../models/WriteRequest';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
-import Commit, { Operation } from '../models/Commit';
+import Commit from '../models/Commit';
 import { ObjectQueryResponse } from '../interfaces/Store';
 import CommitStrategyBasic from '../utilities/CommitStrategyBasic';
-import ObjectContainer from '../interfaces/ObjectContainer';
 import CommitQueryRequest from '../models/CommitQueryRequest';
 import Context from '../interfaces/Context';
+import { ObjectContainer } from '../index';
 
-interface Pair<T, Q>  {
-  first: T;
-  second: Q;
+/** Operations included in Permission Grants */
+export enum AuthorizaitonOperation {
+  Create = 'create',
+  Read = 'read',
+  Update = 'update',
+  Delete = 'delete',
 }
 
 /**
@@ -60,10 +63,8 @@ export default class AuthorizationController {
     }
     const requester = request.iss;
     const owner = request.sub;
-    let operation: RegExp;
-    let context: string;
-    let type: string;
-    let isCreate = false;
+    let operation: AuthorizaitonOperation;
+    let schema: [string, string];
     switch (request.getType()) {
       case 'CommitQueryRequest':
         throw new HubError({
@@ -72,33 +73,14 @@ export default class AuthorizationController {
         });
       case 'ObjectQueryRequest':
         const queryRequest = request as ObjectQueryRequest;
-        operation = /R/;
-        context = queryRequest.queryContext;
-        type = queryRequest.queryType;
+        schema = [queryRequest.queryContext, queryRequest.queryType];
+        operation = AuthorizaitonOperation.Read;
         break;
       case 'WriteRequest':
         const writeRequest = request as WriteRequest;
         const headers = writeRequest.commit.getHeaders();
-        context = headers.context;
-        type = headers.type;
-        switch (headers.operation) {
-          case Operation.Create:
-            operation = /C/;
-            isCreate = true;
-            break;
-          case Operation.Update:
-            operation = /U/;
-            break;
-          case Operation.Delete:
-            operation = /D/;
-            break;
-          default:
-            throw new HubError({
-              errorCode: ErrorCode.BadRequest,
-              property: 'commit.protected.operation',
-              developerMessage: DeveloperMessage.IncorrectParameter,
-            });
-        }
+        schema = [headers.context, headers.type];
+        operation = headers.operation.valueOf() as AuthorizaitonOperation;
         break;
       default:
         throw new HubError({
@@ -108,60 +90,85 @@ export default class AuthorizationController {
         });
     }
 
-    return this.getPermissionGrants(operation, owner, requester, [{ first: context, second: type }], isCreate);
+    return this.getPermissionGrants(operation, owner, requester, [schema]);
   }
 
-  private async getPermissionGrants(operation: RegExp,
-                                    owner: string,
-                                    requester: string,
-                                    contextTypePairs: Pair<string, string>[],
-                                    createConflictCheck: boolean = false): Promise<PermissionGrant[]> {
-    const matchingGrants: PermissionGrant[] = [];
-    const matchedPairs: Pair<string, string>[] = [];
-    let potentialPermissions = await this.getPermissions(owner);
+  private static grantPermits (grant: PermissionGrant, operation: AuthorizaitonOperation): boolean {
+    switch (operation) {
+      case AuthorizaitonOperation.Create:
+        return /C/.test(grant.allow);
+      case AuthorizaitonOperation.Read:
+        return /R/.test(grant.allow);
+      case AuthorizaitonOperation.Update:
+        return /U/.test(grant.allow);
+      case AuthorizaitonOperation.Delete:
+        return /D/.test(grant.allow);
+      default:
+        return false;
+    }
+  }
+
+  // retrieves all permission grants for a specific did
+  private async getAllPermissionGrants(owner: string): Promise<PermissionGrant[]> {
+    const allPermissionGrants: PermissionGrant[] = [];
+    let grantObjects: ObjectQueryResponse = {
+      results: [],
+      pagination: {
+        skip_token: null,
+      },
+    };
     do {
-      for (const permissionFound of potentialPermissions.results) {
-        // only handle commit strategies we understand
-        if (permissionFound.commit_strategy !== 'basic') {
-          continue;
+      grantObjects = await this.getPermissions(owner, grantObjects.pagination.skip_token);
+      await grantObjects.results.forEach(async (grantObject) => {
+        if (grantObject.commit_strategy !== 'basic') {
+          return;
         }
-        const commit = await CommitStrategyBasic.resolveObject(owner, permissionFound.id, this.context.store);
+        const commit = await CommitStrategyBasic.resolveObject(owner, grantObject.id, this.context.store);
         if (!commit) {
-          continue;
+          return;
         }
         const grant = commit.getPayload() as PermissionGrant;
-        let matched = false;
-        contextTypePairs.forEach((pair) => {
-          if (grant.owner !== owner || // just a double check
-            grant.grantee !== requester || // the permission must be granted to the requester
-            grant.context !== pair.first || // context must match
-            grant.type !== pair.second || // type must match
-            !operation.test(grant.allow) || // the permision must grant the operation
-            (createConflictCheck && grant.created_by && grant.created_by !== requester) // created_by must match requester for create commits
-            ) {
-            return;
-          }
-          if (!matchedPairs.includes(pair)) {
-            matchedPairs.push(pair);
-          }
-          if (!matched) {
-            matchingGrants.push(grant);
-            matched = true;
-          }
-        });
+        allPermissionGrants.push(grant);
+      });
+    } while (grantObjects.pagination.skip_token !== null);
+    return allPermissionGrants;
+  }
+
+  // gets all permission grants relevant to an operation
+  private async getPermissionGrants(operation: AuthorizaitonOperation,
+                                    owner: string,
+                                    requester: string,
+                                    contextTypePairs: [string, string][]): Promise<PermissionGrant[]> {
+    const allPermissionGrants = await this.getAllPermissionGrants(owner);
+    const matchedGrants = allPermissionGrants.filter((grant: PermissionGrant) => {
+      if (grant.owner !== owner) {
+        return false;
       }
-      if (potentialPermissions.pagination.skip_token !== null) {
-        potentialPermissions = await this.getPermissions(owner, potentialPermissions.pagination.skip_token);
+      if (grant.grantee !== requester) {
+        return false;
       }
-    } while (potentialPermissions.pagination.skip_token !== null);
-    contextTypePairs.forEach((pair) => {
-      if (!matchedPairs.includes(pair)) {
+      if (!AuthorizationController.grantPermits(grant, operation)) {
+        return false;
+      }
+      // created_by must match requester for create commits
+      if (operation === AuthorizaitonOperation.Create && grant.created_by && grant.created_by !== requester) {
+        return false;
+      }
+      return contextTypePairs.some(([context, type]) => {
+        return grant.context === context && grant.type === type;
+      });
+    });
+
+    contextTypePairs.forEach(([context, type]) => {
+      if (!matchedGrants.some((grant) => {
+        return grant.context === context && grant.type === type;
+      })) {
         throw new HubError({
           errorCode: ErrorCode.PermissionsRequired,
         });
       }
     });
-    return matchingGrants;
+    return matchedGrants;
   }
 
   /**
@@ -179,19 +186,15 @@ export default class AuthorizationController {
     // const document = await this.context.resolver.resolve(request.sub);
     // if (this.iss === document.didDocument.services.IdentityHubs)
 
-    const operation = /R/;
-    const contextTypePairs: Pair<string, string>[] = [];
+    const contextTypePairs: [string, string][] = [];
     results.forEach((commit) => {
       const headers = commit.getHeaders();
-      const pair = {
-        first: headers.context,
-        second: headers.type,
-      };
-      if (!contextTypePairs.includes(pair)) {
-        contextTypePairs.push(pair);
+      const schema: [string, string] = [headers.context, headers.type];
+      if (!contextTypePairs.includes(schema)) {
+        contextTypePairs.push(schema);
       }
     });
-    return this.getPermissionGrants(operation, request.sub, request.iss, contextTypePairs);
+    return this.getPermissionGrants(AuthorizaitonOperation.Read, request.sub, request.iss, contextTypePairs);
   }
 
     /**
