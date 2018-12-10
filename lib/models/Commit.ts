@@ -115,8 +115,8 @@ export default abstract class Commit {
    */
   getHeaders(): CommitHeaders {
     return Object.assign(Object.assign({},
-      this.unprotectedHeaders),
-      this.protectedHeaders) as CommitHeaders;
+                                       this.unprotectedHeaders),
+                         this.protectedHeaders) as CommitHeaders;
   }
 
   /**

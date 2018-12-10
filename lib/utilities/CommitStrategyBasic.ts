@@ -50,6 +50,6 @@ export default class CommitStrategyBasic {
         return currentCommit;
       }
       return latestCommit;
-    }, allObjectCommits[0]);
+    },                             allObjectCommits[0]);
   }
 }
