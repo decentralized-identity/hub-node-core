@@ -44,36 +44,36 @@ export default abstract class Commit {
 
     this.originalPayload = jwt.payload;
 
-    const headers = this.getProtectedHeaders();
+    const protectedHeaders = this.getProtectedHeaders();
 
     // check required protected headers
     ['interface', 'context', 'type', 'operation', 'committed_at', 'commit_strategy', 'sub', 'kid'].forEach((property) => {
-      if (!(property in headers)) {
+      if (!(property in protectedHeaders)) {
         throw HubError.missingParameter(`commit.protected.${property}`);
       }
     });
 
     const sha256 = crypto.createHash('sha256');
-    sha256.update(`${this.originalPayload}.${this.originalPayload}`);
+    sha256.update(`${this.originalProtected}.${this.originalPayload}`);
     const revision = sha256.digest('hex');
 
-    switch (headers.operation) {
+    switch (protectedHeaders.operation) {
       case Operation.Create:
         // its impossible to include object_id as a create without the hash algorithm being broken
-        if ('object_id' in headers) {
+        if ('object_id' in protectedHeaders) {
           throw new HubError({
             errorCode: ErrorCode.BadRequest,
             property: 'commit.protected.object_id',
-            developerMessage: 'object_id cannot be included in the protected headers',
+            developerMessage: 'object_id cannot be included in the protected headers for a \'create\' commit',
           });
         }
         break;
       case Operation.Update:
       case Operation.Delete:
-        if (!('object_id' in headers)) {
+        if (!('object_id' in protectedHeaders)) {
           throw HubError.missingParameter('commit.protected.object_id');
         }
-        if (typeof headers.object_id !== 'string') {
+        if (typeof protectedHeaders.object_id !== 'string') {
           throw HubError.incorrectParameter('commit.protected.object_id');
         }
         break;
@@ -82,8 +82,8 @@ export default abstract class Commit {
     }
 
     // rev cannot be included in the protected headers as it is part of the computation
-    if ('rev' in headers) {
-      if (headers.rev === revision) {
+    if ('rev' in protectedHeaders) {
+      if (protectedHeaders.rev === revision) {
         console.warn('sha256 has been broken');
       }
       throw new HubError({
@@ -94,33 +94,27 @@ export default abstract class Commit {
     }
 
     // copy any additional headers provided
+    let combinedHeaders: any = {};
     if ('header' in jwt) {
-      for (const field in jwt.header) {
-        if (!(field in headers)) {
-          (headers as any)[field] = jwt.header[field];
-        }
-      }
+      combinedHeaders = Object.assign(combinedHeaders, jwt.header);
     }
+    combinedHeaders = Object.assign(combinedHeaders, protectedHeaders);
 
     // recompute/populate convinence headers
-    headers.iss = DidDocument.getDidFromKeyId(headers.kid);
-    headers.rev = revision;
-    if (headers.operation === Operation.Create) {
-      headers.object_id = revision;
+    combinedHeaders.iss = DidDocument.getDidFromKeyId(combinedHeaders.kid);
+    combinedHeaders.rev = revision;
+    if (combinedHeaders.operation === Operation.Create) {
+      combinedHeaders.object_id = revision;
     }
 
-    this.headers = headers;
+    this.headers = combinedHeaders;
   }
 
   /**
    * Gets the combined headers for this commit
    */
   getHeaders(): CommitHeaders {
-    const headers: any = {};
-    for (const header in this.headers) {
-      headers[header] = (this.headers as any)[header];
-    }
-    return headers as CommitHeaders;
+    return Object.assign({}, this.headers);
   }
 
   /**
