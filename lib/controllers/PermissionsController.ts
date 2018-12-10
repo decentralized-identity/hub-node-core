@@ -1,5 +1,5 @@
 import BaseController from './BaseController';
-import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
+import HubError, { ErrorCode } from '../models/HubError';
 import PermissionGrant, { PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
@@ -77,17 +77,9 @@ export default class PermissionsController extends BaseController {
     const permission = request.commit.getPayload() as PermissionGrant;
     ['owner', 'grantee', 'allow', 'context', 'type'].forEach((property) => {
       if (!(permission as any)[property]) {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: `commit.payload.${property}`,
-          developerMessage: DeveloperMessage.MissingParameter,
-        });
+        throw HubError.missingParameter(`commit.payload.${property}`);
       } if (typeof (permission as any)[property] !== 'string') {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: `commit.payload.${property}`,
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter(`commit.payload.${property}`);
       }
     });
     return permission;

@@ -84,4 +84,30 @@ export default class HubError extends Error {
       },
     });
   }
+
+  /** returns an incorrect type for parameter error */
+  public static incorrectParameter(property: string): HubError {
+    return new HubError({
+      property,
+      errorCode: ErrorCode.BadRequest,
+      developerMessage: DeveloperMessage.IncorrectParameter,
+    });
+  }
+
+  /** returns a missing parameter error */
+  public static missingParameter(property: string): HubError {
+    return new HubError({
+      property,
+      errorCode: ErrorCode.BadRequest,
+      developerMessage: DeveloperMessage.MissingParameter,
+    });
+  }
+
+  /** returns a not implemented error */
+  public static notImplemented(): HubError {
+    return new HubError({
+      errorCode: ErrorCode.NotImplemented,
+    });
+  }
+
 }

@@ -1,6 +1,7 @@
 import BaseRequest from './BaseRequest';
-import Commit from './Commit';
-import HubError, { ErrorCode, DeveloperMessage } from './HubError';
+import Commit f
+rom './Commit';
+import HubError from './HubError';
 import SignedCommit from './SignedCommit';
 
 /**
@@ -18,18 +19,10 @@ export default class WriteRequest extends BaseRequest {
       request = JSON.parse(json);
     }
     if (!('commit' in request)) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit',
-        developerMessage: DeveloperMessage.MissingParameter,
-      });
+      throw HubError.missingParameter('commit');
     }
     if (typeof request.commit !== 'object') {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('commit');
     }
     this.commit = new SignedCommit(request.commit);
   }

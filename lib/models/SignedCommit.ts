@@ -1,5 +1,5 @@
 import Commit from './Commit';
-import HubError, { DeveloperMessage, ErrorCode } from './HubError';
+import HubError from './HubError';
 
 /**
  * A JSON Serialized signed commit object
@@ -12,18 +12,10 @@ export default class SignedCommit extends Commit {
     super(jws);
 
     if (!('signature' in jws)) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit.signature',
-        developerMessage: DeveloperMessage.MissingParameter,
-      });
+      throw HubError.missingParameter('commit.signature');
     }
     if (typeof jws.signature !== 'string') {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit.signature',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('commit.signature');
     }
 
     this.originalSignature = jws.signature;

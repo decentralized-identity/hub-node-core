@@ -6,16 +6,19 @@ import Commit from './Commit';
  */
 export default class CommitQueryResponse extends BaseResponse {
 
+  /**
+   * Creates a response for hub commit data
+   * @param commits Commits data to return
+   * @param skipToken skip token to include
+   * @param developerMessage message to the developer
+   */
   constructor (public readonly commits: Commit[], public readonly skipToken: string | null, developerMessage?: string) {
     super(developerMessage);
     this.type = 'CommitQueryResponse';
   }
 
   protected toJson(): any {
-    const jwtCommits: any[] = [];
-    this.commits.forEach((commit) => {
-      jwtCommits.push(commit.toJson());
-    });
+    const jwtCommits = this.commits.map(commit => commit.toJson());
     const json = super.toJson();
     Object.assign(json, {
       commits: jwtCommits,

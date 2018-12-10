@@ -1,5 +1,5 @@
 import Context from '../interfaces/Context';
-import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
+import HubError, { ErrorCode } from '../models/HubError';
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
@@ -56,18 +56,10 @@ export default abstract class BaseController {
           case Operation.Delete:
             return await this.handleDeleteRequest(writeRequest, grants);
           default:
-            throw new HubError({
-              errorCode: ErrorCode.BadRequest,
-              property: 'commit.protected.operation',
-              developerMessage: DeveloperMessage.IncorrectParameter,
-            });
+            throw HubError.incorrectParameter('commit.protected.operation');
         }
       default:
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: '@type',
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter('@type');
     }
   }
 
@@ -78,11 +70,7 @@ export default abstract class BaseController {
   private static verifyConstraints(request: WriteRequest) {
     const headers = request.commit.getProtectedHeaders();
     if (request.sub !== headers.sub) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit.protected.sub',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('commit.protected.sub');
     }
   }
 }

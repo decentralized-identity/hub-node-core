@@ -1,4 +1,4 @@
-import HubError, { ErrorCode, DeveloperMessage } from './HubError';
+import HubError from './HubError';
 import BaseRequest from './BaseRequest';
 
 /**
@@ -42,11 +42,7 @@ export default class CommitQueryRequest extends BaseRequest {
       if ('skip_token' in request.query) {
         const skipToken = request.query.skip_token;
         if (typeof skipToken !== 'string') {
-          throw new HubError({
-            errorCode: ErrorCode.BadRequest,
-            property: 'query.skip_token',
-            developerMessage: DeveloperMessage.IncorrectParameter,
-          });
+          throw HubError.incorrectParameter('query.skip_token');
         }
         this.skipToken = skipToken;
       }
@@ -67,19 +63,11 @@ export default class CommitQueryRequest extends BaseRequest {
   private static validateStringArray(stringArray: any, path: string) {
     if (typeof stringArray !== 'object' ||
         !Array.isArray(stringArray)) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: path,
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter(path);
     }
     stringArray.forEach((shouldBeString: any, index: number) => {
       if (typeof shouldBeString !== 'string') {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: `${path}[${index}]`,
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter(`${path}[${index}]`);
       }
     });
   }

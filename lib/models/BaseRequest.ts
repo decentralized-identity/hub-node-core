@@ -1,4 +1,4 @@
-import HubError, { ErrorCode, DeveloperMessage } from './HubError';
+import HubError from './HubError';
 
 /**
  * A generic hub request. All requests contain these fields
@@ -25,27 +25,15 @@ export default abstract class BaseRequest {
       request = JSON.parse(json);
     }
     if (BaseRequest.context !== request['@context']) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: '@context',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('@context');
     }
     ['@type', 'iss', 'aud', 'sub'].forEach((property) => {
       if (!(property in request)) {
-        throw new HubError({
-          property,
-          errorCode: ErrorCode.BadRequest,
-          developerMessage: DeveloperMessage.MissingParameter,
-        });
+        throw HubError.missingParameter(property);
       }
     });
     if (typeof request['@type'] !== 'string') {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: '@type',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('@type');
     }
     this.type = request['@type'];
     this.iss = request.iss;
@@ -70,11 +58,7 @@ export default abstract class BaseRequest {
       request = JSON.parse(json);
     }
     if (typeof request['@type'] !== 'string') {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: '@type',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('@type');
     }
     return request['@type'];
   }

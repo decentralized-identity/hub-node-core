@@ -1,5 +1,5 @@
 import BaseRequest from './BaseRequest';
-import HubError, { ErrorCode, DeveloperMessage } from './HubError';
+import HubError from './HubError';
 import { QueryFilter } from '../interfaces/Store';
 
 /**
@@ -28,33 +28,17 @@ export default class ObjectQueryRequest extends BaseRequest {
     }
     // validate the input
     if (!('query' in request)) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'query',
-        developerMessage: DeveloperMessage.MissingParameter,
-      });
+      throw HubError.missingParameter('query');
     }
     if (typeof request.query !== 'object') {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'query',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('query');
     }
     ['interface', 'context', 'type'].forEach((property) => {
       if (!(property in request.query)) {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: `query.${property}`,
-          developerMessage: DeveloperMessage.MissingParameter,
-        });
+        throw HubError.missingParameter(`query.${property}`);
       }
       if (typeof request.query[property] !== 'string') {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: `query.${property}`,
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter(`query.${property}`);
       }
     });
     this.interface = request.query.interface;
@@ -64,19 +48,11 @@ export default class ObjectQueryRequest extends BaseRequest {
     if ('object_id' in request.query) {
       if (typeof request.query.object_id !== 'object' ||
           !Array.isArray(request.query.object_id)) {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: 'query.object_id',
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter('query.object_id');
       }
       request.query.object_id.forEach((objectId: any, index: number) => {
         if (typeof objectId !== 'string') {
-          throw new HubError({
-            errorCode: ErrorCode.BadRequest,
-            property: `query.object_id[${index}]`,
-            developerMessage: DeveloperMessage.IncorrectParameter,
-          });
+          throw HubError.incorrectParameter(`query.object_id[${index}]`);
         }
       });
       this.objectIds = request.query.object_id;
@@ -85,34 +61,18 @@ export default class ObjectQueryRequest extends BaseRequest {
     if ('filters' in request.query) {
       if (typeof request.query.filters !== 'object' ||
           !Array.isArray(request.query.filters)) {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: 'query.filters',
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter('query.filters');
       }
       request.query.filters.forEach((filter: any, index: number) => {
         if (typeof filter !== 'object') {
-          throw new HubError({
-            errorCode: ErrorCode.BadRequest,
-            property: `query.filters[${index}]`,
-            developerMessage: DeveloperMessage.IncorrectParameter,
-          });
+          throw HubError.incorrectParameter(`query.filters[${index}]`);
         }
         ['type', 'field', 'value'].forEach((property) => {
           if (!(property in filter)) {
-            throw new HubError({
-              errorCode: ErrorCode.BadRequest,
-              property: `query.filters[${index}].${property}`,
-              developerMessage: DeveloperMessage.MissingParameter,
-            });
+            throw HubError.missingParameter(`query.filters[${index}].${property}`);
           }
           if (typeof filter[property] !== 'string') {
-            throw new HubError({
-              errorCode: ErrorCode.BadRequest,
-              property: `query.filters[${index}].${property}`,
-              developerMessage: DeveloperMessage.IncorrectParameter,
-            });
+            throw HubError.incorrectParameter(`query.filters[${index}].${property}`);
           }
         });
       });
@@ -121,11 +81,7 @@ export default class ObjectQueryRequest extends BaseRequest {
     // if skip_token is included
     if ('skip_token' in request.query) {
       if (typeof request.query.skip_token !== 'string') {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: 'query.skip_token',
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter('query.skip_token');
       }
       this.skipToken = request.query.skip_token;
     }

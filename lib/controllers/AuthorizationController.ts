@@ -1,5 +1,5 @@
 import PermissionGrant, { OWNER_PERMISSION, PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
-import HubError, { ErrorCode, DeveloperMessage } from '../models/HubError';
+import HubError, { ErrorCode } from '../models/HubError';
 import BaseRequest from '../models/BaseRequest';
 import WriteRequest from '../models/WriteRequest';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
@@ -84,11 +84,7 @@ export default class AuthorizationController {
         operation = headers.operation.valueOf() as AuthorizationOperation;
         break;
       default:
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: '@type',
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter('@type');
     }
 
     return this.getPermissionGrants(operation, owner, requester, [schema]);

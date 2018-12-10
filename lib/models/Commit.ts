@@ -1,6 +1,6 @@
 import base64url from 'base64url';
 import { DidDocument } from '@decentralized-identity/did-common-typescript';
-import HubError, { ErrorCode, DeveloperMessage } from './HubError';
+import HubError, { ErrorCode } from './HubError';
 import * as crypto from 'crypto';
 
 /** Operations for a commit */
@@ -27,35 +27,19 @@ export default abstract class Commit {
    */
   constructor (jwt: any) {
     if (!('protected' in jwt)) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit.protected',
-        developerMessage: DeveloperMessage.MissingParameter,
-      });
+      throw HubError.missingParameter('commit.protected');
     }
     if (typeof jwt.protected !== 'string') {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit.protected',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('commit.protected');
     }
 
     this.originalProtected = jwt.protected;
 
     if (!('payload' in jwt)) {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit.payload',
-        developerMessage: DeveloperMessage.MissingParameter,
-      });
+      throw HubError.missingParameter('commit.payload');
     }
     if (typeof jwt.payload !== 'string') {
-      throw new HubError({
-        errorCode: ErrorCode.BadRequest,
-        property: 'commit.payload',
-        developerMessage: DeveloperMessage.IncorrectParameter,
-      });
+      throw HubError.incorrectParameter('commit.payload');
     }
 
     this.originalPayload = jwt.payload;
@@ -65,11 +49,7 @@ export default abstract class Commit {
     // check required protected headers
     ['interface', 'context', 'type', 'operation', 'committed_at', 'commit_strategy', 'sub', 'kid'].forEach((property) => {
       if (!(property in headers)) {
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: `commit.protected.${property}`,
-          developerMessage: DeveloperMessage.MissingParameter,
-        });
+        throw HubError.missingParameter(`commit.protected.${property}`);
       }
     });
 
@@ -91,26 +71,14 @@ export default abstract class Commit {
       case Operation.Update:
       case Operation.Delete:
         if (!('object_id' in headers)) {
-          throw new HubError({
-            errorCode: ErrorCode.BadRequest,
-            property: 'commit.protected.object_id',
-            developerMessage: DeveloperMessage.MissingParameter,
-          });
+          throw HubError.missingParameter('commit.protected.object_id');
         }
         if (typeof headers.object_id !== 'string') {
-          throw new HubError({
-            errorCode: ErrorCode.BadRequest,
-            property: 'commit.protected.object_id',
-            developerMessage: DeveloperMessage.IncorrectParameter,
-          });
+          throw HubError.incorrectParameter('commit.protected.object_id');
         }
         break;
       default:
-        throw new HubError({
-          errorCode: ErrorCode.BadRequest,
-          property: 'commit.protected.operation',
-          developerMessage: DeveloperMessage.IncorrectParameter,
-        });
+        throw HubError.incorrectParameter('commit.protected.operation');
     }
 
     // rev cannot be included in the protected headers as it is part of the computation

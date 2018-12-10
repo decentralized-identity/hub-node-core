@@ -5,15 +5,16 @@ import ObjectContainer from '../interfaces/ObjectContainer';
  * A hub response for type ObjectQueryResponse
  */
 export default class ObjectQueryResponse extends BaseResponse {
-  /** Results of the Object Query */
-  readonly objects: ObjectContainer[];
-  /** Optional skip token to continue result returns */
-  // readonly skipToken?: string;
 
-  constructor(objects: ObjectContainer[], public readonly skipToken: string | null, developerMessage?: string) {
+  /**
+   * Creates a response for a hub object query
+   * @param objects Object metadata to return
+   * @param skipToken skip token to include
+   * @param developerMessage message to the developer
+   */
+  constructor(public readonly objects: ObjectContainer[], public readonly skipToken: string | null, developerMessage?: string) {
     super(developerMessage);
     this.type = 'ObjectQueryResponse';
-    this.objects = objects;
   }
 
   protected toJson(): any {
