@@ -52,11 +52,11 @@ export default class AuthorizationController {
   }
 
   /**
-   * Checks if a request is authorized
-   * @param request HubRequest needing authorization
-   * @returns true is authorized, else false
+   * Gets Permission Grants for a given request
+   * @param request Hub request needing authorization. Cannot be a CommitQueryRequest. @see getPermissionGrantsForCommitQuery
+   * @returns An array of permission grants found to apply to the request
    */
-  async apiAuthorize(request: BaseRequest): Promise<PermissionGrant[]> {
+  async getPermissionGrantsForRequest(request: BaseRequest): Promise<PermissionGrant[]> {
     // if the request is to their own hub, always allow
     if (request.iss === request.sub) {
       return [OWNER_PERMISSION];
@@ -176,7 +176,7 @@ export default class AuthorizationController {
    * @param request CommitQueryRequest to authorize
    * @param results results of the request to authorize
    */
-  async authorizeCommitRequest(request: CommitQueryRequest, results: Commit[]): Promise<PermissionGrant[]> {
+  async getPermissionGrantsForCommitQuery(request: CommitQueryRequest, results: Commit[]): Promise<PermissionGrant[]> {
     // if the request is to their own hub, always allow
     if (request.iss === request.sub) {
       return [OWNER_PERMISSION];
@@ -189,9 +189,8 @@ export default class AuthorizationController {
     const contextTypePairs: [string, string][] = [];
     results.forEach((commit) => {
       const headers = commit.getHeaders();
-      const schema: [string, string] = [headers.context, headers.type];
-      if (!contextTypePairs.includes(schema)) {
-        contextTypePairs.push(schema);
+      if (!contextTypePairs.some(([context, type]) => context === headers.context && type === headers.type)) {
+        contextTypePairs.push([headers.context, headers.type]);
       }
     });
     return this.getPermissionGrants(AuthorizaitonOperation.Read, request.sub, request.iss, contextTypePairs);
@@ -205,30 +204,23 @@ export default class AuthorizationController {
      */
   static async pruneResults(results: ObjectContainer[], grants: PermissionGrant[]): Promise<ObjectContainer[]> {
 
-    const createdByRestrictions: string[] = [];
-    let allPermissions = false;
-    grants.forEach((grant) => {
-      if (!grant.created_by || allPermissions) {
-        allPermissions = true;
-        return;
-      }
-      createdByRestrictions.push(grant.created_by);
-    });
+    // check if a grant gives permission to all results
+    if (grants.some(grant => !grant.created_by)) return results;
 
-    if (allPermissions) {
-      return results;
-    }
+    // TODO: Give further detail in how 'created_by' functions with respect to queries. Should a query be required
+    // to have a 'created_by' filter in order to allow these grants, or should we perform computations to return
+    // all applicable objects at that time?
 
     throw new HubError({
       errorCode: ErrorCode.PermissionsRequired,
     });
 
-      // const prunedResults: ObjectContainer[] = [];
-      // results.forEach((result) => {
-      //   if (createdByRestrictions.includes(result.created_by)) {
-      //     prunedResults.push(result);
-      //   }
-      // });
-      // return prunedResults;
+    // const prunedResults: ObjectContainer[] = [];
+    // results.forEach((result) => {
+    //   if (createdByRestrictions.includes(result.created_by)) {
+    //     prunedResults.push(result);
+    //   }
+    // });
+    // return prunedResults;
   }
 }

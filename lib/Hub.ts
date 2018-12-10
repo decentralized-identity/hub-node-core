@@ -15,7 +15,7 @@ import BaseResponse from './models/BaseResponse';
 import Response from './models/Response';
 import AuthorizationController from './controllers/AuthorizationController';
 import CommitQueryRequest from './models/CommitQueryRequest';
-import CommitController from './controllers/CommitController';
+import CommitQueryController from './controllers/CommitQueryController';
 
 /**
  * Core class that handles Hub requests.
@@ -27,7 +27,7 @@ export default class Hub {
    */
   private _controllers: { [name: string]: BaseController };
 
-  private _commitController: CommitController;
+  private _commitController: CommitQueryController;
 
   private _authentication: Authentication;
 
@@ -53,7 +53,7 @@ export default class Hub {
       Permissions: new PermissionsController(this.context, this._authorization),
       Profile: new ProfileController(this.context, this._authorization),
     };
-    this._commitController = new CommitController(this.context, this._authorization);
+    this._commitController = new CommitQueryController(this.context, this._authorization);
   }
 
   /**

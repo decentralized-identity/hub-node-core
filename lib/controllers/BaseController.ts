@@ -36,7 +36,7 @@ export default abstract class BaseController {
    * Handles the Hub request.
    */
   public async handle(request: BaseRequest): Promise<BaseResponse> {
-    const grants = await this.authorization.apiAuthorize(request);
+    const grants = await this.authorization.getPermissionGrantsForRequest(request);
     if (grants.length === 0) {
       throw new HubError({
         errorCode: ErrorCode.PermissionsRequired,

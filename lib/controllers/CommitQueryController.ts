@@ -57,7 +57,7 @@ export default class CommitController {
 
     const response = await this.context.store.queryCommits(storeRequest);
 
-    const grants = await this.authorization.authorizeCommitRequest(request, response.results);
+    const grants = await this.authorization.getPermissionGrantsForCommitQuery(request, response.results);
     if (grants.length === 0) {
       throw new HubError({
         errorCode: ErrorCode.PermissionsRequired,
