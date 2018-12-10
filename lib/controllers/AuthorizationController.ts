@@ -112,7 +112,7 @@ export default class AuthorizationController {
   // retrieves all permission grants for a specific did
   private async getAllPermissionGrants(owner: string): Promise<PermissionGrant[]> {
     const grantObjectIds = await StoreUtils.queryGetAll(async (token?: string | null) => {
-      const grantObjects = await this.getPermissions(owner, token)
+      const grantObjects = await this.getPermissions(owner, token);
       const objects = grantObjects.results.filter((grantObject) => {
         return grantObject.commit_strategy === 'basic';
       });

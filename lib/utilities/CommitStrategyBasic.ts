@@ -40,7 +40,7 @@ export default class CommitStrategyBasic {
       return {
         results: commits.results,
         nextToken: commits.pagination.skip_token === null ? undefined : commits.pagination.skip_token,
-      }
+      };
     });
     return allObjectCommits.reduce((latestCommit, currentCommit) => {
       if (Date.parse(latestCommit.getHeaders().committed_at) < Date.parse(currentCommit.getHeaders().committed_at)) {
