@@ -34,7 +34,7 @@ export interface QueryRequest {
   /** The fully-qualified DID of the Hub owner. */
   owner: string;
 
-  /** Optional filters to refine the entities returned. */
+  /** (Optional) filters to refine the entities returned. */
   filters?: QueryFilter[];
 
   // List of fields to return from the queried items. Currently only supports "rev" or "id"

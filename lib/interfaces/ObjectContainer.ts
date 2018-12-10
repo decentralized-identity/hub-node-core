@@ -27,7 +27,7 @@ export default interface ObjectContainer {
   /** Commit strategy used */
   commit_strategy: string;
 
-  /** Optional latest resolved state of the meta parameter */
+  /** (Optional) latest resolved state of the meta parameter */
   meta?: any;
 
 }

@@ -10,7 +10,7 @@ export default abstract class BaseResponse {
 
   /**
    * Creates a base response
-   * @param developerMessage optional developer message
+   * @param developerMessage (Optional) developer message
    */
   constructor(public developerMessage?: string) {
   }

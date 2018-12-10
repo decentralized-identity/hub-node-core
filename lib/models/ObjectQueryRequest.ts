@@ -12,11 +12,11 @@ export default class ObjectQueryRequest extends BaseRequest {
   readonly queryContext: string;
   /** The type being queried */
   readonly queryType: string;
-  /** Optional object Ids to filter on */
+  /** (Optional) object Ids to filter on */
   readonly objectIds?: string[];
-  /** Optional metadata filters to use */
+  /** (Optional) metadata filters to use */
   readonly filters?: QueryFilter[];
-  /** Optional skip token, if included in the request */
+  /** (Optional) skip token, if included in the request */
   readonly skipToken?: string;
 
   constructor(json: string | any) {

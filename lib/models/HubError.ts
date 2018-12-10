@@ -40,7 +40,7 @@ export default class HubError extends Error {
   readonly errorCode: ErrorCode;
   /** The property in the request that caused error */
   readonly property?: string;
-  /** Optional developer message */
+  /** (Optional) developer message */
   readonly developerMessage?: string;
   /** Message to the user */
   readonly userMessage?: string;
