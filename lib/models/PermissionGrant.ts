@@ -16,7 +16,7 @@ export default interface PermissionGrant {
   context: string;
   /** Type of the object being permitted */
   type: string;
-  /** (Optional) DID of the object creater to scope this permission down to */
+  /** (Optional) Scopes permission grant to objects created by the specified DID. */
   created_by?: string;
 }
 
