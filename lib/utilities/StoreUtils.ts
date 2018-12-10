@@ -84,4 +84,24 @@ export default class StoreUtils {
     const response = await store.commit(commitRequest);
     return new WriteResponse(response.knownRevisions);
   }
+
+  /**
+   * Helper function to collect all results from a paged query by iterating through results.
+   *
+   * @param callback A callback which should execute the next iteration of the query based on a
+   * continuation token passed as the first parameter.
+   */
+  static async queryGetAll<ResultType> (
+    callback: (nextToken?: any) => Promise<{results: ResultType[], nextToken: string | undefined}>): Promise<ResultType[]> {
+    let nextToken: string | undefined = undefined;
+    let allResults: ResultType[] = [];
+
+    do {
+      let results: ResultType[];
+      ({ results, nextToken } = await callback(nextToken));
+      allResults = allResults.concat(results);
+    } while (nextToken);
+
+    return allResults;
+  }
 }

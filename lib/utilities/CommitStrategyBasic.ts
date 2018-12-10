@@ -1,5 +1,6 @@
 import Commit from '../models/Commit';
 import { Store, CommitQueryResponse } from '../interfaces/Store';
+import StoreUtils from './StoreUtils';
 
 /**
  * Resolves objects using the 'basic' commit strategy
@@ -30,28 +31,22 @@ export default class CommitStrategyBasic {
    * @returns a Commit representing the latest object, or null if not found
    */
   public static async resolveObject(owner: string, objectId: string, store: Store): Promise<Commit|null> {
-    let latestCommit: Commit | null = null;
-    let latestDate: Date;
-    let returnedCommits = await CommitStrategyBasic.getCommits(owner, objectId, store);
-    let continueCommitQuery = true;
-    do {
-      returnedCommits.results.forEach((permissionCommit) => {
-        const headers = permissionCommit.getHeaders();
-        if (headers.commit_strategy !== 'basic') {
-          return;
-        }
-        const date = new Date(headers.committed_at);
-        if (!latestCommit || !latestDate || latestDate < date) {
-          latestCommit = permissionCommit;
-          latestDate = date;
-        }
+    const allObjectCommits = await StoreUtils.queryGetAll(async (token?: string | null) => {
+      const commits = await CommitStrategyBasic.getCommits(owner, objectId, store, token === null ? undefined : token);
+      // memory optimization: reduce to only 'basic' commits while paging
+      commits.results = commits.results.filter((commit: Commit) => {
+        return commit.getHeaders().commit_strategy === 'basic';
       });
-      if (returnedCommits.pagination.skip_token !== null) {
-        returnedCommits = await CommitStrategyBasic.getCommits(owner, objectId, store, returnedCommits.pagination.skip_token);
-      } else {
-        continueCommitQuery = false;
+      return {
+        results: commits.results,
+        nextToken: commits.pagination.skip_token === null ? undefined : commits.pagination.skip_token,
       }
-    } while (continueCommitQuery);
-    return latestCommit;
+    });
+    return allObjectCommits.reduce((latestCommit, currentCommit) => {
+      if (Date.parse(latestCommit.getHeaders().committed_at) < Date.parse(currentCommit.getHeaders().committed_at)) {
+        return currentCommit;
+      }
+      return latestCommit;
+    });
   }
 }

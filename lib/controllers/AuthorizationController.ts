@@ -9,6 +9,7 @@ import CommitStrategyBasic from '../utilities/CommitStrategyBasic';
 import CommitQueryRequest from '../models/CommitQueryRequest';
 import Context from '../interfaces/Context';
 import { ObjectContainer } from '../index';
+import StoreUtils from '../utilities/StoreUtils';
 
 /** Operations included in Permission Grants */
 export enum AuthorizaitonOperation {
@@ -110,28 +111,26 @@ export default class AuthorizationController {
 
   // retrieves all permission grants for a specific did
   private async getAllPermissionGrants(owner: string): Promise<PermissionGrant[]> {
-    const allPermissionGrants: PermissionGrant[] = [];
-    let grantObjects: ObjectQueryResponse = {
-      results: [],
-      pagination: {
-        skip_token: null,
-      },
-    };
-    do {
-      grantObjects = await this.getPermissions(owner, grantObjects.pagination.skip_token);
-      await grantObjects.results.forEach(async (grantObject) => {
-        if (grantObject.commit_strategy !== 'basic') {
-          return;
-        }
-        const commit = await CommitStrategyBasic.resolveObject(owner, grantObject.id, this.context.store);
-        if (!commit) {
-          return;
-        }
-        const grant = commit.getPayload() as PermissionGrant;
-        allPermissionGrants.push(grant);
+    const grantObjectIds = await StoreUtils.queryGetAll(async (token?: string | null) => {
+      const grantObjects = await this.getPermissions(owner, token)
+      const objects = grantObjects.results.filter((grantObject) => {
+        return grantObject.commit_strategy === 'basic';
       });
-    } while (grantObjects.pagination.skip_token !== null);
-    return allPermissionGrants;
+      return {
+        results: objects.map(fullObject => fullObject.id),
+        nextToken: grantObjects.pagination.skip_token === null ? undefined : grantObjects.pagination.skip_token,
+      };
+    });
+
+    const grants = await Promise.all(grantObjectIds.map(async (grantId) => {
+      const commit = await CommitStrategyBasic.resolveObject(owner, grantId, this.context.store);
+      if (!commit) {
+        return;
+      }
+      return commit.getPayload() as PermissionGrant;
+    }));
+
+    return grants.filter(grant => grant !== undefined) as PermissionGrant[];
   }
 
   // gets all permission grants relevant to an operation
