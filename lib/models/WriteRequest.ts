@@ -1,6 +1,5 @@
 import BaseRequest from './BaseRequest';
-import Commit f
-rom './Commit';
+import Commit from './Commit';
 import HubError from './HubError';
 import SignedCommit from './SignedCommit';
 
