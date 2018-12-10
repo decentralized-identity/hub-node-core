@@ -2,9 +2,9 @@
 /**
  * A hub response of type BaseResponse
  */
-export default class BaseResponse {
+export default abstract class BaseResponse {
   /** \@context of the response */
-  readonly context = 'https://schema.identity.foundation/0.1';
+  public static readonly context = 'https://schema.identity.foundation/0.1';
   /** \@type of the response */
   protected type = 'BaseResponse';
 
@@ -27,7 +27,7 @@ export default class BaseResponse {
    */
   protected toJson(): any {
     return {
-      '@context': this.context,
+      '@context': BaseResponse.context,
       '@type': this.type,
       developer_message: this.developerMessage,
     };

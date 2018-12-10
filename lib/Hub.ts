@@ -89,9 +89,9 @@ export default class Hub {
 
     try {
       // If we get here, it means the Hub access token received is valid, proceed with handling the request.
-      const request = new BaseRequest(verifiedRequest.request);
       let response: BaseResponse;
-      switch (request.getType()) {
+      const requestType = BaseRequest.getTypeFromJson(verifiedRequest.request);
+      switch (requestType) {
         case 'CommitQueryRequest':
           const commitRequest = new CommitQueryRequest(verifiedRequest.request);
           response = await this._commitController.handle(commitRequest);
@@ -122,7 +122,7 @@ export default class Hub {
           throw new HubError({
             errorCode: ErrorCode.BadRequest,
             property: '@type',
-            developerMessage: `Request format unknown: ${request.getType()}`,
+            developerMessage: `Request format unknown: ${requestType}`,
           });
       }
 

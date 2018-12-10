@@ -3,10 +3,10 @@ import HubError, { ErrorCode, DeveloperMessage } from './HubError';
 /**
  * A generic hub request. All requests contain these fields
  */
-export default class BaseRequest {
+export default abstract class BaseRequest {
   /** \@context of the request schema */
-  protected readonly context = 'https://schema.identity.foundation/0.1';
-  /** \@type of the request, always 'BaseRequest' */
+  public static readonly context = 'https://schema.identity.foundation/0.1';
+  /** \@type of the request */
   protected type: string;
   /** did of the issuer of the request */
   readonly iss: string;
@@ -24,7 +24,7 @@ export default class BaseRequest {
     if (typeof json === 'string') {
       request = JSON.parse(json);
     }
-    if (this.context !== request['@context']) {
+    if (BaseRequest.context !== request['@context']) {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
         property: '@context',
@@ -58,5 +58,24 @@ export default class BaseRequest {
    */
   getType(): string {
     return this.type;
+  }
+
+  /**
+   * Gets the type of the request
+   * @param json request as JSON
+   */
+  static getTypeFromJson(json: string | any): string {
+    let request = json;
+    if (typeof json === 'string') {
+      request = JSON.parse(json);
+    }
+    if (typeof request['@type'] !== 'string') {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: '@type',
+        developerMessage: DeveloperMessage.IncorrectParameter,
+      });
+    }
+    return request['@type'];
   }
 }
