@@ -12,7 +12,7 @@ import { ObjectContainer } from '../index';
 import StoreUtils from '../utilities/StoreUtils';
 
 /** Operations included in Permission Grants */
-export enum AuthorizaitonOperation {
+export enum AuthorizationOperation {
   Create = 'create',
   Read = 'read',
   Update = 'update',
@@ -64,7 +64,7 @@ export default class AuthorizationController {
     }
     const requester = request.iss;
     const owner = request.sub;
-    let operation: AuthorizaitonOperation;
+    let operation: AuthorizationOperation;
     let schema: [string, string];
     switch (request.getType()) {
       case 'CommitQueryRequest':
@@ -75,13 +75,13 @@ export default class AuthorizationController {
       case 'ObjectQueryRequest':
         const queryRequest = request as ObjectQueryRequest;
         schema = [queryRequest.queryContext, queryRequest.queryType];
-        operation = AuthorizaitonOperation.Read;
+        operation = AuthorizationOperation.Read;
         break;
       case 'WriteRequest':
         const writeRequest = request as WriteRequest;
         const headers = writeRequest.commit.getHeaders();
         schema = [headers.context, headers.type];
-        operation = headers.operation.valueOf() as AuthorizaitonOperation;
+        operation = headers.operation.valueOf() as AuthorizationOperation;
         break;
       default:
         throw new HubError({
@@ -94,15 +94,15 @@ export default class AuthorizationController {
     return this.getPermissionGrants(operation, owner, requester, [schema]);
   }
 
-  private static grantPermits (grant: PermissionGrant, operation: AuthorizaitonOperation): boolean {
+  private static grantPermits (grant: PermissionGrant, operation: AuthorizationOperation): boolean {
     switch (operation) {
-      case AuthorizaitonOperation.Create:
+      case AuthorizationOperation.Create:
         return /C/.test(grant.allow);
-      case AuthorizaitonOperation.Read:
+      case AuthorizationOperation.Read:
         return /R/.test(grant.allow);
-      case AuthorizaitonOperation.Update:
+      case AuthorizationOperation.Update:
         return /U/.test(grant.allow);
-      case AuthorizaitonOperation.Delete:
+      case AuthorizationOperation.Delete:
         return /D/.test(grant.allow);
       default:
         return false;
@@ -134,7 +134,7 @@ export default class AuthorizationController {
   }
 
   // gets all permission grants relevant to an operation
-  private async getPermissionGrants(operation: AuthorizaitonOperation,
+  private async getPermissionGrants(operation: AuthorizationOperation,
                                     owner: string,
                                     requester: string,
                                     contextTypePairs: [string, string][]): Promise<PermissionGrant[]> {
@@ -150,7 +150,7 @@ export default class AuthorizationController {
         return false;
       }
       // created_by must match requester for create commits
-      if (operation === AuthorizaitonOperation.Create && grant.created_by && grant.created_by !== requester) {
+      if (operation === AuthorizationOperation.Create && grant.created_by && grant.created_by !== requester) {
         return false;
       }
       return contextTypePairs.some(([context, type]) => {
@@ -192,7 +192,7 @@ export default class AuthorizationController {
         contextTypePairs.push([headers.context, headers.type]);
       }
     });
-    return this.getPermissionGrants(AuthorizaitonOperation.Read, request.sub, request.iss, contextTypePairs);
+    return this.getPermissionGrants(AuthorizationOperation.Read, request.sub, request.iss, contextTypePairs);
   }
 
     /**
