@@ -42,11 +42,14 @@ export default class CommitStrategyBasic {
         nextToken: commits.pagination.skip_token === null ? undefined : commits.pagination.skip_token,
       };
     });
+    if (allObjectCommits.length === 0) {
+      return null;
+    }
     return allObjectCommits.reduce((latestCommit, currentCommit) => {
       if (Date.parse(latestCommit.getHeaders().committed_at) < Date.parse(currentCommit.getHeaders().committed_at)) {
         return currentCommit;
       }
       return latestCommit;
-    });
+    }, allObjectCommits[0]);
   }
 }

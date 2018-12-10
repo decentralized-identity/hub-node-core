@@ -18,8 +18,10 @@ export default abstract class Commit {
   protected readonly originalProtected: string;
   /** original Base64Url payload */
   protected readonly originalPayload: string;
-  /** decrypted combined headers */
-  protected headers: CommitHeaders;
+  /** decrypted unprotected headers */
+  protected readonly unprotectedHeaders: Partial<CommitHeaders>;
+  /** decrypted protected headers */
+  protected readonly protectedHeaders: Partial<CommitHeaders>;
 
   /**
    * Parses JSON Serialization and forms a Commit
@@ -93,35 +95,35 @@ export default abstract class Commit {
       });
     }
 
+    this.protectedHeaders = protectedHeaders;
+
     // copy any additional headers provided
-    let combinedHeaders: any = {};
-    if ('header' in jwt) {
-      combinedHeaders = Object.assign(combinedHeaders, jwt.header);
-    }
-    combinedHeaders = Object.assign(combinedHeaders, protectedHeaders);
+    const additionalHeaders = Object.assign({}, jwt.header);
 
     // recompute/populate convinence headers
-    combinedHeaders.iss = DidDocument.getDidFromKeyId(combinedHeaders.kid);
-    combinedHeaders.rev = revision;
-    if (combinedHeaders.operation === Operation.Create) {
-      combinedHeaders.object_id = revision;
+    additionalHeaders.iss = DidDocument.getDidFromKeyId(this.protectedHeaders.kid!);
+    additionalHeaders.rev = revision;
+    if (protectedHeaders.operation === Operation.Create) {
+      additionalHeaders.object_id = revision;
     }
 
-    this.headers = combinedHeaders;
+    this.unprotectedHeaders = additionalHeaders;
   }
 
   /**
    * Gets the combined headers for this commit
    */
   getHeaders(): CommitHeaders {
-    return Object.assign({}, this.headers);
+    return Object.assign(Object.assign({},
+      this.unprotectedHeaders),
+      this.protectedHeaders) as CommitHeaders;
   }
 
   /**
    * Gets the protected headers
    */
-  getProtectedHeaders(): any {
-    return JSON.parse(base64url.decode(this.originalProtected));
+  getProtectedHeaders(): Partial<CommitHeaders> {
+    return this.protectedHeaders;
   }
 
   /**

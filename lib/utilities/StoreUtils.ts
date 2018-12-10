@@ -21,29 +21,29 @@ export default class StoreUtils {
     const filters: QueryEqualsFilter[] = [
       {
         field: 'interface',
-        value: commitHeaders.interface,
+        value: commitHeaders.interface!,
         type: 'eq',
       },
       {
         field: 'object_id',
-        value: [commitHeaders.object_id],
+        value: [commitHeaders.object_id!],
         type: 'eq',
       },
       {
         field: 'context',
-        value: commitHeaders.context,
+        value: commitHeaders.context!,
         type: 'eq',
       },
       {
         field: 'type',
-        value: commitHeaders.type,
+        value: commitHeaders.type!,
         type: 'eq',
       },
     ];
 
     const queryRequest = {
       filters,
-      owner: commitHeaders.sub,
+      owner: commitHeaders.sub!,
     };
 
     const response = await store.queryObjects(queryRequest);
