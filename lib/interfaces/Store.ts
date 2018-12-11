@@ -47,22 +47,18 @@ export interface QueryRequest {
 
 /**
  * Store request to query over the objects in a particular Hub.
+ *
+ * Currently supported filters: 'interface', 'context', 'type', 'object_id'
  */
 export interface ObjectQueryRequest extends QueryRequest {
-
-  // filters[] currently accepts 'interface', 'context', 'type', and 'object_id'
-
-  // TODO: Stores needs interface: 'Stores' and store_key: foo.
-  // Profile needs ???
 }
 
 /**
  * Store request to query over the individual commits in a particular Hub.
+ *
+ * Currently supported filters: 'object_id', 'rev'
  */
 export interface CommitQueryRequest extends QueryRequest {
-
-  // filters[] currently accepts 'object_id' and 'rev'
-
 }
 
 /**
