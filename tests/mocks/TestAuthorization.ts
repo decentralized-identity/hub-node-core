@@ -10,11 +10,11 @@ export default class TestAuthorization extends AuthorizationController {
     super(new TestContext());
   }
 
-  async apiAuthorize(_: BaseRequest): Promise<PermissionGrant[]> {
+  async getPermissionGrantsForRequest(_: BaseRequest): Promise<PermissionGrant[]> {
     return [OWNER_PERMISSION];
   }
 
-  async authorizeCommitRequest(_: CommitQueryRequest, __: Commit[]): Promise<PermissionGrant[]> {
+  async getPermissionGrantsForCommitQuery(_: CommitQueryRequest, __: Commit[]): Promise<PermissionGrant[]> {
     return [OWNER_PERMISSION];
   }
 }

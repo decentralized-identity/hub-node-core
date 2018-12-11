@@ -14,12 +14,16 @@ export enum Operation {
  * A single Commit to an object
  */
 export default abstract class Commit {
+
   /** original Base64Url protected headers */
   protected readonly originalProtected: string;
+
   /** original Base64Url payload */
   protected readonly originalPayload: string;
+
   /** decrypted unprotected headers */
   protected readonly unprotectedHeaders: Partial<CommitHeaders>;
+
   /** decrypted protected headers */
   protected readonly protectedHeaders: Partial<CommitHeaders>;
 
@@ -46,7 +50,7 @@ export default abstract class Commit {
 
     this.originalPayload = jwt.payload;
 
-    const protectedHeaders = this.getProtectedHeaders();
+    const protectedHeaders = JSON.parse(base64url.decode(this.originalProtected));
 
     // check required protected headers
     ['interface', 'context', 'type', 'operation', 'committed_at', 'commit_strategy', 'sub', 'kid'].forEach((property) => {
@@ -114,9 +118,7 @@ export default abstract class Commit {
    * Gets the combined headers for this commit
    */
   getHeaders(): CommitHeaders {
-    return Object.assign(Object.assign({},
-                                       this.unprotectedHeaders),
-                         this.protectedHeaders) as CommitHeaders;
+    return Object.assign({}, this.unprotectedHeaders, this.protectedHeaders) as CommitHeaders;
   }
 
   /**

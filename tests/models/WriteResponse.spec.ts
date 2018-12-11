@@ -24,8 +24,8 @@ describe('WriteResponse', () => {
       const revisions = ['foo', 'bar', 'baz'];
       const response = new WriteResponse(revisions, 'test');
       const json = JSON.parse(response.toString());
-      expect(json.revision).toBeDefined();
-      expect(json.revision).toEqual(revisions);
+      expect(json.revisions).toBeDefined();
+      expect(json.revisions).toEqual(revisions);
       expect(json.developer_message).toEqual('test');
     });
   });

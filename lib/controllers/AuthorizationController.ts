@@ -70,7 +70,7 @@ export default class AuthorizationController {
       case 'CommitQueryRequest':
         throw new HubError({
           errorCode: ErrorCode.ServerError,
-          developerMessage: 'Commits should not call apiAuthorize',
+          developerMessage: 'Commits should not call getPermissionGrantsForRequest',
         });
       case 'ObjectQueryRequest':
         const queryRequest = request as ObjectQueryRequest;

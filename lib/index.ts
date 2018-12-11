@@ -12,9 +12,13 @@ import SignedCommit from './models/SignedCommit';
 import Commit from './models/Commit';
 import HubError, { ErrorCode } from './models/HubError';
 
+// Utilities
+import CommitDeserializer from './utilities/CommitDeserializer';
+
 export default Hub;
 export {
   Commit,
+  CommitDeserializer,
   ErrorCode,
   HubError,
   ObjectContainer,

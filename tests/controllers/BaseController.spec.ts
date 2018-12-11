@@ -82,7 +82,7 @@ describe('BaseController', () => {
         signature: '',
       },
     });
-    spyOn(auth, 'apiAuthorize').and.returnValue([]);
+    spyOn(auth, 'getPermissionGrantsForRequest').and.returnValue([]);
     try {
       await controller.handle(expectedRequest);
       fail('Did not throw');

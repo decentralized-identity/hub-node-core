@@ -82,26 +82,19 @@ describe('CommitQueryController', () => {
 
     it('should pass filters to store accordingly', async () => {
       const objectId = getHex();
-      const commitId = getHex();
       const errorCode = getHex();
       const spy = spyOn(testContext.store, 'queryCommits').and.callFake((request: store.CommitQueryRequest) => {
         if (!request.filters || request.filters.length === 0) {
           fail('expected filters to be sent to store');
           return;
         }
-        request.filters.forEach((filter) => {
-          expect(filter.type).toEqual('eq');
-          switch (filter.field) {
-            case 'object_id':
-              expect(filter.value).toEqual([objectId]);
-              break;
-            case 'rev':
-              expect(filter.value).toEqual([commitId]);
-              break;
-            default:
-              fail(`unexpected filter field: ${filter.field}`);
-          }
-        });
+        expect(request.filters.length).toEqual(1);
+
+        const filter = request.filters[0];
+        expect(filter.type).toEqual('eq');
+        expect(filter.field).toEqual('object_id');
+        expect(filter.value).toEqual([objectId]);
+
         throw new HubError({
           errorCode: ErrorCode.ServerError,
           developerMessage: errorCode,
@@ -110,7 +103,6 @@ describe('CommitQueryController', () => {
       try {
         request.query = {
           object_id: [objectId],
-          revision: [commitId],
         };
         await controller.handle(new CommitQueryRequest(request));
       } catch (err) {
@@ -135,7 +127,7 @@ describe('CommitQueryController', () => {
         },
       });
 
-      const querySpy = spyOn(testAuthorization, 'authorizeCommitRequest').and.callThrough();
+      const querySpy = spyOn(testAuthorization, 'getPermissionGrantsForCommitQuery').and.callThrough();
 
       const response = await controller.handle(new CommitQueryRequest(request));
       expect(storeSpy).toHaveBeenCalled();
@@ -151,7 +143,7 @@ describe('CommitQueryController', () => {
         },
       });
 
-      const querySpy = spyOn(testAuthorization, 'authorizeCommitRequest').and.returnValue([]);
+      const querySpy = spyOn(testAuthorization, 'getPermissionGrantsForCommitQuery').and.returnValue([]);
 
       try {
         await controller.handle(new CommitQueryRequest(request));

@@ -2,7 +2,6 @@ import base64url from 'base64url';
 import CollectionsController from '../../lib/controllers/CollectionsController';
 import TestContext from '../mocks/TestContext';
 import WriteRequest from '../../lib/models/WriteRequest';
-import { Context } from '../models/BaseRequest.spec';
 import { Operation } from '../../lib/models/Commit';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
@@ -11,6 +10,8 @@ import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import TestAuthorization from '../mocks/TestAuthorization';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
 import PermissionGrant from '../../lib/models/PermissionGrant';
+
+const CONTEXT = 'https://schema.identity.foundation/0.1';
 
 const sender = 'did:example:alice.id';
 const hub = 'did:example:alice.id';
@@ -32,7 +33,7 @@ function createWriteCommit(operation: Operation, testHeader: string, additionalP
   }, additionalProtected);
 
   return new WriteRequest({
-    '@context': Context,
+    '@context': CONTEXT,
     '@type': 'WriteRequest',
     iss: sender,
     aud: hub,
@@ -53,10 +54,10 @@ function createQueryCommit(query: {[key: string]: any}): ObjectQueryRequest {
   const defaultQuery = Object.assign({
     interface: 'Collections',
     context: 'example.com',
-    type: 'Test',   
+    type: 'Test',
   }, query);
   return new ObjectQueryRequest({
-    '@context': Context,
+    '@context': CONTEXT,
     '@type': 'WriteRequest',
     iss: sender,
     aud: hub,
@@ -111,7 +112,7 @@ describe('CollectionsController', () => {
         return {knownRevisions: []};
       });
       const commitRequest = createWriteCommit(Operation.Create, id);
-      await controller.handleCreateRequest(commitRequest, await auth.apiAuthorize(commitRequest));
+      await controller.handleCreateRequest(commitRequest, await auth.getPermissionGrantsForRequest(commitRequest));
       expect(spy).toHaveBeenCalled();
     });
 
@@ -124,7 +125,7 @@ describe('CollectionsController', () => {
         const commitRequest = createWriteCommit(Operation.Create, id, {
           object_id: 'foobarbaz',
         });
-        await controller.handleCreateRequest(commitRequest, await auth.apiAuthorize(commitRequest));
+        await controller.handleCreateRequest(commitRequest, await auth.getPermissionGrantsForRequest(commitRequest));
       } catch (err) {
         if (!(err instanceof HubError)) {
           fail(err.message);
@@ -158,7 +159,7 @@ describe('CollectionsController', () => {
               expect(filter.type).toEqual('eq');
               countFound++;
               break;
-            case 'type': 
+            case 'type':
               expect(filter.value).toEqual('Test');
               expect(filter.type).toEqual('eq');
               countFound++;
@@ -173,7 +174,7 @@ describe('CollectionsController', () => {
           },
         };
       });
-      await controller.handleQueryRequest(query, await auth.apiAuthorize(query));
+      await controller.handleQueryRequest(query, await auth.getPermissionGrantsForRequest(query));
       expect(spy).toHaveBeenCalled();
     });
 
@@ -203,7 +204,7 @@ describe('CollectionsController', () => {
           },
         };
       });
-      await controller.handleQueryRequest(query, await auth.apiAuthorize(query));
+      await controller.handleQueryRequest(query, await auth.getPermissionGrantsForRequest(query));
       expect(spy).toHaveBeenCalled();
     });
 
@@ -221,7 +222,7 @@ describe('CollectionsController', () => {
           },
         };
       });
-      const response = await controller.handleQueryRequest(query, await auth.apiAuthorize(query));
+      const response = await controller.handleQueryRequest(query, await auth.getPermissionGrantsForRequest(query));
       expect(spy).toHaveBeenCalled();
       expect(response.skipToken).toEqual(`${id}-returned`);
     });
@@ -241,7 +242,7 @@ describe('CollectionsController', () => {
           knownRevisions: [ids[0]]
         };
       });
-      const response = await controller.handleDeleteRequest(request, await auth.apiAuthorize(request));
+      const response = await controller.handleDeleteRequest(request, await auth.getPermissionGrantsForRequest(request));
       expect(spy).toHaveBeenCalled();
       expect(deleteSpy).toHaveBeenCalled();
       expect(response.revisions).toEqual([ids[0]]);
@@ -254,7 +255,7 @@ describe('CollectionsController', () => {
       });
       const deleteSpy = spyOn(context.store, 'commit');
       try {
-        await controller.handleDeleteRequest(request, await auth.apiAuthorize(request));
+        await controller.handleDeleteRequest(request, await auth.getPermissionGrantsForRequest(request));
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
@@ -281,7 +282,7 @@ describe('CollectionsController', () => {
           knownRevisions: [ids[0]]
         };
       });
-      const response = await controller.handleUpdateRequest(request, await auth.apiAuthorize(request));
+      const response = await controller.handleUpdateRequest(request, await auth.getPermissionGrantsForRequest(request));
       expect(spy).toHaveBeenCalled();
       expect(updateSpy).toHaveBeenCalled();
       expect(response.revisions).toEqual([ids[0]]);
@@ -294,7 +295,7 @@ describe('CollectionsController', () => {
       });
       const deleteSpy = spyOn(context.store, 'commit');
       try {
-        await controller.handleUpdateRequest(request, await auth.apiAuthorize(request));
+        await controller.handleUpdateRequest(request, await auth.getPermissionGrantsForRequest(request));
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
