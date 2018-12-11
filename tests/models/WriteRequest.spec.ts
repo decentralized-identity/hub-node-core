@@ -1,15 +1,15 @@
 import WriteRequest from '../../lib/models/WriteRequest';
-import { Context } from './BaseRequest.spec';
 import HubError from '../../lib/models/HubError';
 import TestCommit from '../mocks/TestCommit';
 import SignedCommit from '../../lib/models/SignedCommit';
+import BaseRequest from '../../lib/models/BaseRequest';
 
 describe('WriteRequest', () => {
   describe('constructor', () => {
     it('should require a commit', () => {
       try {
         new WriteRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
@@ -27,7 +27,7 @@ describe('WriteRequest', () => {
     it('should require commit to be an object', () => {
       try {
         new WriteRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
@@ -46,7 +46,7 @@ describe('WriteRequest', () => {
     it('should convert from string to JSON', () => {
       const commit = TestCommit.create();
       const requestData = {
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -64,7 +64,7 @@ describe('WriteRequest', () => {
     it('should require commits to be signed commits', () => {
       const commit = TestCommit.create();
       const requestData = {
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',

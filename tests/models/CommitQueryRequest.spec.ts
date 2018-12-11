@@ -1,6 +1,6 @@
-import { Context } from './BaseRequest.spec';
 import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
 import HubError from '../../lib/models/HubError';
+import BaseRequest from '../../lib/models/BaseRequest';
 
 describe('CommitQueryRequest', () => {
   const sender = 'did:example:alice.id';
@@ -8,7 +8,7 @@ describe('CommitQueryRequest', () => {
   describe('constructor', () => {
     it('should construct with no additional parameters', () => {
       const request = new CommitQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'CommitQueryRequest',
         iss: sender,
         aud: hub,
@@ -46,7 +46,7 @@ describe('CommitQueryRequest', () => {
     it('should validate and copy `fields` if present', () => {
       arrayCopyAndStringRequirement((fields) => new CommitQueryRequest({
         fields,
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'CommitQueryRequest',
         iss: sender,
         aud: hub,
@@ -57,7 +57,7 @@ describe('CommitQueryRequest', () => {
   
     it('should create empty filter arrays if `query` exists', () => {
       const request = new CommitQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'CommitQueryRequest',
         iss: sender,
         aud: hub,
@@ -73,7 +73,7 @@ describe('CommitQueryRequest', () => {
 
     it('should validate and copy `object_id` if present', () => {
       arrayCopyAndStringRequirement((object_id) => new CommitQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'CommitQueryRequest',
         iss: sender,
         aud: hub,
@@ -87,7 +87,7 @@ describe('CommitQueryRequest', () => {
 
     it('should validate and copy `revision` if present', () => {
       arrayCopyAndStringRequirement((revision) => new CommitQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'CommitQueryRequest',
         iss: sender,
         aud: hub,
@@ -102,7 +102,7 @@ describe('CommitQueryRequest', () => {
     it('should copy `skip_token` if present', () => {
       const skip_token = Math.round(Math.random() * 255).toString(16);
        const request = new CommitQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'CommitQueryRequest',
         iss: sender,
         aud: hub,
@@ -117,7 +117,7 @@ describe('CommitQueryRequest', () => {
     it('should validate `skip_token` if present', () => {
       try {
         new CommitQueryRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'CommitQueryRequest',
           iss: sender,
           aud: hub,

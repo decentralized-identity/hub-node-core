@@ -1,12 +1,13 @@
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
-import { Context } from './BaseRequest.spec';
 import HubError from '../../lib/models/HubError';
+import BaseRequest from '../../lib/models/BaseRequest';
+import { QueryEqualsFilter } from '../../lib/interfaces/Store';
 
 describe('ObjectQueryRequest', () => {
   describe('constructor', () => {
     it('should construct an empty response', () => {
       const request = new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'ObjectQueryRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -25,7 +26,7 @@ describe('ObjectQueryRequest', () => {
 
     it('should construct an empty response from a string', () => {
       const json = {
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'ObjectQueryRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -68,7 +69,7 @@ describe('ObjectQueryRequest', () => {
     it('should validate objectIds types', () => {
       validateArray((array) => 
       new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'ObjectQueryRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -85,7 +86,7 @@ describe('ObjectQueryRequest', () => {
     it('should copy objectId filters', () => {
       const objectId = Math.round(Math.random() * 255).toString(16);
       const request = new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'ObjectQueryRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -107,7 +108,7 @@ describe('ObjectQueryRequest', () => {
     it('should validate objectIds types', () => {
       validateArray((array) => 
       new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'ObjectQueryRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -122,13 +123,13 @@ describe('ObjectQueryRequest', () => {
     });
 
     it('should copy filters', () => {
-      const filter = {
+      const filter: QueryEqualsFilter = {
         type: 'eq',
         field: 'title',
         value: Math.round(Math.random() * 255).toString(16),
       };
       const request = new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'ObjectQueryRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -150,7 +151,7 @@ describe('ObjectQueryRequest', () => {
     it('should ensure filters is an array', () => {
       try {
         new ObjectQueryRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'ObjectQueryRequest',
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
@@ -174,7 +175,7 @@ describe('ObjectQueryRequest', () => {
     it('should ensure filters objects are not missing properties', () => {
       try {
         new ObjectQueryRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'ObjectQueryRequest',
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
@@ -201,7 +202,7 @@ describe('ObjectQueryRequest', () => {
     it('should ensure filters objects are the right type', () => {
       try {
         new ObjectQueryRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'ObjectQueryRequest',
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
@@ -229,7 +230,7 @@ describe('ObjectQueryRequest', () => {
     it('should include a skip_token', () => {
       try {
         new ObjectQueryRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'ObjectQueryRequest',
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
@@ -250,7 +251,7 @@ describe('ObjectQueryRequest', () => {
       }
       const token = Math.round(Math.random() * 255).toString(16);
       const request = new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'ObjectQueryRequest',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -268,7 +269,7 @@ describe('ObjectQueryRequest', () => {
     it('should require a query', () => {
       try {
         new ObjectQueryRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'ObjectQueryRequest',
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
@@ -286,7 +287,7 @@ describe('ObjectQueryRequest', () => {
     it('should ensure query is the righ type', () => {
       try {
         new ObjectQueryRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'ObjectQueryRequest',
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
@@ -313,7 +314,7 @@ describe('ObjectQueryRequest', () => {
         delete missingQuery[property];
         try {
           new ObjectQueryRequest({
-            '@context': Context,
+            '@context': BaseRequest.context,
             '@type': 'ObjectQueryRequest',
             iss: 'did:example:alice.id',
             aud: 'did:example:hub.id',
@@ -330,7 +331,7 @@ describe('ObjectQueryRequest', () => {
         missingQuery[property] = true;
         try {
           new ObjectQueryRequest({
-            '@context': Context,
+            '@context': BaseRequest.context,
             '@type': 'ObjectQueryRequest',
             iss: 'did:example:alice.id',
             aud: 'did:example:hub.id',

@@ -1,7 +1,6 @@
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
 import WriteRequest from '../../lib/models/WriteRequest';
 import TestCommit from '../mocks/TestCommit';
-import { Context } from '../models/BaseRequest.spec';
 import PermissionGrant, { OWNER_PERMISSION, PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../../lib/models/PermissionGrant';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import Commit, { Operation } from '../../lib/models/Commit';
@@ -13,6 +12,7 @@ import HubError, { ErrorCode } from '../../lib/models/HubError';
 import TestContext from '../mocks/TestContext';
 import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
 import SignedCommit from '../../lib/models/SignedCommit';
+import TestRequest from '../mocks/TestRequest';
 
 describe('AuthorizationController', () => {
   let store: jasmine.Spy;
@@ -34,7 +34,7 @@ describe('AuthorizationController', () => {
         iss: did,
         aud: 'did:example:hub',
         sub: did,
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         commit: {
           protected: commit.getProtectedString(),
@@ -43,7 +43,7 @@ describe('AuthorizationController', () => {
         },
       });
       store.and.returnValue({results: [], pagination: {skip_token: null}});
-      const grants = await auth.apiAuthorize(request);
+      const grants = await auth.getPermissionGrantsForRequest(request);
       expect(grants.length > 0).toBeTruthy();
       expect(grants[0]).toEqual(OWNER_PERMISSION);
       
@@ -57,7 +57,7 @@ describe('AuthorizationController', () => {
         iss: sender,
         aud: 'did:example:hub',
         sub: owner,
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         commit: {
           protected: commit.getProtectedString(),
@@ -67,7 +67,7 @@ describe('AuthorizationController', () => {
       });
       store.and.returnValue({results: [], pagination: {skip_token: null}});
       try {
-        await auth.apiAuthorize(request);
+        await auth.getPermissionGrantsForRequest(request);
       } catch (err) {
         if (!(err instanceof HubError)) {
           fail(err.message);
@@ -166,7 +166,7 @@ describe('AuthorizationController', () => {
           iss: sender,
           aud: 'did:example:hub.id',
           sub: owner,
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           commit: {
             protected: base64url.encode(JSON.stringify({
@@ -192,7 +192,7 @@ describe('AuthorizationController', () => {
           type,
         }
         returnPermissions([permission]);
-        const returnedPermissions = await auth.apiAuthorize(request)
+        const returnedPermissions = await auth.getPermissionGrantsForRequest(request)
         expect(returnedPermissions.length > 0).toBeTruthy();
         expect(returnedPermissions[0]).toEqual(permission);
       }
@@ -208,7 +208,7 @@ describe('AuthorizationController', () => {
           iss: sender,
           aud: 'did:example:hub.id',
           sub: owner,
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'ObjectQueryRequest',
           query: {
             interface: 'Collections',
@@ -224,7 +224,7 @@ describe('AuthorizationController', () => {
           type,
         }
         returnPermissions([permission]);
-        const returnedPermissions = await auth.apiAuthorize(request)
+        const returnedPermissions = await auth.getPermissionGrantsForRequest(request)
         expect(returnedPermissions.length > 0).toBeTruthy();
         expect(returnedPermissions[0]).toEqual(permission);
       });
@@ -241,15 +241,15 @@ describe('AuthorizationController', () => {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
         const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-        const request = new BaseRequest({
+        const request = new TestRequest({
           iss: sender,
           aud: 'did:example:hub.id',
           sub: owner,
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': type,
         });
         try {
-          await auth.apiAuthorize(request);
+          await auth.getPermissionGrantsForRequest(request);
           fail('did not throw');
         } catch (err) {
           if (!(err instanceof HubError)) {
@@ -269,7 +269,7 @@ describe('AuthorizationController', () => {
             iss: sender,
             aud: 'did:example:hub.id',
             sub: owner,
-            '@context': Context,
+            '@context': BaseRequest.context,
             '@type': 'WriteRequest',
             commit: {
               protected: base64url.encode(JSON.stringify({
@@ -286,7 +286,7 @@ describe('AuthorizationController', () => {
               signature: 'bar'
             }
           });
-          await auth.apiAuthorize(request);
+          await auth.getPermissionGrantsForRequest(request);
           fail('did not throw');
         } catch (err) {
           if (!(err instanceof HubError)) {
@@ -320,7 +320,7 @@ describe('AuthorizationController', () => {
           iss: sender,
           aud: 'did:example:hub.id',
           sub: owner,
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           commit: {
             protected: base64url.encode(JSON.stringify({
@@ -338,7 +338,7 @@ describe('AuthorizationController', () => {
           }
         });
         try {
-          await auth.apiAuthorize(request);
+          await auth.getPermissionGrantsForRequest(request);
         } catch (err) {
           if (!(err instanceof HubError)) {
             fail(err.message);
@@ -388,7 +388,7 @@ describe('AuthorizationController', () => {
           iss: sender,
           aud: 'did:example:hub.id',
           sub: owner,
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           commit: {
             protected: base64url.encode(JSON.stringify({
@@ -406,7 +406,7 @@ describe('AuthorizationController', () => {
           }
         });
         try {
-          await auth.apiAuthorize(request);
+          await auth.getPermissionGrantsForRequest(request);
         } catch (err) {
           if (!(err instanceof HubError)) {
             fail(err.message);
@@ -432,7 +432,7 @@ describe('AuthorizationController', () => {
           iss: sender,
           aud: 'did:example:hub.id',
           sub: owner,
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           commit: {
             protected: base64url.encode(JSON.stringify({
@@ -450,7 +450,7 @@ describe('AuthorizationController', () => {
           }
         });
         try {
-          await auth.apiAuthorize(request);
+          await auth.getPermissionGrantsForRequest(request);
         } catch (err) {
           if (!(err instanceof HubError)) {
             fail(err.message);
@@ -459,16 +459,16 @@ describe('AuthorizationController', () => {
         }
       });
 
-      it('should reject apiAuthorize for CommitQueryrequests', async () => {
+      it('should reject getPermissionGrantsForRequest for CommitQueryrequests', async () => {
         const request = new CommitQueryRequest({
           iss: 'did:example:alice.id',
           aud: 'did:example:hub.id',
           sub: 'did:example:bob.id',
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'CommitQueryRequest',
         });
         try {
-          await auth.apiAuthorize(request)
+          await auth.getPermissionGrantsForRequest(request)
           fail('should throw')
         } catch (err) {
           if (!(err instanceof HubError)) {
@@ -542,17 +542,17 @@ describe('AuthorizationController', () => {
       });
     });
 
-  describe('authorizeCommitRequest', () => {
+  describe('getPermissionGrantsForCommitQuery', () => {
     it('should allow the owner', async () => {
       const request = new CommitQueryRequest({
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
         sub: 'did:example:alice.id',
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'CommitQueryRequest',
       });
       const commit = TestCommit.create();
-      const grant = await auth.authorizeCommitRequest(request, [commit]);
+      const grant = await auth.getPermissionGrantsForCommitQuery(request, [commit]);
       expect(grant.length).toEqual(1);
     });
 
@@ -628,14 +628,14 @@ describe('AuthorizationController', () => {
         iss: 'did:example:bob.id',
         aud: 'did:example:hub.id',
         sub: 'did:example:alice.id',
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'CommitQueryRequest',
         query: {
           rev: [commit.getHeaders().rev],
         },
       });
 
-      const grants = await auth.authorizeCommitRequest(commitRequest, [dataCommit]);
+      const grants = await auth.getPermissionGrantsForCommitQuery(commitRequest, [dataCommit]);
       expect(grants.length).toEqual(1);
     });
   });

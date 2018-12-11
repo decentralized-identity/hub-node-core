@@ -4,9 +4,9 @@ import TestController from '../mocks/TestController';
 import WriteRequest from '../../lib/models/WriteRequest';
 import { Operation } from '../../lib/models/Commit';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
-import BaseRequest from '../../lib/models/BaseRequest';
 import TestContext from '../mocks/TestContext';
 import TestAuthorization from '../mocks/TestAuthorization';
+import TestRequest from '../mocks/TestRequest';
 
 const context = 'https://schema.identity.foundation/0.1';
 
@@ -172,7 +172,7 @@ describe('BaseController', () => {
 
   it('should return errors for unknown types', async () => {
     try {
-      const expectedRequest = new BaseRequest({
+      const expectedRequest = new TestRequest({
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
         sub: 'did:example:alice.id',

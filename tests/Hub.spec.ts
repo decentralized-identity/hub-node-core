@@ -8,12 +8,12 @@ import {
          RsaCryptoSuite,
          PrivateKey,
         CryptoFactory} from '@decentralized-identity/did-auth-jose';
-import { Context } from './models/BaseRequest.spec';
 import { ErrorCode } from '../lib';
 import CommitQueryRequest from '../lib/models/CommitQueryRequest';
 import ObjectQueryRequest from '../lib/models/ObjectQueryRequest';
 import TestCommit from './mocks/TestCommit';
 import WriteRequest from '../lib/models/WriteRequest';
+import BaseRequest from '../lib/models/BaseRequest';
 
 describe('Hub', () => {
 
@@ -104,7 +104,7 @@ describe('Hub', () => {
         iss: hubId,
         aud: hubId,
         sub: 'did:example:alice.id',
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'unknown',
       };
 
@@ -178,7 +178,7 @@ describe('Hub', () => {
       iss: hubId,
       aud: hubId,
       sub: hubId,
-      '@context': Context,
+      '@context': BaseRequest.context,
       '@type': 'CommitQueryRequest',
       query: {
         object_id: ['foobar'],
@@ -202,7 +202,7 @@ describe('Hub', () => {
           iss: hubId,
           aud: hubId,
           sub: hubId,
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'ObjectQueryRequest',
           query: {
             interface: hubInterface,
@@ -236,7 +236,7 @@ describe('Hub', () => {
           iss: hubId,
           aud: hubId,
           sub: hubId,
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           commit: {
             protected: commit.getProtectedString(),
@@ -271,7 +271,7 @@ describe('Hub', () => {
         iss: hubId,
         aud: hubId,
         sub: hubId,
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         commit: {
           protected: commit.getProtectedString(),
@@ -304,7 +304,7 @@ describe('Hub', () => {
         iss: hubId,
         aud: hubId,
         sub: hubId,
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'ObjectQueryRequest',
         query: {
           interface: 'Unknown',
@@ -336,7 +336,7 @@ describe('Hub', () => {
         iss: hubId,
         aud: hubId,
         sub: hubId,
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         commit: {
           protected: commit.getProtectedString(),

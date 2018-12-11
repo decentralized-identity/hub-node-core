@@ -1,20 +1,20 @@
 import TestContext from '../mocks/TestContext';
 import TestAuthorization from '../mocks/TestAuthorization';
-import CommitController from '../../lib/controllers/CommitController';
+import CommitQueryController from '../../lib/controllers/CommitQueryController';
 import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
 import { HubError, ErrorCode } from '../../lib';
-import { Context } from '../models/BaseRequest.spec';
 import * as store from '../../lib/interfaces/Store';
 import TestCommit from '../mocks/TestCommit';
+import BaseRequest from '../../lib/models/BaseRequest';
 
 function getHex(): string {
   return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
 }
 
-describe('CommitController', () => {
+describe('CommitQueryController', () => {
   const testContext = new TestContext();
   const testAuthorization = new TestAuthorization();
-  const controller = new CommitController(testContext, testAuthorization);
+  const controller = new CommitQueryController(testContext, testAuthorization);
   let iss: string;
   let aud: string;
   let sub: string;
@@ -28,7 +28,7 @@ describe('CommitController', () => {
       iss,
       aud,
       sub,
-      '@context': Context,
+      '@context': BaseRequest.context,
       '@type': 'CommitQueryRequest',
     };
   });
@@ -46,7 +46,7 @@ describe('CommitController', () => {
 
       try {
         await controller.handle(new CommitQueryRequest(request));
-        fail('Please remove test CommitController handle should fail if fields is included (CommitController.spec:40)');
+        fail('Please remove test CommitQueryController handle should fail if fields is included (CommitQueryController.spec:40)');
       } catch (err) {
         if (!(err instanceof HubError)) {
           fail(err.message);

@@ -1,5 +1,4 @@
 import WriteRequest from '../../lib/models/WriteRequest';
-import { Context } from '../models/BaseRequest.spec';
 import TestCommit from '../mocks/TestCommit';
 import TestContext from '../mocks/TestContext';
 import PermissionsController from '../../lib/controllers/PermissionsController';
@@ -13,6 +12,7 @@ import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import { QueryEqualsFilter } from '../../lib/interfaces/Store';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
+import BaseRequest from '../../lib/models/BaseRequest';
 
 function getHex(): string {
   return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -31,7 +31,7 @@ describe('PermissionsController', () => {
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -65,7 +65,7 @@ describe('PermissionsController', () => {
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -115,7 +115,7 @@ describe('PermissionsController', () => {
         type: 'foo'
       });
       let writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -167,7 +167,7 @@ describe('PermissionsController', () => {
           commit_strategy: 'basic',
         }, permission);
         let writeRequest = new WriteRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           iss: sender,
           aud: hub,
@@ -199,7 +199,7 @@ describe('PermissionsController', () => {
           commit_strategy: 'basic',
         }, permission);
         writeRequest = new WriteRequest({
-          '@context': Context,
+          '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           iss: sender,
           aud: hub,
@@ -245,7 +245,7 @@ describe('PermissionsController', () => {
         created_by: 'bar'
       } as PermissionGrant);
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -288,7 +288,7 @@ describe('PermissionsController', () => {
         type: 'foo',
       } as PermissionGrant);
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -331,7 +331,7 @@ describe('PermissionsController', () => {
         type: 'foo',
       } as PermissionGrant);
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -388,7 +388,7 @@ describe('PermissionsController', () => {
         type: 'foo',
       } as PermissionGrant);
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -427,7 +427,7 @@ describe('PermissionsController', () => {
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const queryRequest = new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -456,7 +456,7 @@ describe('PermissionsController', () => {
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const queryRequest = new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -485,7 +485,7 @@ describe('PermissionsController', () => {
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const queryRequest = new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -539,7 +539,7 @@ describe('PermissionsController', () => {
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const queryRequest = new ObjectQueryRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,

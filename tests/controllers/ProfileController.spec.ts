@@ -3,7 +3,6 @@ import TestContext from '../mocks/TestContext';
 import TestAuthorization from '../mocks/TestAuthorization';
 import ProfileController, { PROFILE_TYPE, PROFILE_CONTEXT } from '../../lib/controllers/ProfileController';
 import WriteRequest from '../../lib/models/WriteRequest';
-import { Context } from '../models/BaseRequest.spec';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import { Store } from '../../lib/interfaces/Store';
 import StoreUtils from '../../lib/utilities/StoreUtils';
@@ -12,6 +11,7 @@ import { Operation } from '../../lib/models/Commit';
 import PermissionGrant from '../../lib/models/PermissionGrant';
 import WriteResponse from '../../lib/models/WriteResponse';
 import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
+import BaseRequest from '../../lib/models/BaseRequest';
 
 function getHex(): string {
   return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -38,7 +38,7 @@ describe('ProfileController', () => {
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -69,7 +69,7 @@ describe('ProfileController', () => {
 
     it('should throw for incorrect type', async () => {
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -102,7 +102,7 @@ describe('ProfileController', () => {
   describe('getProfiles', () => {
     it('should form the correct store query filters', async () => {
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -177,7 +177,7 @@ describe('ProfileController', () => {
           skip_token: null,
         }});
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -220,7 +220,7 @@ describe('ProfileController', () => {
         title: 'Test'
       });
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -260,7 +260,7 @@ describe('ProfileController', () => {
         title: 'Test'
       });
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -318,7 +318,7 @@ describe('ProfileController', () => {
         title: 'Test'
       });
       const writeRequest = new WriteRequest({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
         aud: hub,
@@ -350,7 +350,7 @@ describe('ProfileController', () => {
       iss: sender,
       aud: hub,
       sub: owner,
-      '@context': Context,
+      '@context': BaseRequest.context,
       '@type': 'ObjectQueryRequest',
       query: {
         interface: 'Profile',

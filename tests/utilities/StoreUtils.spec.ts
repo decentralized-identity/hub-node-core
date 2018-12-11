@@ -1,13 +1,13 @@
 import TestStore from '../mocks/TestStore';
 import TestCommit from '../mocks/TestCommit';
 import WriteRequest from '../../lib/models/WriteRequest';
-import { Context } from '../models/BaseRequest.spec';
 import * as store from '../../lib/interfaces/Store';
 import StoreUtils from '../../lib/utilities/StoreUtils';
 import { Operation } from '../../lib/models/Commit';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import PermissionGrant from '../../lib/models/PermissionGrant';
+import BaseRequest from '../../lib/models/BaseRequest';
 
 function getHex(): string {
   return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -35,7 +35,7 @@ describe('StoreUtils', () => {
       iss: sender,
       aud: hub,
       sub: owner,
-      '@context': Context,
+      '@context': BaseRequest.context,
       '@type': 'WriteRequest',
       commit: {
         protected: commit.getProtectedString(),

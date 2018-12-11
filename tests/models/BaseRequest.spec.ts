@@ -1,12 +1,11 @@
-import BaseRequest from '../../lib/models/BaseRequest';
-
-export const Context = 'https://schema.identity.foundation/0.1';
+import BaseRequest from "../../lib/models/BaseRequest";
+import TestRequest from "../mocks/TestRequest";
 
 describe('BaseRequest', () => {
   describe('constructor', () => {
     function requestShouldError(json: string | any) {
       try {
-        new BaseRequest(json);
+        new TestRequest(json);
         fail('BaseRequest was created without error.');
       } catch (err) {
         expect(err).toBeDefined();
@@ -15,7 +14,7 @@ describe('BaseRequest', () => {
 
     it('should require an issuer field', () => {
       requestShouldError({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'TestType',
         aud: 'did:example:hub.id',
         sub: 'did:example:alice.id',
@@ -24,7 +23,7 @@ describe('BaseRequest', () => {
 
     it('should require an Audience field', () => {
       requestShouldError({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'TestType',
         iss: 'did:example:alice.id',
         sub: 'did:example:alice.id',
@@ -33,7 +32,7 @@ describe('BaseRequest', () => {
 
     it('should require a subject field', () => {
       requestShouldError({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': 'TestType',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -51,7 +50,7 @@ describe('BaseRequest', () => {
 
     it('should require @context field to match context url', () => {
       requestShouldError({
-        '@context': 'example.com/NotTheContextYouAreLookingFor',
+        '@context': 'example.com/NotTheBaseRequest.contextYouAreLookingFor',
         '@type': 'TestType',
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -61,7 +60,7 @@ describe('BaseRequest', () => {
 
     it('should require a @type field', () => {
       requestShouldError({
-        '@context': Context,
+        '@context': BaseRequest.context,
         iss: 'did:example:alice.id',
         aud: 'did:example:bob.id',
       });
@@ -69,7 +68,7 @@ describe('BaseRequest', () => {
 
     it('should require @type field to be a string', () => {
       requestShouldError({
-        '@context': Context,
+        '@context': BaseRequest.context,
         '@type': true,
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
@@ -80,8 +79,8 @@ describe('BaseRequest', () => {
     it('should create valid requests', () => {
       const sender = 'did:example:alice.id';
       const hub = 'did:example:hub.id';
-      const request = new BaseRequest({
-        '@context': Context,
+      const request = new TestRequest({
+        '@context': BaseRequest.context,
         '@type': 'TestType',
         iss: sender,
         aud: hub,
@@ -96,8 +95,8 @@ describe('BaseRequest', () => {
   describe('getType', () => {
     it('should return the type of the request', () => {
       const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-      const request = new BaseRequest({
-        '@context': Context,
+      const request = new TestRequest({
+        '@context': BaseRequest.context,
         '@type': type,
         iss: 'did:example:alice.id',
         aud: 'did:example:hub.id',
