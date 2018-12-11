@@ -1,4 +1,4 @@
-import HubError from './HubError';
+import HubError, { ErrorCode } from './HubError';
 import BaseRequest from './BaseRequest';
 
 /**
@@ -22,6 +22,14 @@ export default class CommitQueryRequest extends BaseRequest {
       request = JSON.parse(json);
     }
     if ('query' in request) {
+      // object_id and revisisons are mutually exclusive
+      if ('object_id' in request.query && 'revision' in request.query) {
+        throw new HubError({
+          errorCode: ErrorCode.NotImplemented,
+          property: 'query.object_id, query.revision',
+          developerMessage: 'object_id and revision are mutually exclusive',
+        });
+      }
       // check object_id
       if ('object_id' in request.query) {
         const objectIds = request.query.object_id;
