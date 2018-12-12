@@ -24,7 +24,6 @@ describe('PermissionsController', () => {
   const controller = new PermissionsController(context, auth);
 
   describe('validateSchema', () => {
-    const handlers = [controller.handleCreateRequest, controller.handleDeleteRequest, controller.handleUpdateRequest];
 
     it('should ensure that permissions are using the correct context', async () => {
       const owner = `did:example:${getHex()}`;
@@ -47,17 +46,15 @@ describe('PermissionsController', () => {
           signature: 'bar'
         },
       });
-      for (let i = 0; i < handlers.length; i++) {
-        try {
-          await handlers[i](writeRequest, []);
-          fail('did not throw');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+      try {
+        await controller.handleWriteCommitRequest(writeRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
         }
-      };
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+      }
     });
 
     it('should ensure that permissions are using the correct type', async () => {
@@ -81,17 +78,15 @@ describe('PermissionsController', () => {
           signature: 'bar'
         },
       });
-      for (let i = 0; i < handlers.length; i++) {
-        try {
-          await handlers[i](writeRequest, []);
-          fail('did not throw');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+      try {
+        await controller.handleWriteCommitRequest(writeRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
         }
-      };
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+      }
     });
   });
 
@@ -101,20 +96,22 @@ describe('PermissionsController', () => {
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
 
-      let commit = TestCommit.create({
+      const commit = TestCommit.create(
+      {
         sub: owner,
         kid: `${owner}#key-1`,
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
         commit_strategy: 'totally-not-basic',
-      }, {
+      },
+      {
         owner,
         grantee: sender,
         allow: 'C----',
         context: 'example.com',
-        type: 'foo'
+        type: 'foo',
       });
-      let writeRequest = new WriteRequest({
+      const writeRequest = new WriteRequest({
         '@context': BaseRequest.context,
         '@type': 'WriteRequest',
         iss: sender,
@@ -123,21 +120,19 @@ describe('PermissionsController', () => {
         commit: {
           protected: commit.getProtectedString(),
           payload: commit.getPayloadString(),
-          signature: 'baz'
+          signature: 'baz',
         },
       });
-      await [controller.handleCreateRequest, controller.handleUpdateRequest].forEach(async (handler) => {
-        try {
-          await handler(writeRequest, []);
-          fail('did not throw');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
-          expect(err.property).toEqual(`commit.protected.commit_strategy`);
+      try {
+        await controller.handleWriteCommitRequest(writeRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
         }
-      })
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.property).toEqual('commit.protected.commit_strategy');
+      }
     });
   })
 
@@ -179,7 +174,7 @@ describe('PermissionsController', () => {
           },
         });
         try {
-          await controller.handleCreateRequest(writeRequest, []);
+          await controller.handleWriteCommitRequest(writeRequest, []);
           fail('did not throw');
         } catch (err) {
           if (!(err instanceof HubError)) {
@@ -211,7 +206,7 @@ describe('PermissionsController', () => {
           },
         });
         try {
-          await controller.handleCreateRequest(writeRequest, []);
+          await controller.handleWriteCommitRequest(writeRequest, []);
           fail('did not throw');
         } catch (err) {
           if (!(err instanceof HubError)) {
@@ -257,7 +252,7 @@ describe('PermissionsController', () => {
         },
       });
       try {
-        await controller.handleCreateRequest(writeRequest, []);
+        await controller.handleWriteCommitRequest(writeRequest, []);
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
@@ -269,7 +264,7 @@ describe('PermissionsController', () => {
     });
   });
 
-  describe('handleCreateRequest', () => {
+  describe('handleWriteCommitRequest', () => {
     it('should create an object if valid', async () => {
       const owner = `did:example:${getHex()}`;
       const hub = 'did:example:hub';
@@ -305,7 +300,7 @@ describe('PermissionsController', () => {
         expect(store).toEqual(context.store);
         return new WriteResponse([response]);
       });
-      const result = await controller.handleCreateRequest(writeRequest, []);
+      const result = await controller.handleWriteCommitRequest(writeRequest, []);
       expect(result.revisions.length).toEqual(1);
       expect(result.revisions[0]).toEqual(response);
       expect(spy).toHaveBeenCalled();
@@ -347,7 +342,7 @@ describe('PermissionsController', () => {
         return false;
       });
       try {
-        await controller.handleUpdateRequest(writeRequest, []);
+        await controller.handleWriteCommitRequest(writeRequest, []);
         fail('should have thrown');
       } catch (err) {
         if (!(err instanceof HubError)) {
@@ -357,7 +352,7 @@ describe('PermissionsController', () => {
         expect(spy).toHaveBeenCalled();
       }
       try {
-        await controller.handleDeleteRequest(writeRequest, []);
+        await controller.handleWriteCommitRequest(writeRequest, []);
         fail('should have thrown');
       } catch (err) {
         if (!(err instanceof HubError)) {
@@ -369,7 +364,7 @@ describe('PermissionsController', () => {
     });
   });
 
-  describe('handleUpdateRequest and handleDeleteRequest', () => {
+  describe('handleWriteCommitRequest and handleWriteCommitRequest', () => {
     it('should call store', async () => {
       const owner = `did:example:${getHex()}`;
       const hub = 'did:example:hub';
@@ -409,11 +404,11 @@ describe('PermissionsController', () => {
         expect(request).toEqual(writeRequest);
         return new WriteResponse([response]);
       });
-      let result = await controller.handleUpdateRequest(writeRequest, []);
+      let result = await controller.handleWriteCommitRequest(writeRequest, []);
       expect(result.revisions[0]).toEqual(response);
       expect(spy).toHaveBeenCalled();
       expect(spyWrite).toHaveBeenCalled();
-      result = await controller.handleDeleteRequest(writeRequest, []);
+      result = await controller.handleWriteCommitRequest(writeRequest, []);
       expect(result.revisions[0]).toEqual(response);
       expect(spy).toHaveBeenCalled();
       expect(spyWrite).toHaveBeenCalled();

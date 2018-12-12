@@ -104,7 +104,7 @@ describe('CollectionsController', () => {
     spyOn(AuthorizationController, 'pruneResults').and.callFake((results: ObjectContainer[], _:PermissionGrant[]) => { return results; });
   });
 
-  describe('handleCreateRequest', () => {
+  describe('handleWriteCommitRequest', () => {
     it('should call the storage layer', async () => {
       const id = correlationId();
       const spy = spyOn(context.store, 'commit').and.callFake((request: WriteRequest) => {
@@ -112,11 +112,11 @@ describe('CollectionsController', () => {
         return {knownRevisions: []};
       });
       const commitRequest = createWriteCommit(Operation.Create, id);
-      await controller.handleCreateRequest(commitRequest, await auth.getPermissionGrantsForRequest(commitRequest));
+      await controller.handleWriteCommitRequest(commitRequest, await auth.getPermissionGrantsForRequest(commitRequest));
       expect(spy).toHaveBeenCalled();
     });
 
-    it('should throw if object_id is included in the protected headers', async () => {
+    it('should throw if object_id is included in the protected headers for create', async () => {
       const id = correlationId();
       const spy = spyOn(context.store, 'commit').and.callFake((_: WriteRequest) => {
         fail('storage was called');
@@ -125,7 +125,7 @@ describe('CollectionsController', () => {
         const commitRequest = createWriteCommit(Operation.Create, id, {
           object_id: 'foobarbaz',
         });
-        await controller.handleCreateRequest(commitRequest, await auth.getPermissionGrantsForRequest(commitRequest));
+        await controller.handleWriteCommitRequest(commitRequest, await auth.getPermissionGrantsForRequest(commitRequest));
       } catch (err) {
         if (!(err instanceof HubError)) {
           fail(err.message);
@@ -133,6 +133,82 @@ describe('CollectionsController', () => {
         expect(err.property).toEqual('commit.protected.object_id');
       }
       expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should delete existing objects', async () => {
+      const ids = [correlationId()];
+      const spy = createSpyThatReturnsObjectsFor(context, ids);
+      const request = createWriteCommit(Operation.Delete, '', {
+        object_id: ids[0],
+      });
+      const deleteSpy = spyOn(context.store, 'commit').and.callFake((commit: store.CommitRequest) => {
+        expect(commit.owner).toEqual(sender);
+        expect(commit.commit.getProtectedHeaders().object_id).toEqual(ids[0]);
+        return {
+          knownRevisions: [ids[0]]
+        };
+      });
+      const response = await controller.handleWriteCommitRequest(request, await auth.getPermissionGrantsForRequest(request));
+      expect(spy).toHaveBeenCalled();
+      expect(deleteSpy).toHaveBeenCalled();
+      expect(response.revisions).toEqual([ids[0]]);
+    });
+    it('should fail to delete if the object does not exist', async () => {
+      const id = correlationId();
+      const spy = createSpyThatReturnsObjectsFor(context, []);
+      const request = createWriteCommit(Operation.Delete, '', {
+        object_id: id,
+      });
+      const deleteSpy = spyOn(context.store, 'commit');
+      try {
+        await controller.handleWriteCommitRequest(request, await auth.getPermissionGrantsForRequest(request));
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotFound);
+      }
+      expect(spy).toHaveBeenCalled();
+      expect(deleteSpy).not.toHaveBeenCalled();
+    });
+
+    it('should update existing objects', async () => {
+      const ids = [correlationId()];
+      const spy = createSpyThatReturnsObjectsFor(context, ids);
+      const request = createWriteCommit(Operation.Update, '', {
+        object_id: ids[0],
+      });
+      const updateSpy = spyOn(context.store, 'commit').and.callFake((commit: store.CommitRequest) => {
+        expect(commit.owner).toEqual(sender);
+        expect(commit.commit.getProtectedHeaders().object_id).toEqual(ids[0]);
+        return {
+          knownRevisions: [ids[0]]
+        };
+      });
+      const response = await controller.handleWriteCommitRequest(request, await auth.getPermissionGrantsForRequest(request));
+      expect(spy).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalled();
+      expect(response.revisions).toEqual([ids[0]]);
+    });
+    it('should fail to update if the object does not exist', async () => {
+      const id = correlationId();
+      const spy = createSpyThatReturnsObjectsFor(context, []);
+      const request = createWriteCommit(Operation.Update, '', {
+        object_id: id,
+      });
+      const deleteSpy = spyOn(context.store, 'commit');
+      try {
+        await controller.handleWriteCommitRequest(request, await auth.getPermissionGrantsForRequest(request));
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotFound);
+      }
+      expect(spy).toHaveBeenCalled();
+      expect(deleteSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -225,86 +301,6 @@ describe('CollectionsController', () => {
       const response = await controller.handleQueryRequest(query, await auth.getPermissionGrantsForRequest(query));
       expect(spy).toHaveBeenCalled();
       expect(response.skipToken).toEqual(`${id}-returned`);
-    });
-  });
-
-  describe('handleDeleteRequest', () => {
-    it('should delete existing objects', async () => {
-      const ids = [correlationId()];
-      const spy = createSpyThatReturnsObjectsFor(context, ids);
-      const request = createWriteCommit(Operation.Delete, '', {
-        object_id: ids[0],
-      });
-      const deleteSpy = spyOn(context.store, 'commit').and.callFake((commit: store.CommitRequest) => {
-        expect(commit.owner).toEqual(sender);
-        expect(commit.commit.getProtectedHeaders().object_id).toEqual(ids[0]);
-        return {
-          knownRevisions: [ids[0]]
-        };
-      });
-      const response = await controller.handleDeleteRequest(request, await auth.getPermissionGrantsForRequest(request));
-      expect(spy).toHaveBeenCalled();
-      expect(deleteSpy).toHaveBeenCalled();
-      expect(response.revisions).toEqual([ids[0]]);
-    });
-    it('should fail if the object does not exist', async () => {
-      const id = correlationId();
-      const spy = createSpyThatReturnsObjectsFor(context, []);
-      const request = createWriteCommit(Operation.Delete, '', {
-        object_id: id,
-      });
-      const deleteSpy = spyOn(context.store, 'commit');
-      try {
-        await controller.handleDeleteRequest(request, await auth.getPermissionGrantsForRequest(request));
-        fail('did not throw');
-      } catch (err) {
-        if (!(err instanceof HubError)) {
-          fail(err.message);
-        }
-        expect(err.errorCode).toEqual(ErrorCode.NotFound);
-      }
-      expect(spy).toHaveBeenCalled();
-      expect(deleteSpy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('handleUpdateRequest', () => {
-    it('should update existing objects', async () => {
-      const ids = [correlationId()];
-      const spy = createSpyThatReturnsObjectsFor(context, ids);
-      const request = createWriteCommit(Operation.Update, '', {
-        object_id: ids[0],
-      });
-      const updateSpy = spyOn(context.store, 'commit').and.callFake((commit: store.CommitRequest) => {
-        expect(commit.owner).toEqual(sender);
-        expect(commit.commit.getProtectedHeaders().object_id).toEqual(ids[0]);
-        return {
-          knownRevisions: [ids[0]]
-        };
-      });
-      const response = await controller.handleUpdateRequest(request, await auth.getPermissionGrantsForRequest(request));
-      expect(spy).toHaveBeenCalled();
-      expect(updateSpy).toHaveBeenCalled();
-      expect(response.revisions).toEqual([ids[0]]);
-    });
-    it('should fail if the object does not exist', async () => {
-      const id = correlationId();
-      const spy = createSpyThatReturnsObjectsFor(context, []);
-      const request = createWriteCommit(Operation.Update, '', {
-        object_id: id,
-      });
-      const deleteSpy = spyOn(context.store, 'commit');
-      try {
-        await controller.handleUpdateRequest(request, await auth.getPermissionGrantsForRequest(request));
-        fail('did not throw');
-      } catch (err) {
-        if (!(err instanceof HubError)) {
-          fail(err.message);
-        }
-        expect(err.errorCode).toEqual(ErrorCode.NotFound);
-      }
-      expect(spy).toHaveBeenCalled();
-      expect(deleteSpy).not.toHaveBeenCalled();
     });
   });
 });

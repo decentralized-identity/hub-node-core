@@ -1,7 +1,7 @@
 import TestCommit from '../mocks/TestCommit';
 import TestContext from '../mocks/TestContext';
 import TestAuthorization from '../mocks/TestAuthorization';
-import ProfileController, { PROFILE_TYPE, PROFILE_CONTEXT } from '../../lib/controllers/ProfileController';
+import ProfileController from '../../lib/controllers/ProfileController';
 import WriteRequest from '../../lib/models/WriteRequest';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
 import { Store } from '../../lib/interfaces/Store';
@@ -21,6 +21,8 @@ describe('ProfileController', () => {
   const context = new TestContext();
   const auth = new TestAuthorization();
   const controller = new ProfileController(context, auth);
+  const profileContext = BaseRequest.context;
+  const profileType = getHex();
   let owner: string;
   let hub: string;
   let sender: string;
@@ -29,74 +31,6 @@ describe('ProfileController', () => {
     owner = `did:example:${getHex()}`;
     hub = 'did:example:hub';
     sender = `${owner}-not`;
-  });
-
-  describe('validateSchema', () => {
-    const handlers = [controller.handleCreateRequest, controller.handleUpdateRequest, controller.handleDeleteRequest];
-    it('should throw for incorrect context', async () => {
-      const owner = `did:example:${getHex()}`;
-      const hub = 'did:example:hub';
-      const sender = `${owner}-not`;
-      const writeRequest = new WriteRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        iss: sender,
-        aud: hub,
-        sub: owner,
-        commit: {
-          protected: TestCommit.create({
-            sub: owner,
-            kid: `${owner}#key-1`,
-            type: PROFILE_TYPE,
-            commit_strategy: 'basic',
-          }).getProtectedString(),
-          payload: 'foo',
-          signature: 'bar'
-        },
-      });
-      await handlers.forEach(async (handle) => {
-        try {
-          await handle(writeRequest, []);
-          fail('did not throw');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
-        }
-      })
-    });
-
-    it('should throw for incorrect type', async () => {
-      const writeRequest = new WriteRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        iss: sender,
-        aud: hub,
-        sub: owner,
-        commit: {
-          protected: TestCommit.create({
-            sub: owner,
-            kid: `${owner}#key-1`,
-            context: PROFILE_CONTEXT,
-            commit_strategy: 'basic',
-          }).getProtectedString(),
-          payload: 'foo',
-          signature: 'bar'
-        },
-      });
-      await handlers.forEach(async (handle) => {
-        try {
-          await handle(writeRequest, []);
-          fail('did not throw');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
-        }
-      })
-    });
   });
 
   describe('getProfiles', () => {
@@ -111,8 +45,8 @@ describe('ProfileController', () => {
           protected: TestCommit.create({
             sub: owner,
             kid: `${owner}#key-1`,
-            context: PROFILE_CONTEXT,
-            type: PROFILE_TYPE,
+            context: profileContext,
+            type: profileType,
             commit_strategy: 'basic',
           }).getProtectedString(),
           payload: 'foo',
@@ -133,12 +67,12 @@ describe('ProfileController', () => {
               break;
             case 'context':
               expect(filter.type).toEqual('eq');
-              expect(filter.value).toEqual(PROFILE_CONTEXT);
+              expect(filter.value).toEqual(profileContext);
               countFound++;
               break;
             case 'type':
               expect(filter.type).toEqual('eq');
-              expect(filter.value).toEqual(PROFILE_TYPE);
+              expect(filter.value).toEqual(profileType);
               countFound++;
               break;
             default:
@@ -154,18 +88,18 @@ describe('ProfileController', () => {
         };
       });
       spyOn(StoreUtils, 'writeCommit');
-      await controller.handleCreateRequest(writeRequest, []);
+      await controller.handleWriteCommitRequest(writeRequest, []);
       expect(spy).toHaveBeenCalled();
     });
   });
 
-  describe('handleCreateRequest', () => {
+  describe('handleWriteCommitRequest', () => {
     it('should throw if a profile already exists', async () => {
       const spy = spyOn(context.store, 'queryObjects').and.returnValue({
         results: [{
           interface: 'Profile',
-          context: PROFILE_CONTEXT,
-          type: PROFILE_TYPE,
+          context: profileContext,
+          type: profileType,
           id: getHex(),
           created_by: 'did:example:alice.id',
           created_at: new Date(Date.now()).toISOString(),
@@ -186,8 +120,8 @@ describe('ProfileController', () => {
           protected: TestCommit.create({
             sub: owner,
             kid: `${owner}#key-1`,
-            context: PROFILE_CONTEXT,
-            type: PROFILE_TYPE,
+            context: profileContext,
+            type: profileType,
             commit_strategy: 'basic',
             operation: Operation.Create
           }).getProtectedString(),
@@ -196,7 +130,7 @@ describe('ProfileController', () => {
         },
       });
       try {
-        await controller.handleCreateRequest(writeRequest, []);
+        await controller.handleWriteCommitRequest(writeRequest, []);
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
@@ -212,8 +146,8 @@ describe('ProfileController', () => {
       const commit = TestCommit.create({
         sub: owner,
         kid: `${owner}#key-1`,
-        context: PROFILE_CONTEXT,
-        type: PROFILE_TYPE,
+        context: profileContext,
+        type: profileType,
         commit_strategy: 'basic',
         operation: Operation.Create
       }, {
@@ -241,18 +175,18 @@ describe('ProfileController', () => {
         expect(store).toEqual(context.store);
         expect(request).toEqual(writeRequest);
       });
-      await controller.handleCreateRequest(writeRequest, []);
+      await controller.handleWriteCommitRequest(writeRequest, []);
       expect(spy).toHaveBeenCalled();
     });
   });
 
-  describe('handleUpdateRequest and handleDeleteRequest', () => {
+  describe('handleWriteCommitRequest and handleWriteCommitRequest', () => {
     it('should fail if the profile does not exist', async () => {
       const commit = TestCommit.create({
         sub: owner,
         kid: `${owner}#key-1`,
-        context: PROFILE_CONTEXT,
-        type: PROFILE_TYPE,
+        context: profileContext,
+        type: profileType,
         commit_strategy: 'basic',
         operation: Operation.Update,
         object_id: getHex(),
@@ -274,8 +208,8 @@ describe('ProfileController', () => {
       const grant: PermissionGrant = {
         owner,
         grantee: sender,
-        context: PROFILE_CONTEXT,
-        type: PROFILE_TYPE,
+        context: profileContext,
+        type: profileType,
         allow: '--U--'
       };
       const spy = spyOn(StoreUtils, 'objectExists').and.callFake((request: WriteRequest, store: Store, grants: PermissionGrant[]) => {
@@ -285,7 +219,7 @@ describe('ProfileController', () => {
         return false;
       });
       try {
-        await controller.handleUpdateRequest(writeRequest, [grant]);
+        await controller.handleWriteCommitRequest(writeRequest, [grant]);
       } catch (err) {
         if (!(err instanceof HubError)) {
           fail(err.message);
@@ -294,7 +228,7 @@ describe('ProfileController', () => {
       }
 
       try {
-        await controller.handleDeleteRequest(writeRequest, [grant]);
+        await controller.handleWriteCommitRequest(writeRequest, [grant]);
       } catch (err) {
         if (!(err instanceof HubError)) {
           fail(err.message);
@@ -309,8 +243,8 @@ describe('ProfileController', () => {
       const commit = TestCommit.create({
         sub: owner,
         kid: `${owner}#key-1`,
-        context: PROFILE_CONTEXT,
-        type: PROFILE_TYPE,
+        context: profileContext,
+        type: profileType,
         commit_strategy: 'basic',
         operation: Operation.Update,
         object_id: getHex(),
@@ -336,10 +270,10 @@ describe('ProfileController', () => {
       });
       spyOn(StoreUtils, 'objectExists').and.returnValue(true);
 
-      let result = await controller.handleUpdateRequest(writeRequest, []);
+      let result = await controller.handleWriteCommitRequest(writeRequest, []);
       expect(result.revisions[0]).toEqual(commit.getHeaders().object_id);
 
-      result = await controller.handleDeleteRequest(writeRequest, []);
+      result = await controller.handleWriteCommitRequest(writeRequest, []);
       expect(result.revisions[0]).toEqual(commit.getHeaders().object_id);
       expect(spy).toHaveBeenCalled();
     });
@@ -354,8 +288,8 @@ describe('ProfileController', () => {
       '@type': 'ObjectQueryRequest',
       query: {
         interface: 'Profile',
-        context: PROFILE_CONTEXT,
-        type: PROFILE_TYPE,
+        context: profileContext,
+        type: profileType,
       }
     });
     it('should return empty if no profile exists', async () => {
@@ -375,8 +309,8 @@ describe('ProfileController', () => {
       for(let i = 0; i < count; i++) {
         profiles.push({
         interface: 'Profile',
-        context: PROFILE_CONTEXT,
-        type: PROFILE_TYPE,
+        context: profileContext,
+        type: profileType,
         id: getHex(),
         created_by: owner,
         created_at: new Date(Date.now()).toISOString(),
