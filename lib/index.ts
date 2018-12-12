@@ -11,6 +11,7 @@ import * as Store from './interfaces/Store';
 import SignedCommit from './models/SignedCommit';
 import Commit from './models/Commit';
 import HubError, { ErrorCode } from './models/HubError';
+import HttpResolver from './plugins/HttpResolver';
 
 // Utilities
 import CommitDeserializer from './utilities/CommitDeserializer';
@@ -24,4 +25,5 @@ export {
   ObjectContainer,
   SignedCommit,
   Store,
+  HttpResolver,
 };
