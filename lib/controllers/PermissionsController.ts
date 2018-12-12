@@ -78,7 +78,8 @@ export default class PermissionsController extends BaseController {
     ['owner', 'grantee', 'allow', 'context', 'type'].forEach((property) => {
       if (!(permission as any)[property]) {
         throw HubError.missingParameter(`commit.payload.${property}`);
-      } if (typeof (permission as any)[property] !== 'string') {
+      }
+      if (typeof (permission as any)[property] !== 'string') {
         throw HubError.incorrectParameter(`commit.payload.${property}`);
       }
     });

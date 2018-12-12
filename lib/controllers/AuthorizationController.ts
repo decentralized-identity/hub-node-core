@@ -114,7 +114,7 @@ export default class AuthorizationController {
       });
       return {
         results: objects.map(fullObject => fullObject.id),
-        nextToken: grantObjects.pagination.skip_token === null ? undefined : grantObjects.pagination.skip_token,
+        nextToken: grantObjects.pagination.skip_token,
       };
     });
 

@@ -92,7 +92,7 @@ export default class StoreUtils {
    * continuation token passed as the first parameter.
    */
   static async queryGetAll<ResultType> (
-    callback: (nextToken?: any) => Promise<{results: ResultType[], nextToken: string | undefined}>): Promise<ResultType[]> {
+    callback: (nextToken?: any) => Promise<{results: ResultType[], nextToken: any}>): Promise<ResultType[]> {
     let nextToken: string | undefined = undefined;
     let allResults: ResultType[] = [];
 

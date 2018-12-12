@@ -9,7 +9,7 @@ import * as store from '../interfaces/Store';
 /**
  * Handles Commit requests for reading object data
  */
-export default class CommitController {
+export default class CommitQueryController {
   /**
    * Constructor for a Commit Controller.
    * @param context The context object containing all injected components

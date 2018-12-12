@@ -14,8 +14,8 @@ async function deserialize(commit: any): Promise<Commit> {
     throw new Error(`Commit must be of type object; type given was: ${typeof commit}`);
   }
 
-  const requiredFields = ['payload', 'signature'];
-  const allowedFields = ['protected', 'header'].concat(requiredFields);
+  const requiredFields = ['protected', 'payload', 'signature'];
+  const allowedFields = ['header'].concat(requiredFields);
   const actualFields = Object.keys(commit);
 
   requiredFields.forEach((field) => {

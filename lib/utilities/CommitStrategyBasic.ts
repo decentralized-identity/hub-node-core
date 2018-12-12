@@ -1,4 +1,4 @@
-import Commit from '../models/Commit';
+import Commit, { Operation } from '../models/Commit';
 import { Store, CommitQueryResponse } from '../interfaces/Store';
 import StoreUtils from './StoreUtils';
 
@@ -39,14 +39,33 @@ export default class CommitStrategyBasic {
       });
       return {
         results: commits.results,
-        nextToken: commits.pagination.skip_token === null ? undefined : commits.pagination.skip_token,
+        nextToken: commits.pagination.skip_token,
       };
     });
     if (allObjectCommits.length === 0) {
       return null;
     }
     return allObjectCommits.reduce((latestCommit, currentCommit) => {
-      if (Date.parse(latestCommit.getHeaders().committed_at) < Date.parse(currentCommit.getHeaders().committed_at)) {
+      // create commits are first, any other commit has higher value
+      if (latestCommit.getProtectedHeaders().operation === Operation.Create &&
+          currentCommit.getProtectedHeaders().operation !== Operation.Create) {
+        return currentCommit;
+      }
+      // delete commits are last, any other commit has lower value
+      if (latestCommit.getProtectedHeaders().operation === Operation.Delete &&
+          currentCommit.getProtectedHeaders().operation !== Operation.Delete) {
+        return latestCommit;
+      }
+      // the commit is of the same type and must be decided by datetime
+      const latestDate = Date.parse(latestCommit.getHeaders().committed_at);
+      const currentDate = Date.parse(currentCommit.getHeaders().committed_at);
+      // if the commit times are the same, defer to lexigraphical rev order
+      if (latestDate === currentDate &&
+          latestCommit.getHeaders().rev < currentCommit.getHeaders().rev) {
+        return currentCommit;
+      }
+      // latest datetime wins
+      if (latestDate < currentDate) {
         return currentCommit;
       }
       return latestCommit;
