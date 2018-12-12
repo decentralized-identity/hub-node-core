@@ -87,14 +87,7 @@ export default abstract class BaseController {
       case 'WriteRequest':
         const writeRequest = request as WriteRequest;
         BaseController.verifyConstraints(writeRequest);
-        switch (writeRequest.commit.getProtectedHeaders().operation) {
-          case Operation.Create:
-          case Operation.Update:
-          case Operation.Delete:
-            return await this.handleWriteCommitRequest(writeRequest, grants);
-          default:
-            throw HubError.incorrectParameter('commit.protected.operation');
-        }
+        return await this.handleWriteCommitRequest(writeRequest, grants);
       default:
         throw HubError.incorrectParameter('@type');
     }
@@ -108,6 +101,9 @@ export default abstract class BaseController {
     const headers = request.commit.getProtectedHeaders();
     if (request.sub !== headers.sub) {
       throw HubError.incorrectParameter('commit.protected.sub');
+    }
+    if (!(request.commit.getProtectedHeaders().operation! in Operation)) {
+      throw HubError.incorrectParameter('commit.protected.operation');
     }
   }
 }

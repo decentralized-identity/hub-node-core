@@ -3,11 +3,10 @@ import HubError, { ErrorCode } from '../models/HubError';
 import PermissionGrant, { PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
-
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
-import AuthorizationController from './AuthorizationController';
 import StoreUtils from '../utilities/StoreUtils';
+import { Operation, CommitHeaders } from '../models/Commit';
 
 /**
  * This class handles all the permission requests.
@@ -16,59 +15,27 @@ export default class PermissionsController extends BaseController {
 
   async handleQueryRequest(request: ObjectQueryRequest, grants: PermissionGrant[]): Promise<ObjectQueryResponse> {
     // verify context and type, not using validateSchema as is a ObjectQuerRequest
-    if (request.queryContext !== PERMISSION_GRANT_CONTEXT || request.queryType !== PERMISSION_GRANT_TYPE) {
+    if ((request.queryContext || request.queryType) &&
+        (request.queryContext !== PERMISSION_GRANT_CONTEXT || request.queryType !== PERMISSION_GRANT_TYPE)) {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
         developerMessage: `query 'context' must be '${PERMISSION_GRANT_CONTEXT}', 'type' must be '${PERMISSION_GRANT_TYPE}'`,
       });
     }
-
-    const results = await this.context.store.queryObjects({
-      owner: request.sub,
-      filters: [
-        {
-          field: 'interface',
-          type: 'eq',
-          value: 'Permissions',
-        },
-        {
-          field: 'context',
-          type: 'eq',
-          value: PERMISSION_GRANT_CONTEXT,
-        },
-        {
-          field: 'type',
-          type: 'eq',
-          value: PERMISSION_GRANT_TYPE,
-        },
-      ],
-    });
-
-    const prunedResults = await AuthorizationController.pruneResults(results.results, grants);
-    return new ObjectQueryResponse(prunedResults, results.pagination.skip_token);
+    return super.handleQueryRequest(request, grants);
   }
 
-  async handleCreateRequest(request: WriteRequest, _: PermissionGrant[]): Promise<WriteResponse> {
-    PermissionsController.validateSchema(request);
-    PermissionsController.validateStrategy(request);
-    PermissionsController.validatePermissionGrant(request);
-
-    return StoreUtils.writeCommit(request, this.context.store);
-  }
-
-  async handleDeleteRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
-    PermissionsController.validateSchema(request);
-    await this.validateObjectExists(request, grants);
-
-    return StoreUtils.writeCommit(request, this.context.store);
-  }
-
-  async handleUpdateRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
-    PermissionsController.validateSchema(request);
-    PermissionsController.validateStrategy(request);
-    PermissionsController.validatePermissionGrant(request);
-    await this.validateObjectExists(request, grants);
-
+  async handleWriteCommitRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
+    const headers = request.commit.getProtectedHeaders();
+    PermissionsController.validateSchema(headers as CommitHeaders);
+    const operation = request.commit.getProtectedHeaders().operation!;
+    if (operation === Operation.Create || operation === Operation.Update) {
+      PermissionsController.validateStrategy(headers as CommitHeaders);
+      PermissionsController.validatePermissionGrant(request);
+    }
+    if (operation === Operation.Update || operation === Operation.Delete) {
+      await this.validateObjectExists(request, grants);
+    }
     return StoreUtils.writeCommit(request, this.context.store);
   }
 
@@ -86,9 +53,8 @@ export default class PermissionsController extends BaseController {
     return permission;
   }
 
-  // given a hub request, validates the request contains the permission grant schema
-  private static validateSchema(request: WriteRequest) {
-    const headers = request.commit.getHeaders();
+  // given commit headers, validates the permission grant schema
+  private static validateSchema(headers: CommitHeaders) {
     if (headers.context !== PERMISSION_GRANT_CONTEXT ||
       headers.type !== PERMISSION_GRANT_TYPE) {
       throw new HubError({
@@ -97,8 +63,8 @@ export default class PermissionsController extends BaseController {
     }
   }
 
-  private static validateStrategy(request: WriteRequest) {
-    const headers = request.commit.getHeaders();
+  // given commit headers, validates the strategy
+  private static validateStrategy(headers: CommitHeaders) {
     if (headers.commit_strategy !== 'basic') {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,

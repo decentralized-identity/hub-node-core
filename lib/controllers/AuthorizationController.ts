@@ -65,7 +65,7 @@ export default class AuthorizationController {
     const requester = request.iss;
     const owner = request.sub;
     let operation: AuthorizationOperation;
-    let schema: [string, string];
+    let schema: [string, string] | undefined = undefined;
     switch (request.getType()) {
       case 'CommitQueryRequest':
         throw new HubError({
@@ -74,7 +74,9 @@ export default class AuthorizationController {
         });
       case 'ObjectQueryRequest':
         const queryRequest = request as ObjectQueryRequest;
-        schema = [queryRequest.queryContext, queryRequest.queryType];
+        if (queryRequest.queryContext && queryRequest.queryType) {
+          schema = [queryRequest.queryContext, queryRequest.queryType];
+        }
         operation = AuthorizationOperation.Read;
         break;
       case 'WriteRequest':
@@ -86,8 +88,7 @@ export default class AuthorizationController {
       default:
         throw HubError.incorrectParameter('@type');
     }
-
-    return this.getPermissionGrants(operation, owner, requester, [schema]);
+    return this.getPermissionGrants(operation, owner, requester, schema !== undefined ? [schema] : []);
   }
 
   private static doesGrantPermit (grant: PermissionGrant, operation: AuthorizationOperation): boolean {
