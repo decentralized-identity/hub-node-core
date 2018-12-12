@@ -90,7 +90,7 @@ export default class AuthorizationController {
     return this.getPermissionGrants(operation, owner, requester, [schema]);
   }
 
-  private static grantPermits (grant: PermissionGrant, operation: AuthorizationOperation): boolean {
+  private static doesGrantPermit (grant: PermissionGrant, operation: AuthorizationOperation): boolean {
     switch (operation) {
       case AuthorizationOperation.Create:
         return /C/.test(grant.allow);
@@ -142,7 +142,7 @@ export default class AuthorizationController {
       if (grant.grantee !== requester) {
         return false;
       }
-      if (!AuthorizationController.grantPermits(grant, operation)) {
+      if (!AuthorizationController.doesGrantPermit(grant, operation)) {
         return false;
       }
       // created_by must match requester for create commits

@@ -1,5 +1,5 @@
 import BaseRequest from './BaseRequest';
-import HubError from './HubError';
+import HubError, { ErrorCode } from './HubError';
 import { QueryFilter } from '../interfaces/Store';
 
 /**
@@ -9,9 +9,9 @@ export default class ObjectQueryRequest extends BaseRequest {
   /** The interface being queried */
   readonly interface: string;
   /** The context being queried */
-  readonly queryContext: string;
+  readonly queryContext?: string;
   /** The type being queried */
-  readonly queryType: string;
+  readonly queryType?: string;
   /** (Optional) object Ids to filter on */
   readonly objectIds?: string[];
   /** (Optional) metadata filters to use */
@@ -33,14 +33,23 @@ export default class ObjectQueryRequest extends BaseRequest {
     if (typeof request.query !== 'object') {
       throw HubError.incorrectParameter('query');
     }
+    if (!('interface' in request.query)) {
+      throw HubError.missingParameter('query.interface');
+    }
     ['interface', 'context', 'type'].forEach((property) => {
-      if (!(property in request.query)) {
-        throw HubError.missingParameter(`query.${property}`);
-      }
-      if (typeof request.query[property] !== 'string') {
+      if (property in request.query && typeof request.query[property] !== 'string') {
         throw HubError.incorrectParameter(`query.${property}`);
       }
     });
+    // if context or type, but not both context and type, throw.
+    if (('context' in request.query || 'type' in request.query) &&
+       !('context' in request.query && 'type' in request.query)) {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'query.context, query.type',
+        developerMessage: 'context and type are co-dependent',
+      });
+    }
     this.interface = request.query.interface;
     this.queryContext = request.query.context;
     this.queryType = request.query.type;

@@ -9,20 +9,59 @@ import BaseResponse from '../models/BaseResponse';
 import { Operation } from '../models/Commit';
 import AuthorizationController from './AuthorizationController';
 import PermissionGrant from '../models/PermissionGrant';
+import { QueryEqualsFilter } from '../interfaces/Store';
 
 /**
  * Abstract controller class for every interface controllers to inherit.
  */
 export default abstract class BaseController {
 
-  /** Handles an add request. */
-  abstract async handleCreateRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse>;
   /** Handles a read request. */
-  abstract async handleQueryRequest(request: ObjectQueryRequest, grants: PermissionGrant[]): Promise<ObjectQueryResponse>;
-  /** Handles a remove request. */
-  abstract async handleDeleteRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse>;
-  /** Handles an update request. */
-  abstract async handleUpdateRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse>;
+  async handleQueryRequest(request: ObjectQueryRequest, grants: PermissionGrant[]): Promise<ObjectQueryResponse> {
+    const filters: QueryEqualsFilter[] = [
+      {
+        field: 'interface',
+        value: request.interface,
+        type: 'eq',
+      },
+    ];
+
+    if (request.queryContext) {
+      filters.push({
+        field: 'context',
+        value: request.queryContext,
+        type: 'eq',
+      });
+    }
+
+    if (request.queryType) {
+      filters.push({
+        field: 'type',
+        value: request.queryType,
+        type: 'eq',
+      });
+    }
+
+    if (request.objectIds) {
+      filters.push({
+        field: 'object_id',
+        value: request.objectIds,
+        type: 'eq',
+      });
+    }
+
+    const queryRequest = {
+      filters,
+      owner: request.sub,
+      skip_token: request.skipToken,
+    };
+
+    const response = await this.context.store.queryObjects(queryRequest);
+    const prunedResults = await AuthorizationController.pruneResults(response.results, grants);
+    return new ObjectQueryResponse(prunedResults, response.pagination.skip_token);
+  }
+  /** Handles a write commit request. */
+  abstract async handleWriteCommitRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse>;
 
   /**
    * Constructor for the BaseController.
@@ -50,11 +89,9 @@ export default abstract class BaseController {
         BaseController.verifyConstraints(writeRequest);
         switch (writeRequest.commit.getProtectedHeaders().operation) {
           case Operation.Create:
-            return await this.handleCreateRequest(writeRequest, grants);
           case Operation.Update:
-            return await this.handleUpdateRequest(writeRequest, grants);
           case Operation.Delete:
-            return await this.handleDeleteRequest(writeRequest, grants);
+            return await this.handleWriteCommitRequest(writeRequest, grants);
           default:
             throw HubError.incorrectParameter('commit.protected.operation');
         }
