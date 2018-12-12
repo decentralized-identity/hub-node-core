@@ -4,6 +4,7 @@ import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
+import PermissionGrant from '../models/PermissionGrant';
 
 export const ACTION_SCHEMA: string = 'http://schema.identity.foundation/Action';
 
@@ -11,19 +12,12 @@ export const ACTION_SCHEMA: string = 'http://schema.identity.foundation/Action';
  * This class handles all the action requests.
  */
 export default class ActionsController extends BaseController {
-  async handleCreateRequest(_: WriteRequest): Promise<WriteResponse> {
+
+  handleWriteCommitRequest(_: WriteRequest, __: PermissionGrant[]): Promise<WriteResponse> {
     throw new HubError({ errorCode: ErrorCode.NotImplemented });
   }
 
-  async handleQueryRequest(_: ObjectQueryRequest): Promise<ObjectQueryResponse> {
-    throw new HubError({ errorCode: ErrorCode.NotImplemented });
-  }
-
-  async handleDeleteRequest(_: WriteRequest): Promise<WriteResponse> {
-    throw new HubError({ errorCode: ErrorCode.NotImplemented });
-  }
-
-  async handleUpdateRequest(_: WriteRequest): Promise<WriteResponse> {
+  async handleQueryRequest(_: ObjectQueryRequest, __: PermissionGrant[]): Promise<ObjectQueryResponse> {
     throw new HubError({ errorCode: ErrorCode.NotImplemented });
   }
 }
