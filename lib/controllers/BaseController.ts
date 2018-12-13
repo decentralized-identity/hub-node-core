@@ -102,7 +102,8 @@ export default abstract class BaseController {
     if (request.sub !== headers.sub) {
       throw HubError.incorrectParameter('commit.protected.sub');
     }
-    if (!(request.commit.getProtectedHeaders().operation! in Operation)) {
+    const operation = request.commit.getProtectedHeaders().operation as Operation;
+    if (!operation) {
       throw HubError.incorrectParameter('commit.protected.operation');
     }
   }
