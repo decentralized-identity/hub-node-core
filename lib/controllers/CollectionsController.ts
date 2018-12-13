@@ -10,9 +10,10 @@ import { Operation } from '../models/Commit';
  * This class handles all the collection requests.
  */
 export default class CollectionsController extends BaseController {
-  async handleWriteCommitRequest(request: WriteRequest, _: PermissionGrant[]): Promise<WriteResponse> {
-    const objectIdShouldBeUndefined = request.commit.getProtectedHeaders().operation === Operation.Create;
-    if ((request.commit.getProtectedHeaders().object_id === undefined) !== objectIdShouldBeUndefined) {
+  async handleWriteCommitRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
+    const headers = request.commit.getProtectedHeaders();
+    const objectIdShouldBeUndefined = headers.operation === Operation.Create;
+    if ((headers.object_id === undefined) !== objectIdShouldBeUndefined) {
       if (objectIdShouldBeUndefined) {
         throw new HubError({
           errorCode: ErrorCode.BadRequest,
@@ -23,6 +24,10 @@ export default class CollectionsController extends BaseController {
           errorCode: ErrorCode.NotFound,
         });
       }
+    }
+    if ((headers.operation === Operation.Update || headers.operation === Operation.Delete) &&
+      !await StoreUtils.objectExists(request, this.context.store, grants)) {
+      throw HubError.notFound();
     }
     return StoreUtils.writeCommit(request, this.context.store);
   }

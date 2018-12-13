@@ -110,4 +110,18 @@ export default class HubError extends Error {
     });
   }
 
+  /** returns a permission required error */
+  public static permissionRequired(): HubError {
+    return new HubError({
+      errorCode: ErrorCode.PermissionsRequired,
+    });
+  }
+
+  /** returns a not found error */
+  public static notFound(): HubError {
+    return new HubError({
+      errorCode: ErrorCode.NotFound,
+    });
+  }
+
 }
