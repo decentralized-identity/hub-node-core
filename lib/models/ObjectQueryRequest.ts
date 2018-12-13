@@ -42,8 +42,7 @@ export default class ObjectQueryRequest extends BaseRequest {
       }
     });
     // if context or type, but not both context and type, throw.
-    if (('context' in request.query || 'type' in request.query) &&
-       !('context' in request.query && 'type' in request.query)) {
+    if ('context' in request.query !== 'type' in request.query) {
       throw new HubError({
         errorCode: ErrorCode.BadRequest,
         property: 'query.context, query.type',
