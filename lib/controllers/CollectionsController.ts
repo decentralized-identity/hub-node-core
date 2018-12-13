@@ -12,7 +12,7 @@ import { Operation } from '../models/Commit';
 export default class CollectionsController extends BaseController {
   async handleWriteCommitRequest(request: WriteRequest, _: PermissionGrant[]): Promise<WriteResponse> {
     const objectIdShouldBeUndefined = request.commit.getProtectedHeaders().operation === Operation.Create;
-    if ((request.commit.getProtectedHeaders().object_id === undefined) === objectIdShouldBeUndefined) {
+    if ((request.commit.getProtectedHeaders().object_id === undefined) !== objectIdShouldBeUndefined) {
       if (objectIdShouldBeUndefined) {
         throw new HubError({
           errorCode: ErrorCode.BadRequest,

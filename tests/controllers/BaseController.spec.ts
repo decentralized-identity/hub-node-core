@@ -15,51 +15,6 @@ describe('BaseController', () => {
   const auth = new TestAuthorization();
   const controller = new TestController(testContext, auth);
 
-  async function dispatchCheckFor(operation: string, handler: any, object_id?: string) {
-    const message = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-    const expectedRequest = new WriteRequest({
-      iss: 'did:example:alice.id',
-      aud: 'did:example:hub.id',
-      sub: 'did:example:alice.id',
-      '@context': context,
-      '@type': 'WriteRequest',
-      commit: {
-        protected: base64url.encode(JSON.stringify({
-          interface: 'test',
-          context: 'example.com',
-          type: 'test',
-          operation,
-          object_id,
-          'committed_at': new Date(Date.now()).toISOString(),
-          'commit_strategy': 'basic',
-          sub: 'did:example:alice.id',
-          kid: 'did:example:alice.id#key1',
-        })),
-        payload: '',
-        signature: '',
-      },
-    });
-    const spy = spyOn(controller, handler).and.callFake(() => {
-      throw new HubError({
-        errorCode: ErrorCode.NotImplemented,
-        developerMessage: message,
-      });
-    });
-    try {
-      await controller.handle(expectedRequest);
-    } catch (err) {
-      if (!(err instanceof HubError)) {
-        fail(err.message);
-      }
-      expect(err.developerMessage).toEqual(message);
-    }
-    expect(spy).toHaveBeenCalled();
-  }
-
-  it('should dispatch Create requests', async () => {
-    await dispatchCheckFor(Operation.Create, 'handleCreateRequest');
-  });
-
   it('should throw for unauthorized requests', async () => {
     const expectedRequest = new WriteRequest({
       iss: 'did:example:alice.id',
@@ -92,8 +47,7 @@ describe('BaseController', () => {
       }
       expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
     }
-
-  })
+  });
 
   it('should dispatch Read requests', async () => {
     const message = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -124,14 +78,6 @@ describe('BaseController', () => {
       expect(err.developerMessage).toEqual(message);
     }
     expect(spy).toHaveBeenCalled();
-  });
-
-  it('should dispatch Update requests', async () => {
-    await dispatchCheckFor(Operation.Update, 'handleUpdateRequest', Math.round(Math.random() * 255).toString(16));
-  });
-
-  it('should dispatch Delete requests', async () => {
-    await dispatchCheckFor(Operation.Delete, 'handleDeleteRequest', Math.round(Math.random() * 255).toString(16));
   });
 
   it('should return errors for unknown operations', async () => {

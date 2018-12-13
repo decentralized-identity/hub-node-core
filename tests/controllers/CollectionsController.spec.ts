@@ -10,8 +10,7 @@ import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import TestAuthorization from '../mocks/TestAuthorization';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
 import PermissionGrant from '../../lib/models/PermissionGrant';
-
-const CONTEXT = 'https://schema.identity.foundation/0.1';
+import BaseRequest from '../../lib/models/BaseRequest';
 
 const sender = 'did:example:alice.id';
 const hub = 'did:example:alice.id';
@@ -33,7 +32,7 @@ function createWriteCommit(operation: Operation, testHeader: string, additionalP
   }, additionalProtected);
 
   return new WriteRequest({
-    '@context': CONTEXT,
+    '@context': BaseRequest.context,
     '@type': 'WriteRequest',
     iss: sender,
     aud: hub,
@@ -57,7 +56,7 @@ function createQueryCommit(query: {[key: string]: any}): ObjectQueryRequest {
     type: 'Test',
   }, query);
   return new ObjectQueryRequest({
-    '@context': CONTEXT,
+    '@context': BaseRequest.context,
     '@type': 'WriteRequest',
     iss: sender,
     aud: hub,
@@ -109,7 +108,7 @@ describe('CollectionsController', () => {
       const id = correlationId();
       const spy = spyOn(context.store, 'commit').and.callFake((request: WriteRequest) => {
         expect((request.commit.getHeaders() as any)['test']).toEqual(id);
-        return {knownRevisions: []};
+        return { knownRevisions: [] };
       });
       const commitRequest = createWriteCommit(Operation.Create, id);
       await controller.handleWriteCommitRequest(commitRequest, await auth.getPermissionGrantsForRequest(commitRequest));
