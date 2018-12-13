@@ -13,6 +13,7 @@ import { QueryEqualsFilter } from '../../lib/interfaces/Store';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
 import BaseRequest from '../../lib/models/BaseRequest';
+import { Operation } from '../../lib/models/Commit';
 
 function getHex(): string {
   return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
@@ -318,6 +319,8 @@ describe('PermissionsController', () => {
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
         commit_strategy: 'basic',
+        operation: Operation.Update,
+        object_id: getHex(),
       }, {
         owner,
         grantee: sender,
@@ -351,20 +354,10 @@ describe('PermissionsController', () => {
         expect(err.errorCode).toEqual(ErrorCode.NotFound);
         expect(spy).toHaveBeenCalled();
       }
-      try {
-        await controller.handleWriteCommitRequest(writeRequest, []);
-        fail('should have thrown');
-      } catch (err) {
-        if (!(err instanceof HubError)) {
-          fail(err.message);
-        }
-        expect(err.errorCode).toEqual(ErrorCode.NotFound);
-        expect(spy).toHaveBeenCalled();
-      }
     });
   });
 
-  describe('handleWriteCommitRequest and handleWriteCommitRequest', () => {
+  describe('handleWriteCommitRequest', () => {
     it('should call store', async () => {
       const owner = `did:example:${getHex()}`;
       const hub = 'did:example:hub';
@@ -375,6 +368,8 @@ describe('PermissionsController', () => {
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
         commit_strategy: 'basic',
+        operation: Operation.Update,
+        object_id: getHex(),
       }, {
         owner,
         grantee: sender,
@@ -405,10 +400,6 @@ describe('PermissionsController', () => {
         return new WriteResponse([response]);
       });
       let result = await controller.handleWriteCommitRequest(writeRequest, []);
-      expect(result.revisions[0]).toEqual(response);
-      expect(spy).toHaveBeenCalled();
-      expect(spyWrite).toHaveBeenCalled();
-      result = await controller.handleWriteCommitRequest(writeRequest, []);
       expect(result.revisions[0]).toEqual(response);
       expect(spy).toHaveBeenCalled();
       expect(spyWrite).toHaveBeenCalled();
