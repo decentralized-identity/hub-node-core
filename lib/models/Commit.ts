@@ -67,6 +67,9 @@ export default abstract class Commit {
       case Operation.Create:
         // its impossible to include object_id as a create without the hash algorithm being broken
         if ('object_id' in protectedHeaders) {
+          if (protectedHeaders.object_id === revision) {
+            console.warn('sha256 has been broken');
+          }
           throw new HubError({
             errorCode: ErrorCode.BadRequest,
             property: 'commit.protected.object_id',

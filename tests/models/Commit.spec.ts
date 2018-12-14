@@ -245,3 +245,40 @@ describe('Commit', () => {
     });
   })
 })
+
+// operation = ['update', 'delete']
+// it(`should throw if ${operation} does not contain an object_id`, async () => {
+//   try {
+//     const request = TestRequest.createWriteRequest({
+//       interface: 'Collections',
+//       operation,
+//       override_no_object_id: true,
+//     });
+//     await controller.handleWriteCommitRequest(request, TestUtilities.allowPermissionGrants);
+//     fail('did not throw!');
+//   } catch (err) {
+//     if (!(err instanceof HubError)) {
+//       fail(err.message);
+//     }
+//     expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+//     expect(err.property).toEqual('commit.protected.object_id');
+//     expect(err.developer_message).toEqual(DeveloperMessage.MissingParameter);
+//   }
+// })
+// it('should throw if object_id is included in the protected headers for create', async () => {
+//   const spy = spyOn(context.store, 'commit').and.callFake((_: WriteRequest) => {
+//     fail('storage was called');
+//   });
+//   try {
+//     await controller.handleWriteCommitRequest(TestRequest.createWriteRequest({
+//       interface: 'Collections',
+//       object_id: TestUtilities.randomString()
+//     }), TestUtilities.allowPermissionGrants);
+//   } catch (err) {
+//     if (!(err instanceof HubError)) {
+//       fail(err.message);
+//     }
+//     expect(err.property).toEqual('commit.protected.object_id');
+//   }
+//   expect(spy).not.toHaveBeenCalled();
+// });

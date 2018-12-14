@@ -3,6 +3,9 @@ import ObjectQueryRequest from "../../lib/models/ObjectQueryRequest";
 import WriteRequest from "../../lib/models/WriteRequest";
 import { Operation } from "../../lib/models/Commit";
 import TestCommit from '../mocks/TestCommit';
+import TestContext from "./TestContext";
+import Context from "../../lib/interfaces/Context";
+import TestUtilities from "../TestUtilities";
 
 export interface requestOptions {
   iss: string
@@ -16,10 +19,12 @@ export interface requestOptions {
   operation: string
   payload: any
   commit_strategy: string
+  object_id: string | string[];
   override_commit_sub: string
   override_no_interface: boolean
   override_no_context: boolean
   override_no_type: boolean
+  override_no_object_id: boolean
 }
 
 export default class TestRequest extends BaseRequest {
@@ -46,7 +51,7 @@ export default class TestRequest extends BaseRequest {
     return new ObjectQueryRequest(request);
   }
 
-  static createWriteRequest(options?: Partial<requestOptions>): WriteRequest {
+  static createWriteRequest(options?: Partial<requestOptions>, context?: Context): WriteRequest {
     const headers: any = {
       interface: options && options.interface? options.interface : 'Base',
       context: options && options.context? options.context : 'example.com',
@@ -54,9 +59,15 @@ export default class TestRequest extends BaseRequest {
       operation: options && options.operation? options.operation : Operation.Create,
       'commit_strategy': options && options.commit_strategy ? options.commit_strategy : 'basic',
       sub: options && options.override_commit_sub ? options.override_commit_sub : options && options.sub? options.sub : 'did:example:alice.id',
-      kid: options && options.kid? options.kid : 'did:example:alice.id#key1',
+      kid: options && options.kid? options.kid : `${options && options.iss? options.iss : 'did:example:alice.id'}#key1`,
     };
+    if (options && (options.operation == Operation.Update || options.operation === Operation.Delete) && !options.object_id) {
+      headers.object_id = TestUtilities.randomString();
+    }
     TestRequest.overridesOnObject(headers, options);
+    if (options && options.object_id) {
+      headers.object_id = options.object_id;
+    }
 
     const commit = TestCommit.create(headers,
     options && options.payload ? options.payload: {testData: "password"});
@@ -77,7 +88,7 @@ export default class TestRequest extends BaseRequest {
     if (options && options.skipToken) {
       request.query.skip_token = options.skipToken;
     }
-    return new WriteRequest(request);
+    return new WriteRequest(request, context? context: new TestContext());
   }
 
   private static overridesOnObject(object: any, options?: Partial<requestOptions>) {
@@ -90,6 +101,9 @@ export default class TestRequest extends BaseRequest {
       }
       if (options.override_no_type) {
         delete object.type;
+      }
+      if (options.override_no_object_id) {
+        delete object.object_id;
       }
     }
   }
