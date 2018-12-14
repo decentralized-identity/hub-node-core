@@ -67,6 +67,7 @@ export default abstract class Commit {
       case Operation.Create:
         // its impossible to include object_id as a create without the hash algorithm being broken
         if ('object_id' in protectedHeaders) {
+          /* istanbul ignore if */
           if (protectedHeaders.object_id === revision) {
             console.warn('sha256 has been broken');
           }
@@ -92,6 +93,7 @@ export default abstract class Commit {
 
     // rev cannot be included in the protected headers as it is part of the computation
     if ('rev' in protectedHeaders) {
+      /* istanbul ignore if */
       if (protectedHeaders.rev === revision) {
         console.warn('sha256 has been broken');
       }

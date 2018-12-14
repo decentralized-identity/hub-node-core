@@ -1,6 +1,7 @@
 import base64url from 'base64url';
 import Commit, { Operation } from '../../lib/models/Commit';
 import HubError, { DeveloperMessage } from '../../lib/models/HubError';
+import TestUtilities from '../TestUtilities';
 
 class SimpleCommit extends Commit {
   toJson() {
@@ -25,7 +26,6 @@ describe('Commit', () => {
       }
     })
 
-    
     it("should require protected be a string", () => {
       try {
         new SimpleCommit({
@@ -41,18 +41,18 @@ describe('Commit', () => {
       }
     });
 
-    it('should check for required properties', () => {
-      const validCommit = {
-        interface: 'Test',
-        context: 'example.com',
-        type: 'test',
-        operation: 'create',
-        committed_at: new Date(Date.now()).toISOString(),
-        commit_strategy: 'basic',
-        sub: 'did:example:alice.id',
-        kid: 'did:example:alice.id#key-1',
-      };
-      for (const property in validCommit) {
+    const validCommit = {
+      interface: 'Test',
+      context: 'example.com',
+      type: 'test',
+      operation: 'create',
+      committed_at: new Date(Date.now()).toISOString(),
+      commit_strategy: 'basic',
+      sub: 'did:example:alice.id',
+      kid: 'did:example:alice.id#key-1',
+    };
+    for (const property in validCommit) {
+      it(`should require protected header ${property}`, () => {
         let improperCommit: any = Object.assign({}, validCommit);
         delete improperCommit[property];
         let stringHeaders = base64url.encode(JSON.stringify(improperCommit));
@@ -68,44 +68,39 @@ describe('Commit', () => {
           }
           expect(err.property).toEqual(`commit.protected.${property}`);
         }
-      }
-    });
+      });
+    }
 
-    it('should ensure update and delete have object_id', () => {
-      const validCommit = {
-        interface: 'Test',
-        context: 'example.com',
-        type: 'test',
-        committed_at: new Date(Date.now()).toISOString(),
-        commit_strategy: 'basic',
-        sub: 'did:example:alice.id',
-        kid: 'did:example:alice.id#key-1',
-      };
-      ['update', 'delete'].forEach((property) => {
-        let improperCommit: any = Object.assign({}, validCommit);
-        improperCommit['operation'] = property;
-        let stringHeaders = base64url.encode(JSON.stringify(improperCommit));
-        try {
-          new SimpleCommit({
-            protected: stringHeaders,
-            payload: 'foo',
-          });
-          fail(`did not throw when missing object_id for ${property}`);
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
+    ['update', 'delete'].forEach((operation) => {
+      it(`should ensure ${operation} have object_id`, () => {
+          const improperCommit: any = Object.assign({}, validCommit);
+          improperCommit.operation = operation;
+          const stringHeaders = base64url.encode(JSON.stringify(improperCommit));
+          try {
+            new SimpleCommit({
+              protected: stringHeaders,
+              payload: 'foo',
+            });
+            fail(`did not throw when missing object_id for ${operation}`);
+          } catch (err) {
+            if (!(err instanceof HubError)) {
+              fail(err.message);
+            }
+            expect(err.property).toEqual('commit.protected.object_id');
+            expect(err.developerMessage).toEqual(DeveloperMessage.MissingParameter);
           }
-          expect(err.property).toEqual('commit.protected.object_id');
-          expect(err.developerMessage).toEqual(DeveloperMessage.MissingParameter);
-        }
-      improperCommit['object_id'] = true;
-        stringHeaders = base64url.encode(JSON.stringify(improperCommit));
+        });
+      it(`should ensure object_id for ${operation} is a string`, async () => {
+        const improperCommit: any = Object.assign({}, validCommit);
+        improperCommit.operation = operation;
+        improperCommit['object_id'] = true;
+        const stringHeaders = base64url.encode(JSON.stringify(improperCommit));
         try {
           new SimpleCommit({
             protected: stringHeaders,
             payload: 'foo',
           });
-          fail(`did not throw when object_id was a string for ${property}`);
+          fail(`did not throw when object_id was a boolean for ${operation}`);
         } catch (err) {
           if (!(err instanceof HubError)) {
             fail(err.message);
@@ -118,7 +113,7 @@ describe('Commit', () => {
 
     it('should throw for unknown operations', () => {
       try {
-        const operation = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const operation = TestUtilities.randomString();
         const protectedString = base64url.encode(JSON.stringify({
             operation,
             interface: 'Test',
@@ -141,7 +136,6 @@ describe('Commit', () => {
         expect(err.property).toEqual('commit.protected.operation');
       }
     });
-
     
     it("should require payload", () => {
       const protectedString = base64url.encode(JSON.stringify({
@@ -243,42 +237,5 @@ describe('Commit', () => {
         expect(err.property).toEqual('commit.protected.rev');
       }
     });
-  })
-})
-
-// operation = ['update', 'delete']
-// it(`should throw if ${operation} does not contain an object_id`, async () => {
-//   try {
-//     const request = TestRequest.createWriteRequest({
-//       interface: 'Collections',
-//       operation,
-//       override_no_object_id: true,
-//     });
-//     await controller.handleWriteCommitRequest(request, TestUtilities.allowPermissionGrants);
-//     fail('did not throw!');
-//   } catch (err) {
-//     if (!(err instanceof HubError)) {
-//       fail(err.message);
-//     }
-//     expect(err.errorCode).toEqual(ErrorCode.BadRequest);
-//     expect(err.property).toEqual('commit.protected.object_id');
-//     expect(err.developer_message).toEqual(DeveloperMessage.MissingParameter);
-//   }
-// })
-// it('should throw if object_id is included in the protected headers for create', async () => {
-//   const spy = spyOn(context.store, 'commit').and.callFake((_: WriteRequest) => {
-//     fail('storage was called');
-//   });
-//   try {
-//     await controller.handleWriteCommitRequest(TestRequest.createWriteRequest({
-//       interface: 'Collections',
-//       object_id: TestUtilities.randomString()
-//     }), TestUtilities.allowPermissionGrants);
-//   } catch (err) {
-//     if (!(err instanceof HubError)) {
-//       fail(err.message);
-//     }
-//     expect(err.property).toEqual('commit.protected.object_id');
-//   }
-//   expect(spy).not.toHaveBeenCalled();
-// });
+  });
+});
