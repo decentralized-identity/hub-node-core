@@ -55,7 +55,7 @@ export default class SignedCommit extends Commit {
       });
     }
     const jwkPublicKey = SignedCommit.cryptoFactory.constructPublicKey(publicKey);
-    token.verifySignature(jwkPublicKey);
+    await token.verifySignature(jwkPublicKey);
   }
 
   toJson() {
