@@ -1,5 +1,8 @@
 import Commit from './Commit';
-import HubError from './HubError';
+import HubError, { ErrorCode } from './HubError';
+import Context from '../interfaces/Context';
+import { DidResolver, DidDocument } from '@decentralized-identity/did-common-typescript';
+import { CryptoFactory, JwsToken } from '@decentralized-identity/did-auth-jose';
 
 /**
  * A JSON Serialized signed commit object
@@ -7,9 +10,20 @@ import HubError from './HubError';
 export default class SignedCommit extends Commit {
   /** The original signature of the commit */
   protected readonly originalSignature: string;
+  /** Singleton universal resolver */
+  protected static resolver: DidResolver;
+  /** Singleton cryptoFactory */
+  protected static cryptoFactory: CryptoFactory;
 
-  constructor(jws: any) {
+  constructor(jws: any, context: Context) {
     super(jws);
+    // singleton initializer
+    if (!SignedCommit.resolver) {
+      SignedCommit.resolver = context.resolver;
+    }
+    if (!SignedCommit.cryptoFactory) {
+      SignedCommit.cryptoFactory = new CryptoFactory(context.cryptoSuites);
+    }
 
     if (!('signature' in jws)) {
       throw HubError.missingParameter('commit.signature');
@@ -26,7 +40,22 @@ export default class SignedCommit extends Commit {
   /**
    * Validates the signature of the commit
    */
-  validate() {
+  async validate() {
+    const content = `${this.originalProtected}.${this.originalPayload}.${this.originalSignature}`;
+    const token = new JwsToken(content, SignedCommit.cryptoFactory);
+    const keyId = token.getHeader().kid;
+    const senderDID = DidDocument.getDidFromKeyId(keyId);
+    const senderDDO = await SignedCommit.resolver.resolve(senderDID);
+    const publicKey = senderDDO.didDocument.getPublicKey(keyId);
+    if (!publicKey) {
+      throw new HubError({
+        errorCode: ErrorCode.BadRequest,
+        property: 'commit',
+        developerMessage: `Public Key ${keyId} could not be found`,
+      });
+    }
+    const jwkPublicKey = SignedCommit.cryptoFactory.constructPublicKey(publicKey);
+    token.verifySignature(jwkPublicKey);
   }
 
   toJson() {
