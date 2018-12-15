@@ -108,7 +108,7 @@ export default class Hub {
           response = await queryController.handle(queryRequest);
           break;
         case 'WriteRequest':
-          const writeRequest = new WriteRequest(verifiedRequest.request);
+          const writeRequest = new WriteRequest(verifiedRequest.request, this.context);
           const writeController = this._controllers[writeRequest.commit.getHeaders().interface];
           if (!writeController) {
             throw new HubError({

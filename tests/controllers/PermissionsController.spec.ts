@@ -14,10 +14,8 @@ import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
 import BaseRequest from '../../lib/models/BaseRequest';
 import { Operation } from '../../lib/models/Commit';
-
-function getHex(): string {
-  return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-}
+import TestRequest from '../mocks/TestRequest';
+import TestUtilities from '../TestUtilities';
 
 describe('PermissionsController', () => {
   const context = new TestContext();
@@ -25,27 +23,10 @@ describe('PermissionsController', () => {
   const controller = new PermissionsController(context, auth);
 
   describe('validateSchema', () => {
-
     it('should ensure that permissions are using the correct context', async () => {
-      const owner = `did:example:${getHex()}`;
-      const hub = 'did:example:hub';
-      const sender = `${owner}-not`;
-      const writeRequest = new WriteRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        iss: sender,
-        aud: hub,
-        sub: owner,
-        commit: {
-          protected: TestCommit.create({
-            sub: owner,
-            kid: `${owner}#key-1`,
-            type: PERMISSION_GRANT_TYPE,
-            commit_strategy: 'basic',
-          }).getProtectedString(),
-          payload: 'foo',
-          signature: 'bar'
-        },
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: 'did:example:bob.id',
+        type: PERMISSION_GRANT_TYPE
       });
       try {
         await controller.handleWriteCommitRequest(writeRequest, []);
@@ -59,25 +40,9 @@ describe('PermissionsController', () => {
     });
 
     it('should ensure that permissions are using the correct type', async () => {
-      const owner = `did:example:${getHex()}`;
-      const hub = 'did:example:hub';
-      const sender = `${owner}-not`;
-      const writeRequest = new WriteRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        iss: sender,
-        aud: hub,
-        sub: owner,
-        commit: {
-          protected: TestCommit.create({
-            sub: owner,
-            kid: `${owner}#key-1`,
-            context: PERMISSION_GRANT_CONTEXT,
-            commit_strategy: 'basic',
-          }).getProtectedString(),
-          payload: 'foo',
-          signature: 'bar'
-        },
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: 'did:example:bob.id',
+        context: PERMISSION_GRANT_CONTEXT
       });
       try {
         await controller.handleWriteCommitRequest(writeRequest, []);
@@ -93,36 +58,11 @@ describe('PermissionsController', () => {
 
   describe('validateStrategy', () => {
     it('should require the \'basic\' strategy', async () => {
-      const owner = `did:example:${getHex()}`;
-      const hub = 'did:example:hub';
-      const sender = `${owner}-not`;
-
-      const commit = TestCommit.create(
-      {
-        sub: owner,
-        kid: `${owner}#key-1`,
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: 'did:example:bob.id',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        commit_strategy: 'totally-not-basic',
-      },
-      {
-        owner,
-        grantee: sender,
-        allow: 'C----',
-        context: 'example.com',
-        type: 'foo',
-      });
-      const writeRequest = new WriteRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        iss: sender,
-        aud: hub,
-        sub: owner,
-        commit: {
-          protected: commit.getProtectedString(),
-          payload: commit.getPayloadString(),
-          signature: 'baz',
-        },
+        commit_strategy: 'complex',
       });
       try {
         await controller.handleWriteCommitRequest(writeRequest, []);
@@ -138,42 +78,26 @@ describe('PermissionsController', () => {
   })
 
   describe('getPermisionGrant', () => {
-    it('should verify all parameters exist', async () => {
-      const owner = `did:example:${getHex()}`;
-      const hub = 'did:example:hub';
-      const sender = `${owner}-not`;
+    const fullPermission = {
+      owner: 'did:example:alice.id',
+      grantee: 'did:example:bob.id',
+      allow: 'C----',
+      context: 'example.com',
+      type: 'foo'
+    };
 
-      const fullPermission = {
-        owner,
-        grantee: sender,
-        allow: 'C----',
-        context: 'example.com',
-        type: 'foo'
-      };
-
-      for (const property in fullPermission) {
+    for (const property in fullPermission) {
+      it(`should verify ${property} exist`, async () => {
         const permission: any = Object.assign({}, fullPermission);
         delete permission[property];
 
-        let commit = TestCommit.create({
-          sub: owner,
-          kid: `${owner}#key-1`,
+        const writeRequest = TestRequest.createWriteRequest({
+          iss: 'did:example:bob.id',
           context: PERMISSION_GRANT_CONTEXT,
           type: PERMISSION_GRANT_TYPE,
-          commit_strategy: 'basic',
-        }, permission);
-        let writeRequest = new WriteRequest({
-          '@context': BaseRequest.context,
-          '@type': 'WriteRequest',
-          iss: sender,
-          aud: hub,
-          sub: owner,
-          commit: {
-            protected: commit.getProtectedString(),
-            payload: commit.getPayloadString(),
-            signature: 'baz'
-          },
+          payload: permission,
         });
+
         try {
           await controller.handleWriteCommitRequest(writeRequest, []);
           fail('did not throw');
@@ -185,26 +109,16 @@ describe('PermissionsController', () => {
           expect(err.property).toEqual(`commit.payload.${property}`);
           expect(err.developerMessage).toEqual(DeveloperMessage.MissingParameter);
         }
-        permission[property] = true;
+      });
 
-        commit = TestCommit.create({
-          sub: owner,
-          kid: `${owner}#key-1`,
+      it(`should verify ${property} parameter is of the correct type`, async () => {
+        const permission: any = Object.assign({}, fullPermission);
+        permission[property] = true;
+        const writeRequest = TestRequest.createWriteRequest({
+          iss: 'did:example:bob.id',
           context: PERMISSION_GRANT_CONTEXT,
           type: PERMISSION_GRANT_TYPE,
-          commit_strategy: 'basic',
-        }, permission);
-        writeRequest = new WriteRequest({
-          '@context': BaseRequest.context,
-          '@type': 'WriteRequest',
-          iss: sender,
-          aud: hub,
-          sub: owner,
-          commit: {
-            protected: commit.getProtectedString(),
-            payload: commit.getPayloadString(),
-            signature: 'baz'
-          },
+          payload: permission,
         });
         try {
           await controller.handleWriteCommitRequest(writeRequest, []);
@@ -217,13 +131,13 @@ describe('PermissionsController', () => {
           expect(err.property).toEqual(`commit.payload.${property}`);
           expect(err.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
         }
-      }
-    });
-  })
+      });
+    }
+  });
 
   describe('validatePermissionGrant', () => {
     it('should forbid making a CREATE permission with created_by', async () => {
-      const owner = `did:example:${getHex()}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const commit = TestCommit.create({
@@ -251,7 +165,7 @@ describe('PermissionsController', () => {
           payload: commit.getPayloadString(),
           signature: 'baz'
         },
-      });
+      }, context);
       try {
         await controller.handleWriteCommitRequest(writeRequest, []);
         fail('did not throw');
@@ -267,7 +181,7 @@ describe('PermissionsController', () => {
 
   describe('handleWriteCommitRequest', () => {
     it('should create an object if valid', async () => {
-      const owner = `did:example:${getHex()}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const commit = TestCommit.create({
@@ -294,8 +208,8 @@ describe('PermissionsController', () => {
           payload: commit.getPayloadString(),
           signature: 'baz'
         },
-      });
-      const response = getHex();
+      }, context);
+      const response = TestUtilities.randomString();
       const spy = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, store: Store) => {
         expect(request).toEqual(writeRequest);
         expect(store).toEqual(context.store);
@@ -310,7 +224,7 @@ describe('PermissionsController', () => {
 
   describe('validateObjectExists', () => {
     it('should throw if the object does not exist', async () => {
-      const owner = `did:example:${getHex()}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const commit = TestCommit.create({
@@ -320,7 +234,7 @@ describe('PermissionsController', () => {
         type: PERMISSION_GRANT_TYPE,
         commit_strategy: 'basic',
         operation: Operation.Update,
-        object_id: getHex(),
+        object_id: TestUtilities.randomString(),
       }, {
         owner,
         grantee: sender,
@@ -339,7 +253,7 @@ describe('PermissionsController', () => {
           payload: commit.getPayloadString(),
           signature: 'baz'
         },
-      });
+      }, context);
       const spy = spyOn(StoreUtils, 'objectExists').and.callFake((request: WriteRequest, _: Store, __: PermissionGrant[]) => {
         expect(request).toEqual(writeRequest);
         return false;
@@ -359,7 +273,7 @@ describe('PermissionsController', () => {
 
   describe('handleWriteCommitRequest', () => {
     it('should call store', async () => {
-      const owner = `did:example:${getHex()}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const commit = TestCommit.create({
@@ -369,7 +283,7 @@ describe('PermissionsController', () => {
         type: PERMISSION_GRANT_TYPE,
         commit_strategy: 'basic',
         operation: Operation.Update,
-        object_id: getHex(),
+        object_id: TestUtilities.randomString(),
       }, {
         owner,
         grantee: sender,
@@ -388,12 +302,12 @@ describe('PermissionsController', () => {
           payload: commit.getPayloadString(),
           signature: 'baz'
         },
-      });
+      }, context);
       const spy = spyOn(StoreUtils, 'objectExists').and.callFake((request: WriteRequest, _: Store, __: PermissionGrant[]) => {
         expect(request).toEqual(writeRequest);
         return true;
       });
-      const response = getHex();
+      const response = TestUtilities.randomString();
       const spyWrite = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, storeCalled: Store) => {
         expect(storeCalled).toEqual(context.store);
         expect(request).toEqual(writeRequest);
@@ -409,7 +323,7 @@ describe('PermissionsController', () => {
   describe('handleQueryRequest', () => {
 
     it('should verify the context', async () => {
-      const owner = `did:example:${getHex()}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const queryRequest = new ObjectQueryRequest({
@@ -438,7 +352,7 @@ describe('PermissionsController', () => {
     });
 
     it('should verify the type', async () => {
-      const owner = `did:example:${getHex()}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const queryRequest = new ObjectQueryRequest({
@@ -467,7 +381,7 @@ describe('PermissionsController', () => {
     });
 
     it('should query store with the correct filters', async () => {
-      const owner = `did:example:${getHex()}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const queryRequest = new ObjectQueryRequest({
@@ -521,7 +435,7 @@ describe('PermissionsController', () => {
     });
 
     it('should prune results', async () => {
-      const owner = `did:example:${getHex()}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const hub = 'did:example:hub';
       const sender = `${owner}-not`;
       const queryRequest = new ObjectQueryRequest({
@@ -543,7 +457,7 @@ describe('PermissionsController', () => {
         context: 'example.com',
         type: 'foobarbaz'
       }
-      const objectId = getHex();
+      const objectId = TestUtilities.randomString();
       const spy = spyOn(context.store, "queryObjects").and.returnValue({
         results: [{
           interface: 'Permissions',

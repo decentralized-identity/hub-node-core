@@ -144,6 +144,11 @@ export default abstract class Commit {
    * Gets the JSON Serialized form of this commit
    */
   abstract toJson(): any;
+
+  /**
+   * Validates the commit
+   */
+  abstract async validate(): Promise<void>;
 }
 
 /** Combined headers for a commit */
