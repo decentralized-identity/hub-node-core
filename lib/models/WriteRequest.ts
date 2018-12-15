@@ -32,7 +32,7 @@ export default class WriteRequest extends BaseRequest {
         errorCode: ErrorCode.BadRequest,
         property: 'commit',
         developerMessage: 'The commit must be signed by the request issuer',
-      })
+      });
     }
   }
 }
