@@ -1,5 +1,7 @@
 import BaseRequest from "../../lib/models/BaseRequest";
 import TestRequest from "../mocks/TestRequest";
+import TestUtilities from "../TestUtilities";
+import HubError, { ErrorCode, DeveloperMessage } from "../../lib/models/HubError";
 
 describe('BaseRequest', () => {
   describe('constructor', () => {
@@ -105,4 +107,31 @@ describe('BaseRequest', () => {
       expect(request.getType()).toEqual(type);
     });
   });
+
+  describe('getTypeFromJson', () => {
+    it('should parse a JSON string correctly', () => {
+      const testType = TestUtilities.randomString();
+      const test = `{
+        "@type": "${testType}"
+      }`;
+      expect(BaseRequest.getTypeFromJson(test)).toEqual(testType);
+    });
+
+    it('should throw if @type is not a string', () => {
+      const test = {
+        '@type': true,
+      };
+      try {
+        BaseRequest.getTypeFromJson(test);
+        fail('should throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.property).toEqual('@type');
+        expect(err.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
+      }
+    })
+  })
 });
