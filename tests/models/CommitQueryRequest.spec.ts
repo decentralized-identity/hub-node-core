@@ -1,6 +1,7 @@
 import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
-import HubError from '../../lib/models/HubError';
+import HubError, { ErrorCode } from '../../lib/models/HubError';
 import BaseRequest from '../../lib/models/BaseRequest';
+import TestUtilities from '../TestUtilities';
 
 describe('CommitQueryRequest', () => {
   const sender = 'did:example:alice.id';
@@ -25,7 +26,7 @@ describe('CommitQueryRequest', () => {
       let fields: any[] = [];
       const length = Math.round(Math.random() * 10) + 1;
       for (let i = 0; i < length; i++) {
-        const field = Math.round(Math.random() * 255).toString(16);
+        const field = TestUtilities.randomString();
         fields.push(field);
       }
       const request = formRequest(fields);
@@ -97,6 +98,29 @@ describe('CommitQueryRequest', () => {
         }
       }), 'query.revision',
       (request) => request.revisions);
+    });
+
+    it('should refuse object_id AND revision', () => {
+      try {
+        new CommitQueryRequest({
+          '@context': BaseRequest.context,
+          '@type': 'CommitQueryRequest',
+          iss: sender,
+          aud: hub,
+          sub: sender,
+          query: {
+            object_id: [TestUtilities.randomString()],
+            revision: [TestUtilities.randomString()],
+          }
+        });
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.NotImplemented);
+        expect(err.property).toContain('query.object_id');
+        expect(err.property).toContain('query.revision');
+      }
     });
 
     it('should copy `skip_token` if present', () => {
