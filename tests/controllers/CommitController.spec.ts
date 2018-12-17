@@ -6,10 +6,7 @@ import { HubError, ErrorCode } from '../../lib';
 import * as store from '../../lib/interfaces/Store';
 import TestCommit from '../mocks/TestCommit';
 import BaseRequest from '../../lib/models/BaseRequest';
-
-function getHex(): string {
-  return Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-}
+import TestUtilities from '../TestUtilities';
 
 describe('CommitQueryController', () => {
   const testContext = new TestContext();
@@ -21,9 +18,9 @@ describe('CommitQueryController', () => {
   let request: any;
 
   beforeEach(() => {
-    iss = `did:example:${getHex()}.id`;
-    aud = `did:example:${getHex()}.id`;
-    sub = `did:example:${getHex()}.id`;
+    iss = `did:example:${TestUtilities.randomString()}.id`;
+    aud = `did:example:${TestUtilities.randomString()}.id`;
+    sub = `did:example:${TestUtilities.randomString()}.id`;
     request = {
       iss,
       aud,
@@ -57,7 +54,7 @@ describe('CommitQueryController', () => {
     });
 
     it('should send store a request with no filters (full download)', async () => {
-      const errorCode = getHex();
+      const errorCode = TestUtilities.randomString();
       const spy = spyOn(testContext.store, 'queryCommits').and.callFake((request: store.CommitQueryRequest) => {
         expect(request.owner).toEqual(sub);
         expect(request.skip_token).toBeUndefined();
@@ -81,8 +78,8 @@ describe('CommitQueryController', () => {
     });
 
     it('should pass filters to store accordingly', async () => {
-      const objectId = getHex();
-      const errorCode = getHex();
+      const objectId = TestUtilities.randomString();
+      const errorCode = TestUtilities.randomString();
       const spy = spyOn(testContext.store, 'queryCommits').and.callFake((request: store.CommitQueryRequest) => {
         if (!request.filters || request.filters.length === 0) {
           fail('expected filters to be sent to store');
@@ -159,8 +156,8 @@ describe('CommitQueryController', () => {
     });
 
     it('should pass the skip_token to store', async () => {
-      const skip = getHex();
-      const returnedSkip = getHex();
+      const skip = TestUtilities.randomString();
+      const returnedSkip = TestUtilities.randomString();
       request.query = {
         skip_token: skip,
       };

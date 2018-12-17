@@ -33,9 +33,7 @@ export default class PermissionsController extends BaseController {
       PermissionsController.validateStrategy(headers as CommitHeaders);
       PermissionsController.validatePermissionGrant(request);
     }
-    if (operation === Operation.Update || operation === Operation.Delete) {
-      await this.validateObjectExists(request, grants);
-    }
+    await StoreUtils.validateObjectExists(request, this.context.store, grants);
     return StoreUtils.writeCommit(request, this.context.store);
   }
 
@@ -84,14 +82,6 @@ export default class PermissionsController extends BaseController {
         errorCode: ErrorCode.BadRequest,
         property: 'commit.payload.created_by',
         developerMessage: 'Create permission cannot be given when created_by is used',
-      });
-    }
-  }
-
-  private async validateObjectExists(request: WriteRequest, grants: PermissionGrant[]) {
-    if (!await StoreUtils.objectExists(request, this.context.store, grants)) {
-      throw new HubError({
-        errorCode: ErrorCode.NotFound,
       });
     }
   }

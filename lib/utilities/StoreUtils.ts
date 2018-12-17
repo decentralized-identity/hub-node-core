@@ -3,11 +3,25 @@ import PermissionGrant from '../models/PermissionGrant';
 import WriteRequest from '../models/WriteRequest';
 import HubError, { ErrorCode } from '../models/HubError';
 import WriteResponse from '../models/WriteResponse';
+import { Operation } from '../models/Commit';
 
 /**
  * Utilities for interacting with the Storage layer (Store)
  */
 export default class StoreUtils {
+  /**
+   * Convinence function for throwing Not Found if the object in the request does not exist
+   * @param request WriteRequest (will not throw for Create).
+   * @param store store instance to look the object up in
+   * @param grants PermissionGrants for this request for created_by filters
+   */
+  public static async validateObjectExists(request: WriteRequest, store: Store, grants?: PermissionGrant[]) {
+    const operation = request.commit.getProtectedHeaders().operation!;
+    if (operation !== Operation.Create && StoreUtils.objectExists(request, store, grants)) {
+      throw HubError.notFound();
+    }
+  }
+
   /**
    * Checks if the object referenced by the WriteRequest exists and is permitted
    * @param request WriteRequest with commit of object to check for. object_id MUST be defined in commit.
@@ -61,9 +75,7 @@ export default class StoreUtils {
         }
       });
       if (!authorized) {
-        throw new HubError({
-          errorCode: ErrorCode.PermissionsRequired,
-        });
+        throw HubError.permissionRequired();
       }
     }
 

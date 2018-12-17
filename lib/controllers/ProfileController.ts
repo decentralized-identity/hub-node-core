@@ -18,26 +18,16 @@ export default class ProfileController extends BaseController {
 
   async handleWriteCommitRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
     const headers = request.commit.getProtectedHeaders();
-    switch (headers.operation) {
-      case Operation.Create:
-        const profiles = await this.getProfiles(request.sub, headers.context, headers.type);
-        if (profiles.length > 0) {
-          throw new HubError({
-            errorCode: ErrorCode.BadRequest,
-            developerMessage: `Profile already exists. Please issue update for object_id: '${profiles[0].id}'`,
-          });
-        }
-        break;
-      case Operation.Update:
-      case Operation.Delete:
-        if (!await StoreUtils.objectExists(request, this.context.store, grants)) {
-          throw new HubError({
-            errorCode: ErrorCode.NotFound,
-          });
-        }
-        break;
+    if (headers.operation === Operation.Create) {
+      const profiles = await this.getProfiles(request.sub, headers.context, headers.type);
+      if (profiles.length > 0) {
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          developerMessage: `Profile already exists. Please issue update for object_id: '${profiles[0].id}'`,
+        });
+      }
     }
-
+    await StoreUtils.validateObjectExists(request, this.context.store, grants);
     return StoreUtils.writeCommit(request, this.context.store);
   }
 

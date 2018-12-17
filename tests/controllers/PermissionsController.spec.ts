@@ -138,34 +138,24 @@ describe('PermissionsController', () => {
   describe('validatePermissionGrant', () => {
     it('should forbid making a CREATE permission with created_by', async () => {
       const owner = `did:example:${TestUtilities.randomString()}`;
-      const hub = 'did:example:hub';
       const sender = `${owner}-not`;
-      const commit = TestCommit.create({
+      
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: owner,
         sub: owner,
         kid: `${owner}#key-1`,
-        context: PERMISSION_GRANT_CONTEXT,
+        context: PERMISSION_GRANT_TYPE,
         type: PERMISSION_GRANT_TYPE,
-        commit_strategy: 'basic',
-      }, {
-        owner,
-        grantee: sender,
-        allow: 'C----',
-        context: 'example.com',
-        type: 'foo',
-        created_by: 'bar'
-      } as PermissionGrant);
-      const writeRequest = new WriteRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        iss: sender,
-        aud: hub,
-        sub: owner,
-        commit: {
-          protected: commit.getProtectedString(),
-          payload: commit.getPayloadString(),
-          signature: 'baz'
-        },
-      }, context);
+        payload: {
+          owner,
+          grantee: sender,
+          allow: 'C----',
+          context: 'example.com',
+          type: 'foo',
+          created_by: 'bar'
+        } as PermissionGrant,
+      });
+
       try {
         await controller.handleWriteCommitRequest(writeRequest, []);
         fail('did not throw');
@@ -182,33 +172,23 @@ describe('PermissionsController', () => {
   describe('handleWriteCommitRequest', () => {
     it('should create an object if valid', async () => {
       const owner = `did:example:${TestUtilities.randomString()}`;
-      const hub = 'did:example:hub';
       const sender = `${owner}-not`;
-      const commit = TestCommit.create({
+      
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: owner,
         sub: owner,
         kid: `${owner}#key-1`,
-        context: PERMISSION_GRANT_CONTEXT,
+        context: PERMISSION_GRANT_TYPE,
         type: PERMISSION_GRANT_TYPE,
-        commit_strategy: 'basic',
-      }, {
-        owner,
-        grantee: sender,
-        allow: 'C----',
-        context: 'example.com',
-        type: 'foo',
-      } as PermissionGrant);
-      const writeRequest = new WriteRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        iss: sender,
-        aud: hub,
-        sub: owner,
-        commit: {
-          protected: commit.getProtectedString(),
-          payload: commit.getPayloadString(),
-          signature: 'baz'
-        },
-      }, context);
+        payload: {
+          owner,
+          grantee: sender,
+          allow: 'C----',
+          context: 'example.com',
+          type: 'foo',
+        } as PermissionGrant,
+      });
+
       const response = TestUtilities.randomString();
       const spy = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, store: Store) => {
         expect(request).toEqual(writeRequest);

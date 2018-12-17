@@ -51,7 +51,7 @@ export default class TestRequest extends BaseRequest {
     return new ObjectQueryRequest(request);
   }
 
-  static createWriteRequest(options?: Partial<requestOptions>, context?: Context): WriteRequest {
+  static createWriteRequest(options?: Partial<requestOptions>): WriteRequest {
     const headers: any = {
       interface: options && options.interface? options.interface : 'Base',
       context: options && options.context? options.context : 'example.com',
@@ -88,7 +88,7 @@ export default class TestRequest extends BaseRequest {
     if (options && options.skipToken) {
       request.query.skip_token = options.skipToken;
     }
-    return new WriteRequest(request, context? context: new TestContext());
+    return new WriteRequest(request);
   }
 
   private static overridesOnObject(object: any, options?: Partial<requestOptions>) {
