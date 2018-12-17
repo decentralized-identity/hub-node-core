@@ -57,7 +57,7 @@ describe('CollectionsController', () => {
           operation,
           object_id: id,
         })
-        const deleteSpy = spyOn(context.store, 'commit').and.callFake((commit: store.CommitRequest) => {
+        const operationSpy = spyOn(context.store, 'commit').and.callFake((commit: store.CommitRequest) => {
           expect(commit.owner).toEqual('did:example:alice.id');
           expect(commit.commit.getProtectedHeaders().object_id).toEqual(id);
           return {
@@ -66,7 +66,7 @@ describe('CollectionsController', () => {
         });
         const response = await controller.handleWriteCommitRequest(request, TestUtilities.allowPermissionGrants);
         expect(spy).toHaveBeenCalled();
-        expect(deleteSpy).toHaveBeenCalled();
+        expect(operationSpy).toHaveBeenCalled();
         expect(response.revisions).toEqual([id]);
       });
       it(`should fail to ${operation} if the object does not exist`, async () => {
@@ -77,7 +77,7 @@ describe('CollectionsController', () => {
           operation,
           object_id: id,
         });
-        const deleteSpy = spyOn(context.store, 'commit');
+        const operationSpy = spyOn(context.store, 'commit');
         try {
           await controller.handleWriteCommitRequest(request, TestUtilities.allowPermissionGrants);
           fail('did not throw');
@@ -88,7 +88,7 @@ describe('CollectionsController', () => {
           expect(err.errorCode).toEqual(ErrorCode.NotFound);
         }
         expect(spy).toHaveBeenCalled();
-        expect(deleteSpy).not.toHaveBeenCalled();
+        expect(operationSpy).not.toHaveBeenCalled();
       });
     });
   });

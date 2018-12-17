@@ -77,39 +77,45 @@ describe('CommitQueryController', () => {
       expect(spy).toHaveBeenCalled();
     });
 
-    it('should pass filters to store accordingly', async () => {
-      const objectId = TestUtilities.randomString();
+    const filterNamesMap: {[requestField: string]: string} = {
+      object_id: 'object_id',
+      revision: 'rev',
+    };
+    ['object_id', 'revision'].forEach((filterType) => {
+      const value = TestUtilities.randomString();
       const errorCode = TestUtilities.randomString();
-      const spy = spyOn(testContext.store, 'queryCommits').and.callFake((request: store.CommitQueryRequest) => {
-        if (!request.filters || request.filters.length === 0) {
-          fail('expected filters to be sent to store');
-          return;
-        }
-        expect(request.filters.length).toEqual(1);
-
-        const filter = request.filters[0];
-        expect(filter.type).toEqual('eq');
-        expect(filter.field).toEqual('object_id');
-        expect(filter.value).toEqual([objectId]);
-
-        throw new HubError({
-          errorCode: ErrorCode.ServerError,
-          developerMessage: errorCode,
+      it(`should pass ${filterType} filter to store accordingly`, async () => {
+        const spy = spyOn(testContext.store, 'queryCommits').and.callFake((request: store.CommitQueryRequest) => {
+          if (!request.filters || request.filters.length === 0) {
+            fail('expected filters to be sent to store');
+            return;
+          }
+          expect(request.filters.length).toEqual(1);
+  
+          const filter = request.filters[0];
+          expect(filter.type).toEqual('eq');
+          expect(filter.field).toEqual(filterNamesMap[filterType]);
+          expect(filter.value).toEqual([value]);
+  
+          throw new HubError({
+            errorCode: ErrorCode.ServerError,
+            developerMessage: errorCode,
+          });
         });
-      });
-      try {
-        request.query = {
-          object_id: [objectId],
-        };
-        await controller.handle(new CommitQueryRequest(request));
-      } catch (err) {
-        if (!(err instanceof HubError)) {
-          fail(err.message);
+        const query: any = {};
+        query[filterType] = [value];
+        request.query = query;
+        try {
+          await controller.handle(new CommitQueryRequest(request));
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.ServerError);
+          expect(err.developerMessage).toEqual(errorCode);
         }
-        expect(err.errorCode).toEqual(ErrorCode.ServerError);
-        expect(err.developerMessage).toEqual(errorCode);
-      }
-      expect(spy).toHaveBeenCalled();
+        expect(spy).toHaveBeenCalled();
+      });
     });
 
     it('should prune its result for authorization and return as a CommitQueryResponse', async () => {

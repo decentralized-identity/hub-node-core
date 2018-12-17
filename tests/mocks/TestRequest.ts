@@ -3,8 +3,6 @@ import ObjectQueryRequest from "../../lib/models/ObjectQueryRequest";
 import WriteRequest from "../../lib/models/WriteRequest";
 import { Operation } from "../../lib/models/Commit";
 import TestCommit from '../mocks/TestCommit';
-import TestContext from "./TestContext";
-import Context from "../../lib/interfaces/Context";
 import TestUtilities from "../TestUtilities";
 
 export interface requestOptions {
