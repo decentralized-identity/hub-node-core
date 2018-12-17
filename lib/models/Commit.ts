@@ -2,6 +2,7 @@ import base64url from 'base64url';
 import { DidDocument } from '@decentralized-identity/did-common-typescript';
 import HubError, { ErrorCode } from './HubError';
 import * as crypto from 'crypto';
+import Context from '../interfaces/Context';
 
 /** Operations for a commit */
 export enum Operation {
@@ -148,7 +149,7 @@ export default abstract class Commit {
   /**
    * Validates the commit
    */
-  abstract async validate(): Promise<void>;
+  abstract async validate(context: Context): Promise<void>;
 }
 
 /** Combined headers for a commit */

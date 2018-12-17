@@ -15,15 +15,8 @@ export default class SignedCommit extends Commit {
   /** Singleton cryptoFactory */
   protected static cryptoFactory: CryptoFactory;
 
-  constructor(jws: any, context: Context) {
+  constructor(jws: any) {
     super(jws);
-    // singleton initializer
-    if (!SignedCommit.resolver) {
-      SignedCommit.resolver = context.resolver;
-    }
-    if (!SignedCommit.cryptoFactory) {
-      SignedCommit.cryptoFactory = new CryptoFactory(context.cryptoSuites);
-    }
 
     if (!('signature' in jws)) {
       throw HubError.missingParameter('commit.signature');
@@ -33,14 +26,19 @@ export default class SignedCommit extends Commit {
     }
 
     this.originalSignature = jws.signature;
-
-    this.validate();
   }
 
   /**
    * Validates the signature of the commit
    */
-  async validate() {
+  async validate(context: Context) {
+    // singleton initializer
+    if (!SignedCommit.resolver) {
+      SignedCommit.resolver = context.resolver;
+    }
+    if (!SignedCommit.cryptoFactory) {
+      SignedCommit.cryptoFactory = new CryptoFactory(context.cryptoSuites);
+    }
     const content = `${this.originalProtected}.${this.originalPayload}.${this.originalSignature}`;
     const token = new JwsToken(content, SignedCommit.cryptoFactory);
     const keyId = token.getHeader().kid;

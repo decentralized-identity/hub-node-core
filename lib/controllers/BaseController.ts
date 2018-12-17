@@ -87,7 +87,7 @@ export default abstract class BaseController {
       case 'WriteRequest':
         const writeRequest = request as WriteRequest;
         BaseController.verifyConstraints(writeRequest);
-        writeRequest.commit.validate();
+        writeRequest.commit.validate(this.context);
         return await this.handleWriteCommitRequest(writeRequest, grants);
       default:
         throw HubError.incorrectParameter('@type');
