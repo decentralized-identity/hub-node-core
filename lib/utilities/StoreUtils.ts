@@ -17,7 +17,7 @@ export default class StoreUtils {
    */
   public static async validateObjectExists(request: WriteRequest, store: Store, grants?: PermissionGrant[]) {
     const operation = request.commit.getProtectedHeaders().operation!;
-    if (operation !== Operation.Create && StoreUtils.objectExists(request, store, grants)) {
+    if (operation !== Operation.Create && !await StoreUtils.objectExists(request, store, grants)) {
       throw HubError.notFound();
     }
   }
