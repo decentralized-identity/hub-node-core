@@ -7,7 +7,7 @@ import { Store } from '../../lib/interfaces/Store';
 import StoreUtils from '../../lib/utilities/StoreUtils';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import { Operation } from '../../lib/models/Commit';
-import PermissionGrant from '../../lib/models/PermissionGrant';
+import PermissionGrant, { OWNER_PERMISSION } from '../../lib/models/PermissionGrant';
 import WriteResponse from '../../lib/models/WriteResponse';
 import BaseRequest from '../../lib/models/BaseRequest';
 import TestUtilities from '../TestUtilities';
@@ -228,7 +228,30 @@ describe('ProfileController', () => {
       expect(results.objects.length).toEqual(0);
       expect(spy).toHaveBeenCalled();
     });
-    
+
+    it('should return a profile if one exists', async () => {
+      const id = TestUtilities.randomString();
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: [{
+          interface: 'Profile',
+          context: profileContext,
+          type: profileType,
+          id,
+          created_by: owner,
+          created_at: new Date(Date.now()).toISOString(),
+          sub: owner,
+          commit_strategy: 'basic'
+          }],
+        pagination: {
+          skip_token: null,
+        },
+      });
+      const results = await controller.handleQueryRequest(query, [OWNER_PERMISSION]);
+      expect(results.objects.length).toEqual(1);
+      expect(spy).toHaveBeenCalled();
+      expect(results.objects[0].id).toEqual(id);
+    });
+
     it('should return a random profile if multiple exist', async () => {
       const profiles: ObjectContainer[] = [];
       const count = Math.round(Math.random() * 10) + 1;
