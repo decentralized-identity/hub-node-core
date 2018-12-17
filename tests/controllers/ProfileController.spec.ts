@@ -278,5 +278,36 @@ describe('ProfileController', () => {
       expect(profiles.includes(results.objects[0])).toBeTruthy();
       expect(spy).toHaveBeenCalled();
     });
+
+    
+    it('should return a random profile per schema if multiple exist', async () => {
+      const profiles: ObjectContainer[] = [];
+      const count = Math.round(Math.random() * 10) + 1;
+      let someType: string = TestUtilities.randomString();
+      for(let i = 0; i < count; i++) {
+        if (i % 2 == 0) {
+          someType = TestUtilities.randomString();
+        }
+        profiles.push({
+        interface: 'Profile',
+        context: profileContext,
+        type: someType,
+        id: TestUtilities.randomString(),
+        created_by: owner,
+        created_at: new Date(Date.now()).toISOString(),
+        sub: owner,
+        commit_strategy: 'basic'
+        });
+      }
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: profiles,
+        pagination: {
+          skip_token: null,
+        },
+      });
+      const results = await controller.handleQueryRequest(query, []);
+      expect(results.objects.length).toEqual(Math.ceil(count / 2));
+      expect(spy).toHaveBeenCalled();
+    });
   })
 });
