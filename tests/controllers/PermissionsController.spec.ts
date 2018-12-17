@@ -7,11 +7,9 @@ import PermissionGrant, { PERMISSION_GRANT_TYPE, PERMISSION_GRANT_CONTEXT } from
 import StoreUtils from '../../lib/utilities/StoreUtils';
 import WriteResponse from '../../lib/models/WriteResponse';
 import { Store } from '../../lib/interfaces/Store';
-import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import { QueryEqualsFilter } from '../../lib/interfaces/Store';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
-import BaseRequest from '../../lib/models/BaseRequest';
 import { Operation } from '../../lib/models/Commit';
 import TestRequest from '../mocks/TestRequest';
 import TestUtilities from '../TestUtilities';
@@ -198,7 +196,45 @@ describe('PermissionsController', () => {
       expect(result.revisions.length).toEqual(1);
       expect(result.revisions[0]).toEqual(response);
       expect(spy).toHaveBeenCalled();
-    })
+    });
+
+    it('should call store', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: owner,
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        operation: Operation.Update,
+        object_id: TestUtilities.randomString(),
+        payload: {
+          owner,
+          grantee: sender,
+          allow: 'C----',
+          context: 'example.com',
+          type: 'foo',
+        } as PermissionGrant,
+      });
+
+      const spy = spyOn(StoreUtils, 'validateObjectExists').and.callFake((request: WriteRequest, _: Store, __: PermissionGrant[]) => {
+        expect(request).toEqual(writeRequest);
+      });
+
+      const response = TestUtilities.randomString();
+      const spyWrite = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, storeCalled: Store) => {
+        expect(storeCalled).toEqual(context.store);
+        expect(request).toEqual(writeRequest);
+        return new WriteResponse([response]);
+      });
+
+      let result = await controller.handleWriteCommitRequest(writeRequest, []);
+      expect(result.revisions[0]).toEqual(response);
+      expect(spy).toHaveBeenCalled();
+      expect(spyWrite).toHaveBeenCalled();
+    });
   });
 
   describe('validateObjectExists', () => {
@@ -235,63 +271,20 @@ describe('PermissionsController', () => {
     });
   });
 
-  describe('handleWriteCommitRequest', () => {
-    it('should call store', async () => {
-      const owner = `did:example:${TestUtilities.randomString()}`;
-      const sender = `${owner}-not`;
-
-      const writeRequest = TestRequest.createWriteRequest({
-        iss: owner,
-        sub: owner,
-        kid: `${owner}#key-1`,
-        context: PERMISSION_GRANT_CONTEXT,
-        type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Update,
-        object_id: TestUtilities.randomString(),
-        payload: {
-          owner,
-          grantee: sender,
-          allow: 'C----',
-          context: 'example.com',
-          type: 'foo',
-        } as PermissionGrant,
-      });
-
-      const spy = spyOn(StoreUtils, 'objectExists').and.callFake((request: WriteRequest, _: Store, __: PermissionGrant[]) => {
-        expect(request).toEqual(writeRequest);
-        return true;
-      });
-      const response = TestUtilities.randomString();
-      const spyWrite = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, storeCalled: Store) => {
-        expect(storeCalled).toEqual(context.store);
-        expect(request).toEqual(writeRequest);
-        return new WriteResponse([response]);
-      });
-      let result = await controller.handleWriteCommitRequest(writeRequest, []);
-      expect(result.revisions[0]).toEqual(response);
-      expect(spy).toHaveBeenCalled();
-      expect(spyWrite).toHaveBeenCalled();
-    });
-  });
-
   describe('handleQueryRequest', () => {
 
     it('should verify the context', async () => {
       const owner = `did:example:${TestUtilities.randomString()}`;
-      const hub = 'did:example:hub';
       const sender = `${owner}-not`;
-      const queryRequest = new ObjectQueryRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
+
+      const queryRequest = TestRequest.createObjectQueryRequest({
         iss: sender,
-        aud: hub,
         sub: owner,
-        query: {
-          interface: 'Permissions',
-          context: 'not the right one',
-          type: PERMISSION_GRANT_TYPE
-        }
+        interface: 'Permissions',
+        context: 'incorrect',
+        type: PERMISSION_GRANT_TYPE
       });
+
       const spy = spyOn(context.store, "queryObjects");
       try {
         await controller.handleQueryRequest(queryRequest, []);
@@ -307,20 +300,16 @@ describe('PermissionsController', () => {
 
     it('should verify the type', async () => {
       const owner = `did:example:${TestUtilities.randomString()}`;
-      const hub = 'did:example:hub';
       const sender = `${owner}-not`;
-      const queryRequest = new ObjectQueryRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
+
+      const queryRequest = TestRequest.createObjectQueryRequest({
         iss: sender,
-        aud: hub,
         sub: owner,
-        query: {
-          interface: 'Permissions',
-          context: PERMISSION_GRANT_CONTEXT,
-          type: 'incorrect type',
-        }
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: 'incorrect',
       });
+
       const spy = spyOn(context.store, "queryObjects");
       try {
         await controller.handleQueryRequest(queryRequest, []);
@@ -336,20 +325,16 @@ describe('PermissionsController', () => {
 
     it('should query store with the correct filters', async () => {
       const owner = `did:example:${TestUtilities.randomString()}`;
-      const hub = 'did:example:hub';
       const sender = `${owner}-not`;
-      const queryRequest = new ObjectQueryRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
+
+      const queryRequest = TestRequest.createObjectQueryRequest({
         iss: sender,
-        aud: hub,
         sub: owner,
-        query: {
-          interface: 'Permissions',
-          context: PERMISSION_GRANT_CONTEXT,
-          type: PERMISSION_GRANT_TYPE
-        }
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE
       });
+
       const spy = spyOn(context.store, "queryObjects").and.callFake((query: any) => {
         expect(query.owner).toEqual(owner);
         expect(query.filters).toBeDefined();
@@ -390,20 +375,16 @@ describe('PermissionsController', () => {
 
     it('should prune results', async () => {
       const owner = `did:example:${TestUtilities.randomString()}`;
-      const hub = 'did:example:hub';
       const sender = `${owner}-not`;
-      const queryRequest = new ObjectQueryRequest({
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
+
+      const queryRequest = TestRequest.createObjectQueryRequest({
         iss: sender,
-        aud: hub,
         sub: owner,
-        query: {
-          interface: 'Permissions',
-          context: PERMISSION_GRANT_CONTEXT,
-          type: PERMISSION_GRANT_TYPE
-        }
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE
       });
+
       const grant: PermissionGrant = {
         owner,
         grantee: sender,
