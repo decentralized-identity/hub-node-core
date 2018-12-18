@@ -43,6 +43,7 @@ export default class CommitStrategyBasic {
       };
     });
     if (allObjectCommits.length === 0) {
+      console.log('no valid commit.');
       return null;
     }
     return allObjectCommits.reduce((latestCommit, currentCommit) => {

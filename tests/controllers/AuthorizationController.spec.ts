@@ -37,8 +37,10 @@ describe('AuthorizationController', () => {
           reject();
           return;
         }
+        let objectFound = false;
         query.filters.forEach((filter) => {
           if (filter.field === 'object_id') {
+            objectFound = true;
             if (typeof filter.value === 'string') {
               resolve({
                 results: [
@@ -59,9 +61,11 @@ describe('AuthorizationController', () => {
             return;
           }
         });
-        fail('could not find an object_id filter');
-        reject();
-        return;
+        if (!objectFound) {
+          fail('could not find an object_id filter');
+          reject();
+          return;
+        }
       });
     });
   }
@@ -522,6 +526,7 @@ describe('AuthorizationController', () => {
         sub: owner,
         commit_strategy: 'not-basic-totally-complex-commit-strategy',
       }
+
       objectStore.and.returnValue({
         results: [grantObject],
         pagination: {
@@ -529,9 +534,16 @@ describe('AuthorizationController', () => {
         }
       });
 
-      const permissions = await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [['context', 'type']]);
-
-      expect(permissions.length).toEqual(0);
+      const schema: [string, string] = ['context', 'type'];
+      try {
+        await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [schema]);
+        fail('expected to throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+      }
     });
 
     it('should ignore permission objects with no valid commits', async() => {
@@ -575,8 +587,17 @@ describe('AuthorizationController', () => {
 
       returnPermissionCommits([permissionCommit]);
 
-      const permissions = await getPermissionGrants(AuthorizationOperation.Update, owner, sender, [['example.com', type]]);
-      expect(permissions.length).toEqual(0);
+      const schema: [string, string] = ['example.com', type];
+      try {
+        console.log('no valid commit?');
+        await getPermissionGrants(AuthorizationOperation.Update, owner, sender, [schema]);
+        fail('expected to throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+      }
     });
 
     it('should ignore CREATE permissions in a created_by conflict', async() => {
@@ -593,9 +614,16 @@ describe('AuthorizationController', () => {
       }
       returnPermissions([grant]);
       
-      const permissions = await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [['example.com', type]]);
-  
-      expect(permissions.length).toEqual(0);
+      const schema: [string, string] = ['example.com', type];
+      try {
+        await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [schema]);
+        fail('expected to throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+      }
     });
 
   })
