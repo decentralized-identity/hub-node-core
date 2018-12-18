@@ -6,6 +6,7 @@ import nodeFetch from 'node-fetch';
  * @class
  * @extends DidResolver
  */
+/* istanbul ignore next */ // this should not be in hub-node-core
 export default class HttpResolver implements DidResolver {
 
   /**
