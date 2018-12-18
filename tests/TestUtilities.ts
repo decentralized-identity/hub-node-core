@@ -26,4 +26,9 @@ export default class TestUtilities {
       signature: parts[2]
     });
   }
+
+  static resetSignedCommitStatics() {
+    delete SignedCommit['resolver'];
+    delete SignedCommit['cryptoFactory'];
+  }
 }

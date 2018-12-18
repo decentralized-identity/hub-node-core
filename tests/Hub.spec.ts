@@ -8,7 +8,7 @@ import {
          RsaCryptoSuite,
          PrivateKey,
         CryptoFactory} from '@decentralized-identity/did-auth-jose';
-import { ErrorCode } from '../lib';
+import { ErrorCode } from '../lib/models/HubError';
 import CommitQueryRequest from '../lib/models/CommitQueryRequest';
 import ObjectQueryRequest from '../lib/models/ObjectQueryRequest';
 import TestCommit from './mocks/TestCommit';
@@ -53,6 +53,7 @@ describe('Hub', () => {
     const testResolver = new unitTestExports.TestResolver();
     testResolver.setHandle(async (_: string) => { return hubDID; });
     testContext.resolver = testResolver;
+    TestUtilities.resetSignedCommitStatics();
   });
 
   const header = {
@@ -161,7 +162,6 @@ describe('Hub', () => {
       expect(httpresponse).toBeDefined();
       expect(httpresponse.ok).toEqual(false);
       expect(httpresponse.body).toBeDefined();
-      console.log(httpresponse.body.toString('utf-8'));
       const response = JSON.parse(httpresponse.body.toString('utf-8'));
       expect(response.error_code).toEqual(ErrorCode.AuthenticationFailed);
     });
@@ -245,7 +245,6 @@ describe('Hub', () => {
         const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(writeRequest));
         const response = await hub.handleRequest(requestString);
         const unwrapped = await unwrapResponse(hubkey, hubPublicKey, response.body);
-        console.log(unwrapped);
         expect(unwrapped.revisions).toEqual([value]);
       });
     });
