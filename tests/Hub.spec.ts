@@ -21,17 +21,18 @@ describe('Hub', () => {
 
   let testContext: TestContext;
 
-  const hubId = 'did:example:hub'
-  const hubKid = `${hubId}#key1`
+  let hubId = 'did:example:hub'
+  let hubKid = `${hubId}#key1`
   let hubkey: PrivateKey;
   let hubPublicKey: PublicKey;
   let hubDID: DidDocument;
   let hubKeys: {[id: string]: PrivateKey}= {};
-  let testResolver: any;
   const rsa = new RsaCryptoSuite();
   const registry = new CryptoFactory([rsa]);
 
   beforeEach(async () => {
+    hubId = `did:example:${TestUtilities.randomString()}`;
+    hubKid = `${hubId}#key1`
     testContext = new TestContext();
     testContext.cryptoSuites = [rsa];
     hubkey = await testContext.createPrivateKey(hubKid);
@@ -49,9 +50,9 @@ describe('Hub', () => {
         publicKeyJwk: hubPublicKey,
       }],
     });
-    testResolver = new unitTestExports.TestResolver();
-    testContext.resolver = testResolver;
+    const testResolver = new unitTestExports.TestResolver();
     testResolver.setHandle(async (_: string) => { return hubDID; });
+    testContext.resolver = testResolver;
   });
 
   const header = {
@@ -140,6 +141,7 @@ describe('Hub', () => {
         }],
       });
 
+      const testResolver = new unitTestExports.TestResolver();
       testResolver.setHandle(async (_: string) => { return did; });
       testContext.resolver = testResolver;
 
@@ -243,6 +245,7 @@ describe('Hub', () => {
         const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(writeRequest));
         const response = await hub.handleRequest(requestString);
         const unwrapped = await unwrapResponse(hubkey, hubPublicKey, response.body);
+        console.log(unwrapped);
         expect(unwrapped.revisions).toEqual([value]);
       });
     });
