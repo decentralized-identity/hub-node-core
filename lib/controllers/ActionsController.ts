@@ -6,7 +6,6 @@ import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
 import PermissionGrant from '../models/PermissionGrant';
 
-
 export const ACTION_SCHEMA: string = 'http://schema.identity.foundation/Action';
 
 /**
