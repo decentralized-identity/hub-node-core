@@ -410,70 +410,70 @@ describe('AuthorizationController', () => {
           expect(err.errorCode).toEqual(ErrorCode.ServerError);
         }
       });
-    });
+  });
 
-    describe('pruneResults', () => {
-      function createObjects(context: string, type: string): ObjectContainer[] {
-        const count = Math.round(Math.random() * 10) + 1;
-        const objects: ObjectContainer[] = [];
-        for (let i = 0; i < count; i++) {
-          objects.push({
-            interface: 'Collections',
-            context,
-            type,
-            id: TestUtilities.randomString(),
-            sub: 'did:example:alice.id',
-            created_by: 'did:example:alice.id',
-            created_at: new Date(Date.now()).toISOString(),
-            commit_strategy: 'basic'
-          });
-        }
-        return objects;
-      }
-
-      it('should allow if there exists any permission grant that allows reading', async () => {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const context = 'example.com';
-        const type = 'testType';
-        const objects = createObjects(context, type);
-        const grant: PermissionGrant = {
-          owner,
-          grantee: sender,
-          allow: '-R---',
-          context,
-          type
-        }
-        const results = await AuthorizationController.pruneResults(objects, [grant]);
-        expect(results.length).toEqual(objects.length);
-        expect(results).toEqual(objects);
-      });
-
-      it('should fail if the query is unrestricted but the permissions are restricted', async () => {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const context = 'example.com';
-        const type = 'testType';
-        const objects = createObjects(context, type);
-        const grant: PermissionGrant = {
-          owner,
-          grantee: sender,
-          allow: '-R---',
+  describe('pruneResults', () => {
+    function createObjects(context: string, type: string): ObjectContainer[] {
+      const count = Math.round(Math.random() * 10) + 1;
+      const objects: ObjectContainer[] = [];
+      for (let i = 0; i < count; i++) {
+        objects.push({
+          interface: 'Collections',
           context,
           type,
-          created_by: owner
-        }
-        try {
-          await AuthorizationController.pruneResults(objects, [grant]);
-          fail('did not throw');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
-        }
-      });
+          id: TestUtilities.randomString(),
+          sub: 'did:example:alice.id',
+          created_by: 'did:example:alice.id',
+          created_at: new Date(Date.now()).toISOString(),
+          commit_strategy: 'basic'
+        });
+      }
+      return objects;
+    }
+
+    it('should allow if there exists any permission grant that allows reading', async () => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const context = 'example.com';
+      const type = 'testType';
+      const objects = createObjects(context, type);
+      const grant: PermissionGrant = {
+        owner,
+        grantee: sender,
+        allow: '-R---',
+        context,
+        type
+      }
+      const results = await AuthorizationController.pruneResults(objects, [grant]);
+      expect(results.length).toEqual(objects.length);
+      expect(results).toEqual(objects);
     });
+
+    it('should fail if the query is unrestricted but the permissions are restricted', async () => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const context = 'example.com';
+      const type = 'testType';
+      const objects = createObjects(context, type);
+      const grant: PermissionGrant = {
+        owner,
+        grantee: sender,
+        allow: '-R---',
+        context,
+        type,
+        created_by: owner
+      }
+      try {
+        await AuthorizationController.pruneResults(objects, [grant]);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+      }
+    });
+  });
 
   describe('getPermissionGrantsForCommitQuery', () => {
     it('should allow the owner', async () => {
@@ -571,5 +571,52 @@ describe('AuthorizationController', () => {
       const grants = await auth.getPermissionGrantsForCommitQuery(commitRequest, [dataCommit]);
       expect(grants.length).toEqual(1);
     });
+  });
+
+  describe('doesGrantPermit', () => {
+    function doesGrantPermit(grant: PermissionGrant, operation: AuthorizationOperation): boolean {
+      return AuthorizationController['doesGrantPermit'](grant, operation);
+    }
+
+    const crudMap: {[operation: string]: string} = {
+      'create': 'C---',
+      'read': '-R--',
+      'update': '--U-',
+      'delete': '---D',
+    };
+
+    const allOperations = [AuthorizationOperation.Create, AuthorizationOperation.Delete, AuthorizationOperation.Read, AuthorizationOperation.Update];
+
+    allOperations.forEach((operation) => {
+      const grant: PermissionGrant = {
+        owner: 'did:example:alice.id',
+        grantee: 'did:example:bob.id',
+        allow: crudMap[operation],
+        context: 'foo',
+        type: 'bar'
+      };
+      it(`should grant ${operation} for ${crudMap[operation]} in CRUD permissions`, () => {
+        expect(doesGrantPermit(grant, operation)).toBeTruthy();
+      });
+
+      allOperations.forEach((otherOperation) => {
+        if (otherOperation !== operation) {
+          it(`should deny ${otherOperation} for ${crudMap[operation]} in CRUD permissions`, () => {
+            expect(doesGrantPermit(grant, otherOperation)).toBeFalsy();
+          });
+        }
+      });
+    });
+
+    it('should deny any operation it is unaware of', () => {
+      const grant: PermissionGrant = {
+        owner: 'did:example:alice.id',
+        grantee: 'did:example:bob.id',
+        allow: 'CRUD',
+        context: 'foo',
+        type: 'bar'
+      };
+      expect(doesGrantPermit(grant, 'someThing' as AuthorizationOperation)).toBeFalsy();
+    })
   });
 });
