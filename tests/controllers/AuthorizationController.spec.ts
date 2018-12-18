@@ -13,17 +13,100 @@ import TestRequest from '../mocks/TestRequest';
 import TestUtilities from '../TestUtilities';
 
 describe('AuthorizationController', () => {
-  let store: jasmine.Spy;
-  let commitsStore: jasmine.Spy;
+  let objectStore: jasmine.Spy;
+  let commitStore: jasmine.Spy;
   let auth: AuthorizationController;
 
   beforeEach(() => {
     const context = new TestContext();
-    store = spyOn(context.store, 'queryObjects');
-    commitsStore = spyOn(context.store, 'queryCommits');
+    objectStore = spyOn(context.store, 'queryObjects');
+    commitStore = spyOn(context.store, 'queryCommits');
     auth = new AuthorizationController(context);
   });
+
+  /** given commits, fakes the commitStore to return the corresponding commit */
+  function returnPermissionCommits(commits: Commit[]) {
+    const asCommits: {[id: string]: Commit} = {};
+    commits.forEach((commit) => {
+      asCommits[commit.getHeaders().rev] = commit;
+    })
+    commitStore.and.callFake((query: store.CommitQueryRequest): Promise<store.CommitQueryResponse> => {
+      return new Promise((resolve, reject) => {
+        if (!query.filters) {
+          fail('must query for permission grant object');
+          reject();
+          return;
+        }
+        query.filters.forEach((filter) => {
+          if (filter.field === 'object_id') {
+            if (typeof filter.value === 'string') {
+              resolve({
+                results: [
+                  asCommits[filter.value]
+                ],
+                pagination: {
+                  skip_token: null,
+              }});
+              return;
+            }
+            resolve({
+              results: [
+                asCommits[filter.value[0]]
+              ],
+              pagination: {
+                skip_token: null,
+            }});
+            return;
+          }
+        });
+        fail('could not find an object_id filter');
+        reject();
+        return;
+      });
+    });
+  }
+
+  /** given grants, creates commits and fakes commitStore and objectStore */
+  function returnPermissions(grants: PermissionGrant[]) {
+    const asCommits: Commit[] = [];
+    grants.forEach((grant) => {
+      asCommits.push(TestCommit.create({
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        operation: Operation.Create,
+        commit_strategy: 'basic',
+        sub: 'did:example:alice.id',
+        kid: 'did:example:alice.id#key-1',
+      }, grant));
+    });
+    returnPermissionObject(asCommits);
+  }
   
+  /** given commits, fakes the objectStore and commitStore to return the commit */
+  function returnPermissionObject(commits: Commit[]) {
+    const asObjects: ObjectContainer[] = [];
+    commits.forEach((commit) => {
+      asObjects.push({
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        id: commit.getHeaders().rev,
+        created_by: 'did:example:alice.id', 
+        created_at: new Date(Date.now()).toISOString(),
+        sub: 'did:example:alice.id',
+        commit_strategy: 'basic',
+      });
+    });
+    objectStore.and.returnValue({
+      results: asObjects,
+      pagination: {
+        skip_token: null
+      }
+    });
+    returnPermissionCommits(commits);
+  }
+      
   describe('getPermissionGrantsForRequest', () => {
     it('should allow did owner without rules', async () => {
       const did = `did:example:${TestUtilities.randomString()}`;
@@ -31,7 +114,7 @@ describe('AuthorizationController', () => {
         iss: did,
         sub: did,
       });
-      store.and.returnValue({results: [], pagination: {skip_token: null}});
+      objectStore.and.returnValue({results: [], pagination: {skip_token: null}});
       const grants = await auth.getPermissionGrantsForRequest(request);
       expect(grants.length > 0).toBeTruthy();
       expect(grants[0]).toEqual(OWNER_PERMISSION);
@@ -45,7 +128,7 @@ describe('AuthorizationController', () => {
         iss: sender,
         sub: owner,
       });
-      store.and.returnValue({results: [], pagination: {skip_token: null}});
+      objectStore.and.returnValue({results: [], pagination: {skip_token: null}});
       try {
         await auth.getPermissionGrantsForRequest(request);
       } catch (err) {
@@ -54,362 +137,158 @@ describe('AuthorizationController', () => {
         }
         expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
       }
-      expect(store).toHaveBeenCalled();
+      expect(objectStore).toHaveBeenCalled();
     });
 
-    function returnPermissions(grants: PermissionGrant[]) {
-      const asCommits: Commit[] = [];
-      grants.forEach((grant) => {
-        asCommits.push(TestCommit.create({
-          interface: 'Permissions',
-          context: PERMISSION_GRANT_CONTEXT,
-          type: PERMISSION_GRANT_TYPE,
-          operation: Operation.Create,
-          commit_strategy: 'basic',
-          sub: 'did:example:alice.id',
-          kid: 'did:example:alice.id#key-1',
-        }, grant));
+    async function checkPermissionFor(operation: Operation, allowString: string) {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+      const object_id = (operation !== Operation.Create ? type : undefined);
+      const request = TestRequest.createWriteRequest({
+        iss: sender,
+        sub: owner,
+        interface: 'Test',
+        context: 'example.com',
+        type,
+        operation,
+        object_id,
+        kid: `${sender}#key-1`
       });
-      returnPermissionObject(asCommits);
-    }
-    
-    function returnPermissionObject(commits: Commit[]) {
-      const asObjects: ObjectContainer[] = [];
-      commits.forEach((commit) => {
-        asObjects.push({
-          interface: 'Permissions',
-          context: PERMISSION_GRANT_CONTEXT,
-          type: PERMISSION_GRANT_TYPE,
-          id: commit.getHeaders().rev,
-          created_by: 'did:example:alice.id', 
-          created_at: new Date(Date.now()).toISOString(),
-          sub: 'did:example:alice.id',
-          commit_strategy: 'basic',
-        });
-      });
-      store.and.returnValue({
-        results: asObjects,
-        pagination: {
-          skip_token: null
-        }
-      });
-      returnPermissionCommits(commits);
-    }
-
-    function returnPermissionCommits(commits: Commit[]) {
-      const asCommits: {[id: string]: Commit} = {};
-      commits.forEach((commit) => {
-        asCommits[commit.getHeaders().rev] = commit;
-      })
-      commitsStore.and.callFake((query: store.CommitQueryRequest): Promise<store.CommitQueryResponse> => {
-        return new Promise((resolve, reject) => {
-          if (!query.filters) {
-            fail('must query for permission grant object');
-            reject();
-            return;
-          }
-          query.filters.forEach((filter) => {
-            if (filter.field === 'object_id') {
-              if (typeof filter.value === 'string') {
-                resolve({
-                  results: [
-                    asCommits[filter.value]
-                  ],
-                  pagination: {
-                    skip_token: null,
-                  }});
-                  return;
-              }
-              resolve({
-                results: [
-                  asCommits[filter.value[0]]
-                ],
-                pagination: {
-                  skip_token: null,
-                }});
-                return;
-              }
-              fail('could not find an object_id filter');
-              reject();
-              return;
-            });
-          });
-        });
+      const permission = {
+        owner,
+        grantee: sender,
+        allow: allowString,
+        context: 'example.com',
+        type,
       }
+      returnPermissions([permission]);
+      const returnedPermissions = await auth.getPermissionGrantsForRequest(request)
+      expect(returnedPermissions.length > 0).toBeTruthy();
+      expect(returnedPermissions[0]).toEqual(permission);
+    }
       
-      async function checkPermissionFor(operation: Operation, allowString: string) {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const type = TestUtilities.randomString();
-        const object_id = (operation !== Operation.Create ? type : undefined);
-        const request = TestRequest.createWriteRequest({
-          iss: sender,
-          sub: owner,
-          interface: 'Test',
-          context: 'example.com',
-          type,
-          operation,
-          object_id,
-          kid: `${sender}#key-1`
-        });
-        const permission = {
-          owner,
-          grantee: sender,
-          allow: allowString,
-          context: 'example.com',
-          type,
-        }
-        returnPermissions([permission]);
-        const returnedPermissions = await auth.getPermissionGrantsForRequest(request)
-        expect(returnedPermissions.length > 0).toBeTruthy();
-        expect(returnedPermissions[0]).toEqual(permission);
+    it('should accept for create requests', async () => {
+      await checkPermissionFor(Operation.Create, 'C----');
+    });
+
+    it('should accept for read requests', async () => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+      const request = TestRequest.createObjectQueryRequest({
+        iss: sender,
+        sub: owner,
+        interface: 'Collections',
+        context: 'example.com',
+        type,
+      });
+      const permission = {
+        owner,
+        grantee: sender,
+        allow: '-R---',
+        context: 'example.com',
+        type,
       }
-      
-      it('should accept for create requests', async () => {
-        await checkPermissionFor(Operation.Create, 'C----');
-      });
+      returnPermissions([permission]);
+      const returnedPermissions = await auth.getPermissionGrantsForRequest(request)
+      expect(returnedPermissions.length > 0).toBeTruthy();
+      expect(returnedPermissions[0]).toEqual(permission);
+    });
 
-      it('should accept for read requests', async () => {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const type = TestUtilities.randomString();
-        const request = TestRequest.createObjectQueryRequest({
-          iss: sender,
-          sub: owner,
-          interface: 'Collections',
-          context: 'example.com',
-          type,
-        });
-        const permission = {
-          owner,
-          grantee: sender,
-          allow: '-R---',
-          context: 'example.com',
-          type,
+    it('should accept for update requests', async () => {
+      await checkPermissionFor(Operation.Update, '--U--');
+    });
+
+    it('should accept for delete requests', async () => {
+      await checkPermissionFor(Operation.Delete, '---D-');
+    });
+
+    it('should reject for unknown request types', async () => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+      const request = new TestRequest({
+        iss: sender,
+        aud: 'did:example:hub.id',
+        sub: owner,
+        '@context': BaseRequest.context,
+        '@type': type,
+      });
+      try {
+        await auth.getPermissionGrantsForRequest(request);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
         }
-        returnPermissions([permission]);
-        const returnedPermissions = await auth.getPermissionGrantsForRequest(request)
-        expect(returnedPermissions.length > 0).toBeTruthy();
-        expect(returnedPermissions[0]).toEqual(permission);
-      });
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.property).toEqual('@type');
+      }
+    });
 
-      it('should accept for update requests', async () => {
-        await checkPermissionFor(Operation.Update, '--U--');
-      });
-
-      it('should accept for delete requests', async () => {
-        await checkPermissionFor(Operation.Delete, '---D-');
-      });
-
-      it('should reject for unknown request types', async () => {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const type = TestUtilities.randomString();
-        const request = new TestRequest({
-          iss: sender,
-          aud: 'did:example:hub.id',
-          sub: owner,
-          '@context': BaseRequest.context,
-          '@type': type,
-        });
-        try {
-          await auth.getPermissionGrantsForRequest(request);
-          fail('did not throw');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
-          expect(err.property).toEqual('@type');
-        }
-      });
-
-      it('should throw for unknown commit operations', async() => {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const type = TestUtilities.randomString();
-        try {
-          const request = TestRequest.createWriteRequest({
-            iss: sender,
-            sub: owner,
-            interface: 'Test',
-            context: 'example.com',
-            type,
-            operation: 'unknown',
-            kid: `${sender}#key-1`
-          });
-          await auth.getPermissionGrantsForRequest(request);
-          fail('did not throw');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
-          expect(err.property).toEqual('commit.protected.operation');
-        }
-      });
-
-      it('should ignore permissions not using the \'basic\' commit_strategy', async () => {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const grantObject = {
-          interface: 'Permissions',
-          context: PERMISSION_GRANT_CONTEXT,
-          type: PERMISSION_GRANT_TYPE,
-          id: 'complex-permission',
-          created_by: owner, 
-          created_at: new Date(Date.now()).toISOString(),
-          sub: owner,
-          commit_strategy: 'not-basic-totally-complex-commit-strategy',
-        }
-        store.and.returnValue({
-          results: [grantObject],
-          pagination: {
-            skip_token: null
-          }
-        });
-        const request = TestRequest.createWriteRequest({
-          iss: sender,
-          sub: owner,
-          interface: 'Test',
-          context: 'example.com',
-          type: 'someSortOfType',
-          kid: `${sender}#key-1`
-        });
-        try {
-          await auth.getPermissionGrantsForRequest(request);
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
-        }
-      });
-
-      it('should ignore permission objects with no valid commits', async() => {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const type = TestUtilities.randomString();
-        const permissionCommit = TestCommit.create({
-          interface: 'Permissions',
-          context: PERMISSION_GRANT_CONTEXT,
-          type: PERMISSION_GRANT_TYPE,
-          operation: Operation.Create,
-          commit_strategy: 'complex',
-          sub: owner,
-          kid: `${owner}#key-1`,
-        }, {
-          owner,
-          grantee: sender,
-          allow: '--U--',
-          context: 'example.com',
-          type,
-        });
-        const grantObject = {
-          interface: 'Permissions',
-          context: PERMISSION_GRANT_CONTEXT,
-          type: PERMISSION_GRANT_TYPE,
-          id: permissionCommit.getHeaders().rev,
-          created_by: owner, 
-          created_at: new Date(Date.now()).toISOString(),
-          sub: owner,
-          commit_strategy: 'basic',
-        }
-        store.and.returnValue({
-          results: [grantObject],
-          pagination: {
-            skip_token: null
-          }
-        });
-        returnPermissionCommits([permissionCommit]);
-
+    it('should throw for unknown commit operations', async() => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+      try {
         const request = TestRequest.createWriteRequest({
           iss: sender,
           sub: owner,
           interface: 'Test',
           context: 'example.com',
           type,
+          operation: 'unknown',
           kid: `${sender}#key-1`
-        });
-        try {
-          await auth.getPermissionGrantsForRequest(request);
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
-        }
-      });
-
-      it('should ignore CREATE permissions in a created_by conflict', async() => {
-        const owner = 'did:example:alice.id';
-        const sender = `${owner}-not`;
-        const type = TestUtilities.randomString();
-        const grant: PermissionGrant = {
-          owner,
-          grantee: sender,
-          context: 'example.com',
-          type,
-          allow: 'C----',
-          created_by: owner
-        }
-        returnPermissions([grant]);
-        const request = TestRequest.createWriteRequest({
-          iss: sender,
-          sub: owner,
-          interface: 'Test',
-          context: 'example.com',
-          type,
-          kid: `${sender}#key-1`
-        });
-        try {
-          await auth.getPermissionGrantsForRequest(request);
-          fail('should have thrown');
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message);
-          }
-          expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
-        }
-      });
-
-      it('should ignore objectQueryRequests without contexts and types (autofail non-owners)', async () => {
-        const request = TestRequest.createObjectQueryRequest({
-          sub: 'did:example:bob.id',
-          override_no_context: true,
-          override_no_type: true,
-        });
-        const spy = spyOn(auth, 'getPermissionGrants' as any).and.callFake((operation: AuthorizationOperation,
-          owner: string,
-          requester: string,
-          contextTypePairs: [string, string][]) => {
-            expect(operation).toEqual(AuthorizationOperation.Read);
-            expect(owner).toEqual(request.sub);
-            expect(requester).toEqual(request.iss);
-            expect(contextTypePairs.length).toEqual(0);
         });
         await auth.getPermissionGrantsForRequest(request);
-        expect(spy).toHaveBeenCalled();
-      });
-
-      it('should reject getPermissionGrantsForRequest for CommitQueryrequests', async () => {
-        const request = new CommitQueryRequest({
-          iss: 'did:example:alice.id',
-          aud: 'did:example:hub.id',
-          sub: 'did:example:bob.id',
-          '@context': BaseRequest.context,
-          '@type': 'CommitQueryRequest',
-        });
-        try {
-          await auth.getPermissionGrantsForRequest(request)
-          fail('should throw')
-        } catch (err) {
-          if (!(err instanceof HubError)) {
-            fail(err.message)
-          }
-          expect(err.errorCode).toEqual(ErrorCode.ServerError);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
         }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.property).toEqual('commit.protected.operation');
+      }
+    });
+
+    it('should ignore objectQueryRequests without contexts and types (autofail non-owners)', async () => {
+      const request = TestRequest.createObjectQueryRequest({
+        sub: 'did:example:bob.id',
+        override_no_context: true,
+        override_no_type: true,
       });
+      const spy = spyOn(auth, 'getPermissionGrants' as any).and.callFake((operation: AuthorizationOperation,
+        owner: string,
+        requester: string,
+        contextTypePairs: [string, string][]) => {
+          expect(operation).toEqual(AuthorizationOperation.Read);
+          expect(owner).toEqual(request.sub);
+          expect(requester).toEqual(request.iss);
+          expect(contextTypePairs.length).toEqual(0);
+      });
+      await auth.getPermissionGrantsForRequest(request);
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should reject getPermissionGrantsForRequest for CommitQueryrequests', async () => {
+      const request = new CommitQueryRequest({
+        iss: 'did:example:alice.id',
+        aud: 'did:example:hub.id',
+        sub: 'did:example:bob.id',
+        '@context': BaseRequest.context,
+        '@type': 'CommitQueryRequest',
+      });
+      try {
+        await auth.getPermissionGrantsForRequest(request)
+        fail('should throw')
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message)
+        }
+        expect(err.errorCode).toEqual(ErrorCode.ServerError);
+      }
+    });
   });
 
   describe('pruneResults', () => {
@@ -506,7 +385,7 @@ describe('AuthorizationController', () => {
         type: 'test',
         sub: 'did:example:alice.id',
       });
-      store.and.callFake((request: store.ObjectQueryRequest) => {
+      objectStore.and.callFake((request: store.ObjectQueryRequest) => {
         if (!request.filters) {
           return;
         }
@@ -544,7 +423,7 @@ describe('AuthorizationController', () => {
           },
         }
       });
-      commitsStore.and.returnValue({
+      commitStore.and.returnValue({
         results: [
           new SignedCommit({
             protected: commit.getProtectedString(),
@@ -617,6 +496,107 @@ describe('AuthorizationController', () => {
         type: 'bar'
       };
       expect(doesGrantPermit(grant, 'someThing' as AuthorizationOperation)).toBeFalsy();
-    })
+    });
+
+
   });
+
+  describe('getPermissionGrants', () => {
+    async function getPermissionGrants(operation: AuthorizationOperation,
+      owner: string,
+      requester: string,
+      contextTypePairs: [string, string][]): Promise<PermissionGrant[]> {
+        return auth['getPermissionGrants'](operation, owner, requester, contextTypePairs);
+    }
+
+    it('should ignore permissions not using the \'basic\' commit_strategy', async () => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const grantObject = {
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        id: 'complex-permission',
+        created_by: owner, 
+        created_at: new Date(Date.now()).toISOString(),
+        sub: owner,
+        commit_strategy: 'not-basic-totally-complex-commit-strategy',
+      }
+      objectStore.and.returnValue({
+        results: [grantObject],
+        pagination: {
+          skip_token: null
+        }
+      });
+
+      const permissions = await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [['context', 'type']]);
+
+      expect(permissions.length).toEqual(0);
+    });
+
+    it('should ignore permission objects with no valid commits', async() => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+
+      const permissionCommit = TestCommit.create({
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        operation: Operation.Create,
+        commit_strategy: 'complex',
+        sub: owner,
+        kid: `${owner}#key-1`,
+      }, {
+        owner,
+        grantee: sender,
+        allow: '--U--',
+        context: 'example.com',
+        type,
+      });
+
+      const grantObject = {
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        id: permissionCommit.getHeaders().rev,
+        created_by: owner, 
+        created_at: new Date(Date.now()).toISOString(),
+        sub: owner,
+        commit_strategy: 'basic',
+      }
+
+      objectStore.and.returnValue({
+        results: [grantObject],
+        pagination: {
+          skip_token: null
+        }
+      });
+
+      returnPermissionCommits([permissionCommit]);
+
+      const permissions = await getPermissionGrants(AuthorizationOperation.Update, owner, sender, [['example.com', type]]);
+      expect(permissions.length).toEqual(0);
+    });
+
+    it('should ignore CREATE permissions in a created_by conflict', async() => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+      const grant: PermissionGrant = {
+        owner,
+        grantee: sender,
+        context: 'example.com',
+        type,
+        allow: 'C----',
+        created_by: owner
+      }
+      returnPermissions([grant]);
+      
+      const permissions = await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [['example.com', type]]);
+  
+      expect(permissions.length).toEqual(0);
+    });
+
+  })
 });
