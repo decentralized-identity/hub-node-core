@@ -31,22 +31,14 @@ describe('Hub', () => {
   const rsa = new RsaCryptoSuite();
   const registry = new CryptoFactory([rsa]);
 
-  beforeAll(async (done) => {
+  beforeEach(async () => {
     testContext = new TestContext();
     testContext.cryptoSuites = [rsa];
-
     hubkey = await testContext.createPrivateKey(hubKid);
     hubPublicKey = hubkey.getPublicKey();
     hubKeys = {};
     hubKeys[hubKid] = hubkey;
     testContext.keys = hubKeys;
-
-    testResolver = new unitTestExports.TestResolver();
-    testContext.resolver = testResolver;
-    done();
-  });
-
-  beforeEach(() => {
     hubDID = new DidDocument({
       '@context': 'https://w3id.org/did/v1',
       id: hubId,
@@ -57,9 +49,10 @@ describe('Hub', () => {
         publicKeyJwk: hubPublicKey,
       }],
     });
-
+    testResolver = new unitTestExports.TestResolver();
+    testContext.resolver = testResolver;
     testResolver.setHandle(async (_: string) => { return hubDID; });
-  })
+  });
 
   const header = {
     alg: 'RS256',
@@ -120,81 +113,79 @@ describe('Hub', () => {
       expect(response.error_code).toEqual(ErrorCode.BadRequest);
       expect(response.target).toEqual('@type');
     });
-  })
 
-  it('should send back an OK HttpResponse for requesting an access token.', async () => {
+    it('should send back an OK HttpResponse for requesting an access token.', async () => {
 
-    const hub = new Hub(testContext);
+      const hub = new Hub(testContext);
 
-    const request = await wrapRequest(hubkey, hubkey, '', {'did-access-token': null});
-    const httpresponse = await hub.handleRequest(request);
-    expect(httpresponse).toBeDefined();
-    expect(httpresponse.ok).toEqual(true);
-    expect(httpresponse.body).toBeDefined();
-    const response = await unwrapResponse(hubkey, hubkey, httpresponse.body);
-    expect(response.split('.').length).toEqual(3); // compact JWS comes in the form header.content.signature
-  });
-
-  it('should fail validation and send back an authentication failure', async () => { 
-
-    const did = new DidDocument({
-      '@context': 'https://w3id.org/did/v1',
-      id: hubId,
-      publicKey: [{
-        id: hubKid,
-        type: 'ExplicitlyUnknownKeyType2018',
-        owner: hubId,
-        publicKeyJwk: hubkey,
-      }],
+      const request = await wrapRequest(hubkey, hubkey, '', {'did-access-token': null});
+      const httpresponse = await hub.handleRequest(request);
+      expect(httpresponse).toBeDefined();
+      expect(httpresponse.ok).toEqual(true);
+      expect(httpresponse.body).toBeDefined();
+      const response = await unwrapResponse(hubkey, hubkey, httpresponse.body);
+      expect(response.split('.').length).toEqual(3); // compact JWS comes in the form header.content.signature
     });
 
-    testResolver.setHandle(async (_: string) => { return did; });
-    testContext.resolver = testResolver;
+    it('should fail validation and send back an authentication failure', async () => { 
 
-    const hub = new Hub(testContext);
+      const did = new DidDocument({
+        '@context': 'https://w3id.org/did/v1',
+        id: hubId,
+        publicKey: [{
+          id: hubKid,
+          type: 'ExplicitlyUnknownKeyType2018',
+          owner: hubId,
+          publicKeyJwk: hubkey,
+        }],
+      });
 
-    const payload = {
-      'test-data': Math.round(Math.random() * Number.MAX_SAFE_INTEGER),
-    };
+      testResolver.setHandle(async (_: string) => { return did; });
+      testContext.resolver = testResolver;
 
-    const jws = new JwsToken(payload, registry);
-    const data = await jws.sign(hubkey, header);
+      const hub = new Hub(testContext);
 
-    const jwe = new JweToken(data, registry);
-    const request = await jwe.encrypt(hubkey);
+      const payload = {
+        'test-data': Math.round(Math.random() * Number.MAX_SAFE_INTEGER),
+      };
 
-    const httpresponse = await hub.handleRequest(request);
-    expect(httpresponse).toBeDefined();
-    expect(httpresponse.ok).toEqual(false);
-    expect(httpresponse.body).toBeDefined();
-    console.log(httpresponse.body.toString('utf-8'));
-    const response = JSON.parse(httpresponse.body.toString('utf-8'));
-    expect(response.error_code).toEqual(ErrorCode.AuthenticationFailed);
-  });
+      const jws = new JwsToken(payload, registry);
+      const data = await jws.sign(hubkey, header);
 
-  it('should dispatch CommitQueryRequests to the commitController', async() => {
-    const hub = new Hub(testContext);
-    const commitController = hub['_commitController'];
+      const jwe = new JweToken(data, registry);
+      const request = await jwe.encrypt(hubkey);
 
-    const commitRequest = {
-      iss: hubId,
-      aud: hubId,
-      sub: hubId,
-      '@context': BaseRequest.context,
-      '@type': 'CommitQueryRequest',
-      query: {
-        object_id: ['foobar'],
-      },
-    };
-    const spy = spyOn(commitController, 'handle').and.callFake((request: CommitQueryRequest) => {
-      expect(request.objectIds).toEqual(commitRequest.query.object_id);
+      const httpresponse = await hub.handleRequest(request);
+      expect(httpresponse).toBeDefined();
+      expect(httpresponse.ok).toEqual(false);
+      expect(httpresponse.body).toBeDefined();
+      console.log(httpresponse.body.toString('utf-8'));
+      const response = JSON.parse(httpresponse.body.toString('utf-8'));
+      expect(response.error_code).toEqual(ErrorCode.AuthenticationFailed);
     });
-    const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(commitRequest));
-    await hub.handleRequest(requestString);
-    expect(spy).toHaveBeenCalled();
-  });
 
-  describe('handleRequest', () => {
+    it('should dispatch CommitQueryRequests to the commitController', async() => {
+      const hub = new Hub(testContext);
+      const commitController = hub['_commitController'];
+
+      const commitRequest = {
+        iss: hubId,
+        aud: hubId,
+        sub: hubId,
+        '@context': BaseRequest.context,
+        '@type': 'CommitQueryRequest',
+        query: {
+          object_id: ['foobar'],
+        },
+      };
+      const spy = spyOn(commitController, 'handle').and.callFake((request: CommitQueryRequest) => {
+        expect(request.objectIds).toEqual(commitRequest.query.object_id);
+      });
+      const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(commitRequest));
+      await hub.handleRequest(requestString);
+      expect(spy).toHaveBeenCalled();
+    });
+
     ['Collections', 'Permissions', 'Profile', 'Actions'].forEach((hubInterface) => {
       it(`should dispatch ObjectQueryRequest to ${hubInterface}Controller correctly`, async() => {
         const hub = new Hub(testContext);
@@ -236,9 +227,7 @@ describe('Hub', () => {
           'test': TestUtilities.randomString(),
         });
 
-        const jws = new JwsToken(commit.getPayload(), registry);
-        const signature = await jws.sign(hubkey, commit.getProtectedHeaders() as any);
-        const parts = signature.split('.');
+        const signedCommit = await TestUtilities.toSignedCommit(commit, hubkey);
 
         const writeRequest = {
           iss: hubId,
@@ -246,11 +235,7 @@ describe('Hub', () => {
           sub: hubId,
           '@context': BaseRequest.context,
           '@type': 'WriteRequest',
-          commit: {
-            protected: parts[0],
-            payload: parts[1],
-            signature: parts[2],
-          },
+          commit: signedCommit.toJson(),
         };
 
         const value = TestUtilities.randomString();
@@ -265,6 +250,7 @@ describe('Hub', () => {
     it('should call getAuthorizedResponse', async() => {
       const hub = new Hub(testContext);
       const controller = hub['_controllers']['Actions'];
+      const auth = hub['_authentication'];
 
       const commit = TestCommit.create({
         interface: 'Actions',
@@ -274,17 +260,15 @@ describe('Hub', () => {
         type: 'foobar',
       });
 
-      const objectQueryRequest = {
+      const signedCommit = await TestUtilities.toSignedCommit(commit, hubkey);
+
+      const writeRequest = {
         iss: hubId,
         aud: hubId,
         sub: hubId,
         '@context': BaseRequest.context,
         '@type': 'WriteRequest',
-        commit: {
-          protected: commit.getProtectedString(),
-          payload: commit.getPayloadString(),
-          signature: 'foo',
-        },
+        commit: signedCommit.toJson(),
       };
 
       const testValue = 'foobar';
@@ -297,9 +281,11 @@ describe('Hub', () => {
           },
         };
       });
-      const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(objectQueryRequest));
+      const authSpy = spyOn(auth, 'getAuthenticatedResponse').and.callThrough();
+      const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(writeRequest));
       const response = await hub.handleRequest(requestString);
       expect(spy).toHaveBeenCalled();
+      expect(authSpy).toHaveBeenCalled();
       expect(response.ok).toBeTruthy();
       expect(await unwrapResponse(hubkey, hubkey, response.body)).toEqual(testValue);
     });
