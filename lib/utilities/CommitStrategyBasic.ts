@@ -52,9 +52,9 @@ export default class CommitStrategyBasic {
         return currentCommit;
       }
       // delete commits are last, any other commit has lower value
-      if (latestCommit.getProtectedHeaders().operation === Operation.Delete &&
-          currentCommit.getProtectedHeaders().operation !== Operation.Delete) {
-        return latestCommit;
+      if (latestCommit.getProtectedHeaders().operation !== Operation.Delete &&
+          currentCommit.getProtectedHeaders().operation === Operation.Delete) {
+        return currentCommit;
       }
       // the commit is of the same type and must be decided by datetime
       const latestDate = Date.parse(latestCommit.getHeaders().committed_at);

@@ -1,5 +1,6 @@
 import base64url from 'base64url';
 import Commit, { Operation } from "../../lib/models/Commit";
+import Context from '../../lib/interfaces/Context';
 
 interface TestCommitOptions {
   interface?: string;
@@ -10,9 +11,14 @@ interface TestCommitOptions {
   sub?: string;
   kid?: string;
   object_id?: string | string[]
+  committed_at?: Date
 }
 
 export default class TestCommit extends Commit {
+
+  async validate(_: Context) {
+    // do nothing
+  }
 
   public static create(options?: TestCommitOptions, data?: any): TestCommit {
     let headers: any = Object.assign({}, options);
@@ -33,7 +39,10 @@ export default class TestCommit extends Commit {
     if (!headers.kid) {
       headers.kid = 'did:example:alice.id#key-1';
     }
-    headers.committed_at = new Date(Date.now()).toISOString();
+    if (!headers.committed_at) {
+      headers.committed_at = new Date(Date.now()).toISOString();
+    }
+
     const protectedString = base64url.encode(JSON.stringify(headers));
     return new TestCommit({
       protected: protectedString,
