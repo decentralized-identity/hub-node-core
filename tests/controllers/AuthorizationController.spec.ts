@@ -1,11 +1,8 @@
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
-import WriteRequest from '../../lib/models/WriteRequest';
 import TestCommit from '../mocks/TestCommit';
 import PermissionGrant, { OWNER_PERMISSION, PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../../lib/models/PermissionGrant';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import Commit, { Operation } from '../../lib/models/Commit';
-import base64url from 'base64url';
-import ObjectQueryRequest from '../../lib/models/ObjectQueryRequest';
 import * as store from '../../lib/interfaces/Store';
 import BaseRequest from '../../lib/models/BaseRequest';
 import HubError, { ErrorCode } from '../../lib/models/HubError';
@@ -145,27 +142,15 @@ describe('AuthorizationController', () => {
         const sender = `${owner}-not`;
         const type = TestUtilities.randomString();
         const object_id = (operation !== Operation.Create ? type : undefined);
-        const request = new WriteRequest({
+        const request = TestRequest.createWriteRequest({
           iss: sender,
-          aud: 'did:example:hub.id',
           sub: owner,
-          '@context': BaseRequest.context,
-          '@type': 'WriteRequest',
-          commit: {
-            protected: base64url.encode(JSON.stringify({
-              interface: 'Test',
-              context: 'example.com',
-              type,
-              operation,
-              object_id,
-              committed_at: new Date(Date.now()).toISOString(),
-              commit_strategy: 'basic',
-              sub: owner,
-              kid: `${sender}#key-1`
-            })),
-            payload: 'foo',
-            signature: 'bar'
-          }
+          interface: 'Test',
+          context: 'example.com',
+          type,
+          operation,
+          object_id,
+          kid: `${sender}#key-1`
         });
         const permission = {
           owner,
@@ -187,17 +172,12 @@ describe('AuthorizationController', () => {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
         const type = TestUtilities.randomString();
-        const request = new ObjectQueryRequest({
+        const request = TestRequest.createObjectQueryRequest({
           iss: sender,
-          aud: 'did:example:hub.id',
           sub: owner,
-          '@context': BaseRequest.context,
-          '@type': 'ObjectQueryRequest',
-          query: {
-            interface: 'Collections',
-            context: 'example.com',
-            type,
-          }
+          interface: 'Collections',
+          context: 'example.com',
+          type,
         });
         const permission = {
           owner,
@@ -248,26 +228,14 @@ describe('AuthorizationController', () => {
         const sender = `${owner}-not`;
         const type = TestUtilities.randomString();
         try {
-          const request = new WriteRequest({
+          const request = TestRequest.createWriteRequest({
             iss: sender,
-            aud: 'did:example:hub.id',
             sub: owner,
-            '@context': BaseRequest.context,
-            '@type': 'WriteRequest',
-            commit: {
-              protected: base64url.encode(JSON.stringify({
-                interface: 'Test',
-                context: 'example.com',
-                type,
-                operation: 'unknown',
-                committed_at: new Date(Date.now()).toISOString(),
-                commit_strategy: 'basic',
-                sub: owner,
-                kid: `${sender}#key-1`
-              })),
-              payload: 'foo',
-              signature: 'bar'
-            }
+            interface: 'Test',
+            context: 'example.com',
+            type,
+            operation: 'unknown',
+            kid: `${sender}#key-1`
           });
           await auth.getPermissionGrantsForRequest(request);
           fail('did not throw');
@@ -299,26 +267,13 @@ describe('AuthorizationController', () => {
             skip_token: null
           }
         });
-        const request = new WriteRequest({
+        const request = TestRequest.createWriteRequest({
           iss: sender,
-          aud: 'did:example:hub.id',
           sub: owner,
-          '@context': BaseRequest.context,
-          '@type': 'WriteRequest',
-          commit: {
-            protected: base64url.encode(JSON.stringify({
-              interface: 'Test',
-              context: 'example.com',
-              type: 'someSortOfType',
-              operation: Operation.Create,
-              committed_at: new Date(Date.now()).toISOString(),
-              commit_strategy: 'basic',
-              sub: owner,
-              kid: `${sender}#key-1`
-            })),
-            payload: 'foo',
-            signature: 'bar',
-          }
+          interface: 'Test',
+          context: 'example.com',
+          type: 'someSortOfType',
+          kid: `${sender}#key-1`
         });
         try {
           await auth.getPermissionGrantsForRequest(request);
@@ -367,26 +322,13 @@ describe('AuthorizationController', () => {
         });
         returnPermissionCommits([permissionCommit]);
 
-        const request = new WriteRequest({
+        const request = TestRequest.createWriteRequest({
           iss: sender,
-          aud: 'did:example:hub.id',
           sub: owner,
-          '@context': BaseRequest.context,
-          '@type': 'WriteRequest',
-          commit: {
-            protected: base64url.encode(JSON.stringify({
-              interface: 'Test',
-              context: 'example.com',
-              type,
-              operation: Operation.Create,
-              committed_at: new Date(Date.now()).toISOString(),
-              commit_strategy: 'basic',
-              sub: owner,
-              kid: `${sender}#key-1`
-            })),
-            payload: 'foo',
-            signature: 'bar'
-          }
+          interface: 'Test',
+          context: 'example.com',
+          type,
+          kid: `${sender}#key-1`
         });
         try {
           await auth.getPermissionGrantsForRequest(request);
@@ -411,26 +353,13 @@ describe('AuthorizationController', () => {
           created_by: owner
         }
         returnPermissions([grant]);
-        const request = new WriteRequest({
+        const request = TestRequest.createWriteRequest({
           iss: sender,
-          aud: 'did:example:hub.id',
           sub: owner,
-          '@context': BaseRequest.context,
-          '@type': 'WriteRequest',
-          commit: {
-            protected: base64url.encode(JSON.stringify({
-              interface: 'Test',
-              context: 'example.com',
-              type,
-              operation: Operation.Create,
-              committed_at: new Date(Date.now()).toISOString(),
-              commit_strategy: 'basic',
-              sub: owner,
-              kid: `${sender}#key-1`
-            })),
-            payload: 'foo',
-            signature: 'bar'
-          }
+          interface: 'Test',
+          context: 'example.com',
+          type,
+          kid: `${sender}#key-1`
         });
         try {
           await auth.getPermissionGrantsForRequest(request);
