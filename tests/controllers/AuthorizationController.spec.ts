@@ -589,7 +589,6 @@ describe('AuthorizationController', () => {
 
       const schema: [string, string] = ['example.com', type];
       try {
-        console.log('no valid commit?');
         await getPermissionGrants(AuthorizationOperation.Update, owner, sender, [schema]);
         fail('expected to throw');
       } catch (err) {
