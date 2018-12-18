@@ -625,5 +625,80 @@ describe('AuthorizationController', () => {
       }
     });
 
+    it('should filter for owner even if it was part of the store request (robustness)', async () => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+      const grant: PermissionGrant = {
+        owner: sender,
+        grantee: sender,
+        context: 'example.com',
+        type,
+        allow: 'C----'
+      }
+      returnPermissions([grant]);
+      
+      const schema: [string, string] = ['example.com', type];
+      try {
+        await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [schema]);
+        fail('expected to throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+      }
+    });
+
+    it('should filter for grantee', async () => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+      const grant: PermissionGrant = {
+        owner,
+        grantee: `did:example:${TestUtilities.randomString()}`,
+        context: 'example.com',
+        type,
+        allow: 'C----',
+      }
+      returnPermissions([grant]);
+      
+      const schema: [string, string] = ['example.com', type];
+      try {
+        await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [schema]);
+        fail('expected to throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+      }
+    });
+
+    it('should filter out non-applicable grants', async () => {
+      const owner = 'did:example:alice.id';
+      const sender = `${owner}-not`;
+      const type = TestUtilities.randomString();
+      const grant: PermissionGrant = {
+        owner,
+        grantee: sender,
+        context: 'example.com',
+        type,
+        allow: '-R---',
+      }
+      returnPermissions([grant]);
+      
+      const schema: [string, string] = ['example.com', type];
+      try {
+        await getPermissionGrants(AuthorizationOperation.Create, owner, sender, [schema]);
+        fail('expected to throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+      }
+    })
+
   })
 });
