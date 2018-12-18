@@ -16,7 +16,7 @@ describe('SignedCommit', () => {
         new SignedCommit({
           protected: commit.getProtectedString(),
           payload: 'sure',
-        }, context);
+        });
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
@@ -29,7 +29,7 @@ describe('SignedCommit', () => {
           protected: commit.getProtectedString(),
           payload: 'sure',
           signature: true,
-        }, context);
+        });
         fail('did not throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
@@ -45,7 +45,7 @@ describe('SignedCommit', () => {
         protected: commitData.getProtectedString(),
         payload: 'yup',
         signature: 'sure',
-      }, context);
+      });
       expect(commit).toBeDefined();
     });
   });
@@ -81,8 +81,8 @@ describe('SignedCommit', () => {
         protected: parts[0],
         payload: parts[1],
         signature: parts[2],
-      }, context);
-      expect(async () => {await commit.validate()}).not.toThrow();
+      });
+      expect(async () => {await commit.validate(context)}).not.toThrow();
     })
 
     it('should throw if no public key is found', async () => {
@@ -115,9 +115,9 @@ describe('SignedCommit', () => {
         protected: parts[0],
         payload: parts[1],
         signature: parts[2],
-      }, context);
+      });
       try {
-        await commit.validate();
+        await commit.validate(context);
         fail('Expected to throw');
       } catch (err) {
         if (!(err instanceof HubError)) {
@@ -159,9 +159,9 @@ describe('SignedCommit', () => {
         protected: parts[0],
         payload: parts[1],
         signature: parts[2] + 'yeah-Nope',
-      }, context);
+      });
       try {
-        await commit.validate();
+        await commit.validate(context);
         fail('did not throw');
       } catch (err) {
         expect(err).toBeDefined();
@@ -178,7 +178,7 @@ describe('SignedCommit', () => {
         payload,
         signature,
         protected: commitData.getProtectedString(),
-      }, context);
+      });
       expect(commit).toBeDefined();
       const json = commit.toJson();
       expect(json.protected).toEqual(commitData.getProtectedString());
