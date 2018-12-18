@@ -327,17 +327,15 @@ describe('Hub', () => {
         type: 'foobar',
       });
 
+      const signedCommit = await TestUtilities.toSignedCommit(commit, hubkey);
+
       const objectQueryRequest = {
         iss: hubId,
         aud: hubId,
         sub: hubId,
         '@context': BaseRequest.context,
         '@type': 'WriteRequest',
-        commit: {
-          protected: commit.getProtectedString(),
-          payload: commit.getPayloadString(),
-          signature: 'foo',
-        },
+        commit: signedCommit.toJson(),
       };
 
       const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(objectQueryRequest));
