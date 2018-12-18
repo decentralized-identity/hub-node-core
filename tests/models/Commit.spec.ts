@@ -2,8 +2,12 @@ import base64url from 'base64url';
 import Commit, { Operation } from '../../lib/models/Commit';
 import HubError, { DeveloperMessage } from '../../lib/models/HubError';
 import TestUtilities from '../TestUtilities';
+import Context from '../../lib/interfaces/Context';
 
 class SimpleCommit extends Commit {
+  async validate(_: Context): Promise<void> {
+  }
+
   toJson() {
     throw new Error("Method not implemented.");
   }
@@ -237,5 +241,14 @@ describe('Commit', () => {
         expect(err.property).toEqual('commit.protected.rev');
       }
     });
+
+    it('should calculate revision correctly', () => {
+      const commit = new SimpleCommit({
+        protected: 'eyJpbnRlcmZhY2UiOiJUZXN0IiwiY29udGV4dCI6ImV4YW1wbGUuY29tIiwidHlwZSI6InRlc3QiLCJvcGVyYXRpb24iOiJjcmVhdGUiLCJjb21taXR0ZWRfYXQiOiIyMDE4LTEyLTE4VDAxOjA4OjM4LjY2MFoiLCJjb21taXRfc3RyYXRlZ3kiOiJiYXNpYyIsInN1YiI6ImRpZDpleGFtcGxlOmFsaWNlLmlkIiwia2lkIjoiZGlkOmV4YW1wbGU6YWxpY2UuaWQja2V5LTEifQ',
+        payload: 'foo',
+      });
+      expect(commit.getHeaders().rev).toBeDefined();
+      expect(commit.getHeaders().rev).toEqual('dd519a3befc001a25e098c04ed6a6064e309ba63fba75e10ab024e0a8b43ca52');
+    })
   });
 });
