@@ -14,6 +14,8 @@ import ObjectQueryRequest from '../lib/models/ObjectQueryRequest';
 import TestCommit from './mocks/TestCommit';
 import WriteRequest from '../lib/models/WriteRequest';
 import BaseRequest from '../lib/models/BaseRequest';
+import TestUtilities from './TestUtilities';
+import WriteResponse from '../lib/models/WriteResponse';
 
 describe('Hub', () => {
 
@@ -230,28 +232,33 @@ describe('Hub', () => {
           kid: hubKid,
           context: 'example.com',
           type: 'foobar',
+        }, {
+          'test': TestUtilities.randomString(),
         });
 
-        const objectQueryRequest = {
+        const jws = new JwsToken(commit.getPayload(), registry);
+        const signature = await jws.sign(hubkey, commit.getProtectedHeaders() as any);
+        const parts = signature.split('.');
+
+        const writeRequest = {
           iss: hubId,
           aud: hubId,
           sub: hubId,
           '@context': BaseRequest.context,
           '@type': 'WriteRequest',
           commit: {
-            protected: commit.getProtectedString(),
-            payload: commit.getPayloadString(),
-            signature: 'foo',
+            protected: parts[0],
+            payload: parts[1],
+            signature: parts[2],
           },
         };
 
-        const spy = spyOn(controller, 'handle').and.callFake((request: WriteRequest) => {
-          expect(request.commit.getHeaders().context).toEqual(commit.getHeaders().context);
-          expect(request.commit.getHeaders().type).toEqual(commit.getHeaders().type);
-        });
-        const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(objectQueryRequest));
-        await hub.handleRequest(requestString);
-        expect(spy).toHaveBeenCalled();
+        const value = TestUtilities.randomString();
+        spyOn(controller, 'handle').and.returnValue(Promise.resolve(new WriteResponse([value])));
+        const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(writeRequest));
+        const response = await hub.handleRequest(requestString);
+        const unwrapped = await unwrapResponse(hubkey, hubPublicKey, response.body);
+        expect(unwrapped.revisions).toEqual([value]);
       });
     });
 
