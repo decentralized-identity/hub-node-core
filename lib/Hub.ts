@@ -109,7 +109,15 @@ export default class Hub {
           break;
         case 'WriteRequest':
           const writeRequest = new WriteRequest(verifiedRequest.request);
-          await writeRequest.commit.validate(this.context);
+          try {
+            await writeRequest.commit.validate(this.context);
+          } catch (_) {
+            throw new HubError({
+              errorCode: ErrorCode.BadRequest,
+              property: 'commit',
+              developerMessage: 'Signature could not be verified'
+            });
+          }
           const writeController = this._controllers[writeRequest.commit.getHeaders().interface];
           if (!writeController) {
             throw new HubError({

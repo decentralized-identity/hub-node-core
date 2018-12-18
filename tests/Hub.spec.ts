@@ -247,6 +247,42 @@ describe('Hub', () => {
         const unwrapped = await unwrapResponse(hubkey, hubPublicKey, response.body);
         expect(unwrapped.revisions).toEqual([value]);
       });
+
+      it('should call validate on writeRequest commits', async () => {const hub = new Hub(testContext);
+        const controller = hub['_controllers'][hubInterface];
+
+        const commit = TestCommit.create({
+          interface: hubInterface,
+          sub: hubId,
+          kid: hubKid,
+          context: 'example.com',
+          type: 'foobar',
+        }, {
+          'test': TestUtilities.randomString(),
+        });
+
+        const signedCommit = await TestUtilities.toSignedCommit(commit, hubkey);
+        const jwsJSON = signedCommit.toJson();
+        jwsJSON['signature'] = 'foobar';
+
+        const writeRequest = {
+          iss: hubId,
+          aud: hubId,
+          sub: hubId,
+          '@context': BaseRequest.context,
+          '@type': 'WriteRequest',
+          commit: jwsJSON,
+        };
+
+        const spy = spyOn(controller, 'handle');
+        const requestString = await wrapRequest(hubkey, hubkey, JSON.stringify(writeRequest));
+        const response = await hub.handleRequest(requestString);
+        const unwrapped = await unwrapResponse(hubkey, hubPublicKey, response.body);
+        expect(spy).not.toHaveBeenCalled();
+        expect(unwrapped['@type']).toEqual('ErrorResponse');
+        console.log(unwrapped);
+        expect(unwrapped.target).toEqual('commit');
+      })
     });
 
     it('should call getAuthorizedResponse', async() => {
