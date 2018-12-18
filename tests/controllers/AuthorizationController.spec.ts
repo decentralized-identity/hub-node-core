@@ -13,6 +13,7 @@ import TestContext from '../mocks/TestContext';
 import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
 import SignedCommit from '../../lib/models/SignedCommit';
 import TestRequest from '../mocks/TestRequest';
+import TestUtilities from '../TestUtilities';
 
 describe('AuthorizationController', () => {
   let store: jasmine.Spy;
@@ -26,21 +27,12 @@ describe('AuthorizationController', () => {
     auth = new AuthorizationController(context);
   });
   
-  describe('authorizeApi', () => {
+  describe('getPermissionGrantsForRequest', () => {
     it('should allow did owner without rules', async () => {
-      const did = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
-      const commit = TestCommit.create();
-      const request = new WriteRequest({
+      const did = `did:example:${TestUtilities.randomString()}`;
+      const request = TestRequest.createWriteRequest({
         iss: did,
-        aud: 'did:example:hub',
         sub: did,
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        commit: {
-          protected: commit.getProtectedString(),
-          payload: 'foo',
-          signature: 'bar',
-        },
       });
       store.and.returnValue({results: [], pagination: {skip_token: null}});
       const grants = await auth.getPermissionGrantsForRequest(request);
@@ -50,20 +42,11 @@ describe('AuthorizationController', () => {
     });
     
     it('should reject non-owner without rules', async () => {
-      const owner = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
+      const owner = `did:example:${TestUtilities.randomString()}`;
       const sender = `${owner}-not`;
-      const commit = TestCommit.create();
-      const request = new WriteRequest({
+      const request = TestRequest.createWriteRequest({
         iss: sender,
-        aud: 'did:example:hub',
         sub: owner,
-        '@context': BaseRequest.context,
-        '@type': 'WriteRequest',
-        commit: {
-          protected: commit.getProtectedString(),
-          payload: 'foo',
-          signature: 'bar',
-        },
       });
       store.and.returnValue({results: [], pagination: {skip_token: null}});
       try {
@@ -160,7 +143,7 @@ describe('AuthorizationController', () => {
       async function checkPermissionFor(operation: Operation, allowString: string) {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
-        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const type = TestUtilities.randomString();
         const object_id = (operation !== Operation.Create ? type : undefined);
         const request = new WriteRequest({
           iss: sender,
@@ -203,7 +186,7 @@ describe('AuthorizationController', () => {
       it('should accept for read requests', async () => {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
-        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const type = TestUtilities.randomString();
         const request = new ObjectQueryRequest({
           iss: sender,
           aud: 'did:example:hub.id',
@@ -240,7 +223,7 @@ describe('AuthorizationController', () => {
       it('should reject for unknown request types', async () => {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
-        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const type = TestUtilities.randomString();
         const request = new TestRequest({
           iss: sender,
           aud: 'did:example:hub.id',
@@ -263,7 +246,7 @@ describe('AuthorizationController', () => {
       it('should throw for unknown commit operations', async() => {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
-        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const type = TestUtilities.randomString();
         try {
           const request = new WriteRequest({
             iss: sender,
@@ -350,7 +333,7 @@ describe('AuthorizationController', () => {
       it('should ignore permission objects with no valid commits', async() => {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
-        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const type = TestUtilities.randomString();
         const permissionCommit = TestCommit.create({
           interface: 'Permissions',
           context: PERMISSION_GRANT_CONTEXT,
@@ -418,7 +401,7 @@ describe('AuthorizationController', () => {
       it('should ignore CREATE permissions in a created_by conflict', async() => {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
-        const type = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+        const type = TestUtilities.randomString();
         const grant: PermissionGrant = {
           owner,
           grantee: sender,
@@ -488,7 +471,7 @@ describe('AuthorizationController', () => {
             interface: 'Collections',
             context,
             type,
-            id: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
+            id: TestUtilities.randomString(),
             sub: 'did:example:alice.id',
             created_by: 'did:example:alice.id',
             created_at: new Date(Date.now()).toISOString(),
