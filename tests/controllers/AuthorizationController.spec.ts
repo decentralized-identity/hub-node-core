@@ -1,4 +1,4 @@
-import AuthorizationController from '../../lib/controllers/AuthorizationController';
+import AuthorizationController, { AuthorizationOperation } from '../../lib/controllers/AuthorizationController';
 import TestCommit from '../mocks/TestCommit';
 import PermissionGrant, { OWNER_PERMISSION, PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../../lib/models/PermissionGrant';
 import ObjectContainer from '../../lib/interfaces/ObjectContainer';
@@ -168,6 +168,7 @@ describe('AuthorizationController', () => {
       it('should accept for create requests', async () => {
         await checkPermissionFor(Operation.Create, 'C----');
       });
+
       it('should accept for read requests', async () => {
         const owner = 'did:example:alice.id';
         const sender = `${owner}-not`;
@@ -363,12 +364,32 @@ describe('AuthorizationController', () => {
         });
         try {
           await auth.getPermissionGrantsForRequest(request);
+          fail('should have thrown');
         } catch (err) {
           if (!(err instanceof HubError)) {
             fail(err.message);
           }
           expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
         }
+      });
+
+      it('should ignore objectQueryRequests without contexts and types (autofail non-owners)', async () => {
+        const request = TestRequest.createObjectQueryRequest({
+          sub: 'did:example:bob.id',
+          override_no_context: true,
+          override_no_type: true,
+        });
+        const spy = spyOn(auth, 'getPermissionGrants' as any).and.callFake((operation: AuthorizationOperation,
+          owner: string,
+          requester: string,
+          contextTypePairs: [string, string][]) => {
+            expect(operation).toEqual(AuthorizationOperation.Read);
+            expect(owner).toEqual(request.sub);
+            expect(requester).toEqual(request.iss);
+            expect(contextTypePairs.length).toEqual(0);
+        });
+        await auth.getPermissionGrantsForRequest(request);
+        expect(spy).toHaveBeenCalled();
       });
 
       it('should reject getPermissionGrantsForRequest for CommitQueryrequests', async () => {
