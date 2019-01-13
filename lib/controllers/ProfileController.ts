@@ -1,115 +1,114 @@
-import * as HttpStatus from 'http-status';
-import BaseController from './BaseController';
-import HubError from '../models/HubError';
-import HubRequest from '../models/HubRequest';
-import HubResponse from '../models/HubResponse';
-import Validation from '../utilities/Validation';
-import { StoredObject } from '../interfaces/Store';
 
-export const PROFILE_SCHEMA: string = 'https://schema.identity.foundation/0.1/Profile';
+import BaseController from './BaseController';
+import HubError, { ErrorCode } from '../models/HubError';
+import ObjectQueryRequest from '../models/ObjectQueryRequest';
+import ObjectQueryResponse from '../models/ObjectQueryResponse';
+import ObjectContainer from '../interfaces/ObjectContainer';
+import PermissionGrant from '../models/PermissionGrant';
+import WriteRequest from '../models/WriteRequest';
+import WriteResponse from '../models/WriteResponse';
+import StoreUtils from '../utilities/StoreUtils';
+import { Operation } from '../models/Commit';
+import { QueryEqualsFilter } from '../interfaces/Store';
 
 /**
  * This class handles all the profile requests.
  */
 export default class ProfileController extends BaseController {
-  async handleCreateRequest(request: HubRequest): Promise<HubResponse> {
-    return await this.upsert(request);
+
+  async handleWriteCommitRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
+    const headers = request.commit.getProtectedHeaders();
+    if (headers.operation === Operation.Create) {
+      const profiles = await this.getProfiles(request.sub, headers.context, headers.type);
+      if (profiles.length > 0) {
+        throw new HubError({
+          errorCode: ErrorCode.BadRequest,
+          developerMessage: `Profile already exists. Please issue update for object_id: '${profiles[0].id}'`,
+        });
+      }
+    }
+    await StoreUtils.validateObjectExists(request, this.context.store, grants);
+    return StoreUtils.writeCommit(request, this.context.store);
   }
 
-  async handleExecuteRequest(request: HubRequest): Promise<HubResponse> {
-    throw new HubError(`${request.getAction()} handler not implemented.`, HttpStatus.NOT_IMPLEMENTED);
-  }
-
-  async handleReadRequest(request: HubRequest): Promise<HubResponse> {
+  async handleQueryRequest(request: ObjectQueryRequest, _: PermissionGrant[]): Promise<ObjectQueryResponse> {
     // audiance is used here because you are allowed to read another's profile
-    const result = await this.getProfile(request.aud);
-
-    if (result) {
-      return HubResponse.withObject(result);
+    const profiles = await this.getProfiles(request.sub, request.queryContext, request.queryType);
+    if (profiles.length === 0) {
+      return new ObjectQueryResponse([], null);
     }
-
-    return HubResponse.withObject(this.getEmptyObjectForDid(request.aud));
-  }
-
-  async handleDeleteRequest(request: HubRequest): Promise<HubResponse> {
-    const profiles = await this.context.store.queryDocuments({
-      owner: request.iss,
-      schema: PROFILE_SCHEMA,
+    if (profiles.length === 1) {
+      return new ObjectQueryResponse([profiles[0]], null);
+    }
+    // attempt to reduce profiles to one per context/type deterministically
+    const schemas: [string, string][] = [];
+    const indexToObjects: {[index: number]: ObjectContainer} = {};
+    profiles.forEach((profile) => {
+      const schema: [string, string] = [profile.context, profile.type];
+      let indexFound: number | undefined = undefined;
+      // iterate through known schemas
+      if (schemas.some((knownSchema, index) => {
+        // if one matches, set the indexFound to the index and enter 'then' statement
+        if (knownSchema[0] === schema[0] && knownSchema[1] === schema[1]) {
+          indexFound = index;
+          return true;
+        }
+        return false;
+      })) { // indexFound should be defined
+        if (indexFound === undefined) {
+          return;
+        }
+        const currentProfile = indexToObjects[indexFound];
+        if (profile.id < currentProfile.id) {
+          indexToObjects[indexFound];
+        }
+      } else {
+        indexFound = schemas.length;
+        indexToObjects[indexFound] = profile;
+        schemas.push(schema);
+      }
     });
 
-    await profiles.forEach(async (profile) => {
-      await this.context.store.deleteDocument({
-        owner: request.iss,
-        schema: PROFILE_SCHEMA,
-        id: profile.id,
+    // finalize into an array
+    const results: ObjectContainer[] = [];
+    for (const index in indexToObjects) {
+      results.push(indexToObjects[index]);
+    }
+
+    return new ObjectQueryResponse(results, null);
+  }
+
+  // gets all the profiles on the first page for this user
+  private async getProfiles(owner: string, context?: string, type?: string): Promise<ObjectContainer[]> {
+    const filters: QueryEqualsFilter[] = [
+      {
+        field: 'interface',
+        type: 'eq',
+        value: 'Profile',
+      } as QueryEqualsFilter,
+    ];
+    if (context && type) {
+      filters.push({
+        field: 'context',
+        type: 'eq',
+        value: context,
+      } as QueryEqualsFilter);
+      filters.push({
+        field: 'type',
+        type: 'eq',
+        value: type,
+      } as QueryEqualsFilter);
+    }
+    return StoreUtils.queryGetAll(async (skipToken) => {
+      const pageProfiles = await this.context.store.queryObjects({
+        owner,
+        filters,
+        skip_token: skipToken,
       });
+      return {
+        results: pageProfiles.results,
+        nextToken: pageProfiles.pagination.skip_token,
+      };
     });
-
-    return HubResponse.withSuccess();
-  }
-
-  async handleUpdateRequest(request: HubRequest): Promise<HubResponse> {
-    return await this.upsert(request);
-  }
-
-  /**
-   * Retrieves the profile of the did, if found
-   */
-  private async getProfile(did: string): Promise<StoredObject | undefined> {
-    const results = await this.context.store.queryDocuments({
-      owner: did,
-      schema: PROFILE_SCHEMA,
-    });
-
-    if (results.length > 1) {
-      console.log(`{"type": "warn", "message": "More than one profile exists for ${did}"}`);
-    }
-
-    return results[0];
-  }
-
-  /**
-   * Returns a blank object
-   * @param did The did of the owner of the object
-   */
-  private getEmptyObjectForDid(did: string): StoredObject {
-    return {
-      owner: did,
-      id: '',
-      schema: PROFILE_SCHEMA,
-      payload: {},
-    };
-  }
-
-  /**
-   * Given a request, creates or updates the profile object
-   * @param request The request used to create or update the profile object
-   */
-  private async upsert(request: HubRequest): Promise<HubResponse> {
-    const payloadField = Validation.requiredValue(request.payload, 'payload');
-
-    const profile = await this.getProfile(request.iss);
-
-    // Update if one exists
-    if (profile) {
-      const result = await this.context.store.updateDocument({
-        owner: request.iss,
-        schema: PROFILE_SCHEMA,
-        id: profile.id,
-        meta: payloadField.meta,
-        payload: Validation.requiredValue(payloadField.data, 'request.payload'),
-      });
-
-      return HubResponse.withObject(result);
-    }
-
-    // No pre-existing Profile, generate a new one
-    const result = await this.context.store.createDocument({
-      owner: request.iss,
-      schema: PROFILE_SCHEMA,
-      meta: payloadField.meta,
-      payload: Validation.requiredValue(payloadField.data, 'request.payload'),
-    });
-    return HubResponse.withObject(result);
   }
 }

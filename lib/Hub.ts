@@ -1,9 +1,5 @@
-import * as HttpStatus from 'http-status';
 import { Authentication } from '@decentralized-identity/did-auth-jose';
 import Context from './interfaces/Context';
-import HttpResponse from './models/HttpResponse';
-import HubRequest from './models/HubRequest';
-import HubResponse from './models/HubResponse';
 
 // Controller classes.
 import BaseController from './controllers/BaseController';
@@ -11,8 +7,15 @@ import ActionsController from './controllers/ActionsController';
 import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
+import HubError, { ErrorCode } from './models/HubError';
+import BaseRequest from './models/BaseRequest';
+import ObjectQueryRequest from './models/ObjectQueryRequest';
+import WriteRequest from './models/WriteRequest';
+import BaseResponse from './models/BaseResponse';
+import Response from './models/Response';
 import AuthorizationController from './controllers/AuthorizationController';
-import { Store } from './index';
+import CommitQueryRequest from './models/CommitQueryRequest';
+import CommitQueryController from './controllers/CommitQueryController';
 
 /**
  * Core class that handles Hub requests.
@@ -24,7 +27,11 @@ export default class Hub {
    */
   private _controllers: { [name: string]: BaseController };
 
+  private _commitController: CommitQueryController;
+
   private _authentication: Authentication;
+
+  private _authorization: AuthorizationController;
 
   /**
    * Hub constructor.
@@ -32,24 +39,21 @@ export default class Hub {
    * @param context Components for initializing the Hub.
    */
   public constructor(private context: Context) {
-    const authorization = Hub.getNewAuthorizationController(this.context.store);
-    this._controllers = {
-      collections: new CollectionsController(this.context, authorization),
-      actions: new ActionsController(this.context, authorization),
-      permissions: new PermissionsController(this.context, authorization),
-      profile: new ProfileController(this.context, authorization),
-    };
-
     this._authentication = new Authentication({
       resolver: this.context.resolver,
       keys: this.context.keys,
       cryptoSuites: this.context.cryptoSuites,
     });
-  }
 
-  // Used for unit test overrides
-  private static getNewAuthorizationController(store: Store): AuthorizationController {
-    return new AuthorizationController(store);
+    this._authorization = new AuthorizationController(this.context);
+
+    this._controllers = {
+      Collections: new CollectionsController(this.context, this._authorization),
+      Actions: new ActionsController(this.context, this._authorization),
+      Permissions: new PermissionsController(this.context, this._authorization),
+      Profile: new ProfileController(this.context, this._authorization),
+    };
+    this._commitController = new CommitQueryController(this.context, this._authorization);
   }
 
   /**
@@ -57,7 +61,7 @@ export default class Hub {
    *
    * @param request The raw request buffer.
    */
-  public async handleRequest(request: Buffer): Promise<HttpResponse> {
+  public async handleRequest(request: Buffer): Promise<Response> {
     // Try decrypt the payload and validate signature,
     // Respond with bad request if unable to identify the requester.
     let verifiedRequest;
@@ -67,8 +71,10 @@ export default class Hub {
       // TODO: Proper error logging with logger, for now logging to console.
       console.log(error);
       return {
-        statusCode: HttpStatus.BAD_REQUEST,
-        body: Buffer.from(''),
+        ok: false,
+        body: Buffer.from(new HubError({
+          errorCode: ErrorCode.AuthenticationFailed,
+        }).toResponse().toString()),
       };
     }
 
@@ -76,39 +82,83 @@ export default class Hub {
     // if the plaintext is a buffer, auth is attempting to send back a fully formed token
     if (verifiedRequest instanceof Buffer) {
       return {
-        statusCode: HttpStatus.OK,
+        ok: true,
         body: verifiedRequest,
       };
     }
 
     try {
       // If we get here, it means the Hub access token received is valid, proceed with handling the request.
-      const requestJson = JSON.parse(verifiedRequest.request);
-      const hubRequest = new HubRequest(requestJson);
-      const controller = this._controllers[hubRequest.getInterface()];
-      const hubResponse = await controller.handle(hubRequest);
-
-      hubResponse.setInterfaceName(hubRequest.getInterface());
+      let response: BaseResponse;
+      const requestType = BaseRequest.getTypeFromJson(verifiedRequest.request);
+      switch (requestType) {
+        case 'CommitQueryRequest':
+          const commitRequest = new CommitQueryRequest(verifiedRequest.request);
+          response = await this._commitController.handle(commitRequest);
+          break;
+        case 'ObjectQueryRequest':
+          const queryRequest = new ObjectQueryRequest(verifiedRequest.request);
+          const queryController = this._controllers[queryRequest.interface];
+          if (!queryController) {
+            throw new HubError({
+              errorCode: ErrorCode.BadRequest,
+              property: 'query.interface',
+            });
+          }
+          response = await queryController.handle(queryRequest);
+          break;
+        case 'WriteRequest':
+          const writeRequest = new WriteRequest(verifiedRequest.request);
+          try {
+            await writeRequest.commit.validate(this.context);
+          } catch (_) {
+            throw new HubError({
+              errorCode: ErrorCode.BadRequest,
+              property: 'commit',
+              developerMessage: 'Signature could not be verified',
+            });
+          }
+          const writeController = this._controllers[writeRequest.commit.getHeaders().interface];
+          if (!writeController) {
+            throw new HubError({
+              errorCode: ErrorCode.BadRequest,
+              property: 'commit.protected.interface',
+            });
+          }
+          response = await writeController.handle(writeRequest);
+          break;
+        default:
+          throw new HubError({
+            errorCode: ErrorCode.BadRequest,
+            property: '@type',
+            developerMessage: `Request format unknown: ${requestType}`,
+          });
+      }
 
       // Sign then encrypt the response.
-      const hubResponseBody = hubResponse.getResponseBody();
+      const hubResponseBody = response.toString();
       const responseBuffer = await this._authentication.getAuthenticatedResponse(verifiedRequest, hubResponseBody);
 
       return {
-        statusCode: HttpStatus.OK,
+        ok: true,
         body: responseBuffer,
       };
     } catch (error) {
-      // TODO: Consider defining Hub response code as part of the body.
-      const hubResponse = HubResponse.withError(error);
-      const hubResponseBody = hubResponse.getResponseBody();
+      let hubError: HubError;
+      if (error instanceof HubError) {
+        hubError = error;
+      } else {
+        hubError = new HubError({ errorCode: ErrorCode.ServerError });
+        hubError.stack = error.stack;
+      }
+      const hubResponseBody = hubError.toResponse().toString();
       console.log(error);
 
       // Sign then encrypt the error response.
       const responseBuffer = await this._authentication.getAuthenticatedResponse(verifiedRequest, hubResponseBody);
 
       return {
-        statusCode: HttpStatus.OK,
+        ok: true,
         body: responseBuffer,
       };
     }

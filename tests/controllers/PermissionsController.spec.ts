@@ -1,282 +1,422 @@
-import PermissionsController from '../../lib/controllers/PermissionsController';
+import WriteRequest from '../../lib/models/WriteRequest';
 import TestContext from '../mocks/TestContext';
+import PermissionsController from '../../lib/controllers/PermissionsController';
 import TestAuthorization from '../mocks/TestAuthorization';
-import TestStore from '../mocks/TestStore';
-import HubRequest from '../../lib/models/HubRequest';
-import { PERMISSION_GRANT_SCHEMA } from '../../lib/models/PermissionGrant';
-import { DeleteDocumentOptions } from '../../lib/interfaces/Store';
+import HubError, { ErrorCode, DeveloperMessage } from '../../lib/models/HubError';
+import PermissionGrant, { PERMISSION_GRANT_TYPE, PERMISSION_GRANT_CONTEXT } from '../../lib/models/PermissionGrant';
+import StoreUtils from '../../lib/utilities/StoreUtils';
+import WriteResponse from '../../lib/models/WriteResponse';
+import { Store } from '../../lib/interfaces/Store';
+import { QueryEqualsFilter } from '../../lib/interfaces/Store';
+import ObjectContainer from '../../lib/interfaces/ObjectContainer';
+import AuthorizationController from '../../lib/controllers/AuthorizationController';
+import { Operation } from '../../lib/models/Commit';
+import TestRequest from '../mocks/TestRequest';
+import TestUtilities from '../TestUtilities';
 
 describe('PermissionsController', () => {
-  let permissionsController: PermissionsController;
-  let store: TestStore;
-
-  beforeEach(() => {
-    const context = new TestContext();
-    const authorization = new TestAuthorization();
-    permissionsController = new PermissionsController(context, authorization);
-    store = context.store;
-  });
+  const context = new TestContext();
+  const auth = new TestAuthorization();
+  const controller = new PermissionsController(context, auth);
 
   describe('validateSchema', () => {
-    it('should require a schema', async () => {
-      const request = makeRequest({}, {});
+    it('should ensure that permissions are using the correct context', async () => {
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: 'did:example:bob.id',
+        type: PERMISSION_GRANT_TYPE
+      });
       try {
-        await permissionsController.handleCreateRequest(request);
-        fail('should have thrown');
-      } catch (err) {
-        expect(err.message).toContain('schema');
-      }
-    });
-
-    it('should require the PermissionGrant schema', async () => {
-      const request = makeRequest({}, { schema: 'test' });
-      try {
-        await permissionsController.handleCreateRequest(request);
-        fail('should have thrown');
-      } catch (err) {
-        expect(err.message).toContain(PERMISSION_GRANT_SCHEMA);
-      }
-    });
-  });
-
-  describe('getPermissionGrant', () => {
-    it('should require a payload', async () => {
-      const request = makeRequest(undefined);
-      try {
-        await permissionsController.handleCreateRequest(request);
-        fail('should have thrown');
-      } catch (err) {
-        expect(err.message).toContain('payload');
-      }
-    });
-
-    it('should validate the data', async () => {
-      const request = makeRequest({});
-      try {
-        await permissionsController.handleCreateRequest(request);
-        fail('should have thrown');
-      } catch (err) {
-        expect(err.message).toContain('PermissionGrant');
-      }
-    });
-
-    it('should return the contained data', async() => {
-      const permission = makePermission();
-      const request = makeRequest(permission);
-      spyOn(store, 'createDocument').and.callFake((document: any) => document);
-      const result = await permissionsController.handleCreateRequest(request);
-      const response: any = result.getResponseBody().payload[0].data;
-      expect(response).toEqual(permission);
-    });
-  });
-
-  describe('handleCreateRequest', () => {
-    it('should return the stored data', async() => {
-      const permission = makePermission();
-      const request = makeRequest(permission);
-      spyOn(store, 'createDocument').and.callFake((document: any) => document);
-      const result = await permissionsController.handleCreateRequest(request);
-      const response: any = result.getResponseBody().payload[0].data;
-      expect(response).toEqual(permission);
-    });
-
-    it('should validate the schema', async() => {
-      checkValidateSchemaIsCalled(async (request) => {await permissionsController.handleCreateRequest(request)});
-    });
-
-    it('should validate the payload', async () => {
-      checkGetPermissionGrantIsCalled(async (request) => {await permissionsController.handleCreateRequest(request)})
-    });
-  });
-
-  describe('handleExecuteRequest', () => {
-    it('should throw', async () => {
-      const request = makeRequest(undefined);
-      try {
-        await permissionsController.handleExecuteRequest(request);
+        await controller.handleWriteCommitRequest(writeRequest, []);
         fail('did not throw');
       } catch (err) {
-        expect(err.message).toContain('implemented');
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
       }
-    })
-  });
-
-  describe('handleReadRequest', () => {
-    it('should validate the schema', async() => {
-      checkValidateSchemaIsCalled(async (request) => {await permissionsController.handleReadRequest(request)});
     });
 
-    it('should return the contained data', async() => {
-      const permission = makePermission();
-      const request = makeRequest(undefined);
-      spyOn(store, 'queryDocuments').and.callFake((_: any) => {
-        return [{
-          owner: request.aud,
-          id: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-          schema: PERMISSION_GRANT_SCHEMA,
-          payload: permission,
-        }];
+    it('should ensure that permissions are using the correct type', async () => {
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: 'did:example:bob.id',
+        context: PERMISSION_GRANT_CONTEXT
       });
-      const result = await permissionsController.handleReadRequest(request);
-      const response: any = result.getResponseBody().payload[0].data;
-      expect(response).toEqual(permission);
-    });
-
-    it('should return nothing when an id filter is included', async () => {
-      const permission = makePermission();
-      const id = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-      const request = makeRequest(undefined, {id, schema: PERMISSION_GRANT_SCHEMA});
-      spyOn(store, 'queryDocuments').and.callFake((_: any) => {
-        return [{
-          owner: request.aud,
-          id: `${id}-not`,
-          schema: PERMISSION_GRANT_SCHEMA,
-          payload: permission,
-        }];
-      });
-      const result = await permissionsController.handleReadRequest(request);
-      const response: any = result.getResponseBody();
-      expect(response.error).toBeDefined();
-    });
-
-    it('should return only if id matches', async () => {
-      const permission = makePermission();
-      const id = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-      const request = makeRequest(undefined, {id, schema: PERMISSION_GRANT_SCHEMA});
-      spyOn(store, 'queryDocuments').and.callFake((_: any) => {
-        return [{
-          owner: request.aud,
-          id: `${id}`,
-          schema: PERMISSION_GRANT_SCHEMA,
-          payload: permission,
-        },
-        {
-          owner: request.aud,
-          id: `${id}-not`,
-          schema: PERMISSION_GRANT_SCHEMA,
-          payload: {},
-        }];
-      });
-      const result = await permissionsController.handleReadRequest(request);
-      const response: any = result.getResponseBody().payload[0].data;
-      expect(response).toEqual(permission);
-    });
-  });
-
-  describe('handleDeleteRequests', () => {
-    it('should require an id', async () => {
-      const request = makeRequest(undefined);
       try {
-        await permissionsController.handleDeleteRequest(request);
-        fail('Delete did not require id');
+        await controller.handleWriteCommitRequest(writeRequest, []);
+        fail('did not throw');
       } catch (err) {
-        expect(err.message).toContain('id');
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
       }
-    });
-
-
-    it('should call the store\'s delete', async() => {
-      const id = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-      const request = makeRequest(undefined, {
-        id,
-        schema: PERMISSION_GRANT_SCHEMA
-      });
-      const spy = spyOn(store, 'deleteDocument').and.callFake((request: DeleteDocumentOptions) => {
-        expect(request.owner).toEqual(request.owner);
-        expect(request.schema).toEqual(PERMISSION_GRANT_SCHEMA);
-        expect(request.id).toEqual(id);
-      })
-      await permissionsController.handleDeleteRequest(request);
-      expect(spy).toHaveBeenCalled();
-    });
-
-    it('should validate the schema', async() => {
-      checkValidateSchemaIsCalled(async (request) => {await permissionsController.handleDeleteRequest(request)});
     });
   });
 
-  describe('handleUpdateRequest', () => {
-    it('should require an id', async () => {
-      const permission = makePermission();
-      const request = makeRequest(permission);
+  describe('validateStrategy', () => {
+    it('should require the \'basic\' strategy', async () => {
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: 'did:example:bob.id',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        commit_strategy: 'complex',
+      });
       try {
-        await permissionsController.handleUpdateRequest(request);
-        fail('Update did not require id');
+        await controller.handleWriteCommitRequest(writeRequest, []);
+        fail('did not throw');
       } catch (err) {
-        expect(err.message).toContain('id');
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.property).toEqual('commit.protected.commit_strategy');
       }
     });
+  })
 
-    it('should return the stored data', async() => {
-      const permission = makePermission();
-      const request = makeRequest(permission, {
-        schema: PERMISSION_GRANT_SCHEMA,
-        id: 'test',
+  describe('getPermisionGrant', () => {
+    const fullPermission = {
+      owner: 'did:example:alice.id',
+      grantee: 'did:example:bob.id',
+      allow: 'C----',
+      context: 'example.com',
+      type: 'foo'
+    };
+
+    for (const property in fullPermission) {
+      it(`should verify ${property} exist`, async () => {
+        const permission: any = Object.assign({}, fullPermission);
+        delete permission[property];
+
+        const writeRequest = TestRequest.createWriteRequest({
+          iss: 'did:example:bob.id',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE,
+          payload: permission,
+        });
+
+        try {
+          await controller.handleWriteCommitRequest(writeRequest, []);
+          fail('did not throw');
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+          expect(err.property).toEqual(`commit.payload.${property}`);
+          expect(err.developerMessage).toEqual(DeveloperMessage.MissingParameter);
+        }
       });
-      spyOn(store, 'updateDocument').and.callFake((document: any) => document);
-      const result = await permissionsController.handleUpdateRequest(request);
-      const response: any = result.getResponseBody().payload[0].data;
-      expect(response).toEqual(permission);
-    });
 
-    it('should validate the schema', async() => {
-      checkValidateSchemaIsCalled(async (request) => {await permissionsController.handleUpdateRequest(request)});
-    });
-
-    it('should validate the payload', async () => {
-      checkGetPermissionGrantIsCalled(async (request) => {await permissionsController.handleUpdateRequest(request)})
-    });
-  });
-
-  async function checkGetPermissionGrantIsCalled(call: (request: HubRequest) => any) {
-    const spy = spyOn(PermissionsController, 'getPermissionGrant' as 'prototype').and.throwError('');
-    const request = makeRequest({});
-    try {
-      await call(request);
-    } catch (err) {
-      expect(spy).toHaveBeenCalled();
-    }
-  }
-
-  async function checkValidateSchemaIsCalled(call: (request: HubRequest) => any) {
-    const spy = spyOn(PermissionsController, 'validateSchema' as 'prototype').and.throwError('');
-    const request = makeRequest(makePermission());
-    await call(request);
-    try {
-      await call(request);
-    } catch (err) {
-      expect(spy).toHaveBeenCalled();
-    }
-  }
-
-  function makePermission() {
-    return {
-      owner: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      grantee: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      allow: '-----',
-      object_type: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      created_by: '*',
-    }
-  }
-
-  function makeRequest(permission: any, request: any = { schema: PERMISSION_GRANT_SCHEMA }): HubRequest {
-    const did = `did:test:${Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)}`;
-    if (permission) {
-      return new HubRequest({
-        request,
-        iss: did,
-        aud: did,
-        '@type': 'Permissions/Action',
-        payload: {
-          data: permission,
+      it(`should verify ${property} parameter is of the correct type`, async () => {
+        const permission: any = Object.assign({}, fullPermission);
+        permission[property] = true;
+        const writeRequest = TestRequest.createWriteRequest({
+          iss: 'did:example:bob.id',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE,
+          payload: permission,
+        });
+        try {
+          await controller.handleWriteCommitRequest(writeRequest, []);
+          fail('did not throw');
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+          expect(err.property).toEqual(`commit.payload.${property}`);
+          expect(err.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
         }
       });
     }
-    return new HubRequest({
-      request,
-      iss: did,
-      aud: did,
-      '@type': 'Permissions/Action'
+  });
+
+  describe('validatePermissionGrant', () => {
+    it('should forbid making a CREATE permission with created_by', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+      
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: owner,
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        payload: {
+          owner,
+          grantee: sender,
+          allow: 'C----',
+          context: 'example.com',
+          type: 'foo',
+          created_by: 'bar'
+        } as PermissionGrant,
+      });
+
+      try {
+        await controller.handleWriteCommitRequest(writeRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.property).toEqual('commit.payload.created_by');
+      }
     });
-  }
-})
+  });
+
+  describe('handleWriteCommitRequest', () => {
+    it('should create an object if valid', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+      
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: owner,
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        payload: {
+          owner,
+          grantee: sender,
+          allow: 'C----',
+          context: 'example.com',
+          type: 'foo',
+        } as PermissionGrant,
+      });
+
+      const response = TestUtilities.randomString();
+      const spy = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, store: Store) => {
+        expect(request).toEqual(writeRequest);
+        expect(store).toEqual(context.store);
+        return new WriteResponse([response]);
+      });
+      const result = await controller.handleWriteCommitRequest(writeRequest, []);
+      expect(result.revisions.length).toEqual(1);
+      expect(result.revisions[0]).toEqual(response);
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call store', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: owner,
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        operation: Operation.Update,
+        object_id: TestUtilities.randomString(),
+        payload: {
+          owner,
+          grantee: sender,
+          allow: 'C----',
+          context: 'example.com',
+          type: 'foo',
+        } as PermissionGrant,
+      });
+
+      const spy = spyOn(StoreUtils, 'validateObjectExists').and.callFake((request: WriteRequest, _: Store, __: PermissionGrant[]) => {
+        expect(request).toEqual(writeRequest);
+      });
+
+      const response = TestUtilities.randomString();
+      const spyWrite = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, storeCalled: Store) => {
+        expect(storeCalled).toEqual(context.store);
+        expect(request).toEqual(writeRequest);
+        return new WriteResponse([response]);
+      });
+
+      let result = await controller.handleWriteCommitRequest(writeRequest, []);
+      expect(result.revisions[0]).toEqual(response);
+      expect(spy).toHaveBeenCalled();
+      expect(spyWrite).toHaveBeenCalled();
+    });
+  });
+
+  describe('validateObjectExists', () => {
+    it('should throw if the object does not exist', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: owner,
+        sub: owner,
+        kid: `${owner}#key-1`,
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE,
+        operation: Operation.Update,
+        object_id: TestUtilities.randomString(),
+        payload: {
+          owner,
+          grantee: sender,
+          allow: 'C----',
+          context: 'example.com',
+          type: 'foo',
+        } as PermissionGrant,
+      });
+
+      const testMessage = TestUtilities.randomString();
+      const spy = spyOn(StoreUtils, 'validateObjectExists').and.throwError(testMessage);
+      try {
+        await controller.handleWriteCommitRequest(writeRequest, []);
+        fail('expected to throw');
+      } catch (err) {
+        expect(spy).toHaveBeenCalled();
+        expect(err.message).toEqual(testMessage);
+      }
+    });
+  });
+
+  describe('handleQueryRequest', () => {
+
+    it('should verify the context', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+
+      const queryRequest = TestRequest.createObjectQueryRequest({
+        iss: sender,
+        sub: owner,
+        interface: 'Permissions',
+        context: 'incorrect',
+        type: PERMISSION_GRANT_TYPE
+      });
+
+      const spy = spyOn(context.store, "queryObjects");
+      try {
+        await controller.handleQueryRequest(queryRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+      }
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should verify the type', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+
+      const queryRequest = TestRequest.createObjectQueryRequest({
+        iss: sender,
+        sub: owner,
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: 'incorrect',
+      });
+
+      const spy = spyOn(context.store, "queryObjects");
+      try {
+        await controller.handleQueryRequest(queryRequest, []);
+        fail('did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+      }
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should query store with the correct filters', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+
+      const queryRequest = TestRequest.createObjectQueryRequest({
+        iss: sender,
+        sub: owner,
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE
+      });
+
+      const spy = spyOn(context.store, "queryObjects").and.callFake((query: any) => {
+        expect(query.owner).toEqual(owner);
+        expect(query.filters).toBeDefined();
+        expect(query.filters.length).toEqual(3);
+        let found = 0;
+        query.filters.forEach((filter: QueryEqualsFilter) => {
+          switch (filter.field) {
+            case 'interface':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual('Permissions');
+              found++;
+              break;
+            case 'context':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual(PERMISSION_GRANT_CONTEXT);
+              found++;
+              break;
+            case 'type':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual(PERMISSION_GRANT_TYPE);
+              found++;
+              break;
+            default:
+              fail('unknown filter passed to store');
+          }
+        });
+        expect(found).toEqual(3);
+        return {
+          results: [],
+          pagination: {
+            skip_token: null,
+          },
+        };
+      });
+      controller.handleQueryRequest(queryRequest, []);
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should prune results', async () => {
+      const owner = `did:example:${TestUtilities.randomString()}`;
+      const sender = `${owner}-not`;
+
+      const queryRequest = TestRequest.createObjectQueryRequest({
+        iss: sender,
+        sub: owner,
+        interface: 'Permissions',
+        context: PERMISSION_GRANT_CONTEXT,
+        type: PERMISSION_GRANT_TYPE
+      });
+
+      const grant: PermissionGrant = {
+        owner,
+        grantee: sender,
+        allow: '-R---',
+        context: 'example.com',
+        type: 'foobarbaz'
+      }
+      const objectId = TestUtilities.randomString();
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: [{
+          interface: 'Permissions',
+          context: PERMISSION_GRANT_CONTEXT,
+          type: PERMISSION_GRANT_TYPE,
+          id: objectId,
+          created_by: owner,
+          created_at: new Date(Date.now()).toISOString(),
+          sub: owner,
+          commit_strategy: 'basic'
+        } as ObjectContainer],
+        pagination: {
+          skip_token: null,
+        },
+      });
+      const pruneSpy = spyOn(AuthorizationController, 'pruneResults').and.callFake((objects: ObjectContainer[], grants: PermissionGrant[]) => {
+        expect(grants[0]).toEqual(grant);
+        expect(objects[0].id).toEqual(objectId);
+        return objects;
+      });
+      const result = await controller.handleQueryRequest(queryRequest, [grant]);
+      expect(spy).toHaveBeenCalled();
+      expect(pruneSpy).toHaveBeenCalled();
+      expect(result.objects[0].id).toEqual(objectId);
+    });
+  });
+});

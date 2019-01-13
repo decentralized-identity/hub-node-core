@@ -1,79 +1,174 @@
-import HubRequest from '../../lib/models/HubRequest';
-import HubResponse from '../../lib/models/HubResponse';
-import HubError from '../../lib/models/HubError';
+import HubError, { ErrorCode, DeveloperMessage } from '../../lib/models/HubError';
 import TestController from '../mocks/TestController';
+import TestContext from '../mocks/TestContext';
+import TestAuthorization from '../mocks/TestAuthorization';
+import TestRequest from '../mocks/TestRequest';
+import { OWNER_PERMISSION } from '../../lib/models/PermissionGrant';
+import { ObjectQueryRequest } from '../../lib/interfaces/Store';
+import TestUtilities from '../testUtilities';
 
 describe('BaseController', () => {
-  const controller = new TestController();
+  const testContext = new TestContext();
+  const auth = new TestAuthorization();
+  const controller = new TestController(testContext, auth);
 
-  beforeEach(() => {
-    controller.removeAllHandlers();
-  });
-
-  async function dispatchCheckFor(action: string, done: () => void) {
-    const responseCode = Math.round(Math.random() * 500);
-    const expectedRequest = new HubRequest({
-      iss: 'did:example:alice.id',
-      aud: 'did:example:alice.id',
-      '@type': `Test/${action}`,
-      request: {
-        schema: 'null',
-        id: '0',
-      },
-      payload: {
-        data: {},
-      },
-    });
-    controller.setHandler(action, async (request) => {
-      expect(request).toBe(expectedRequest, 'Handler did not recieve the same request');
-      const response = HubResponse.withError(new HubError('', responseCode));
-      return response;
-    });
-    const response = await controller.handle(expectedRequest);
-    expect(response.getResponseCode()).toBe(responseCode, 'Expected handler was not called');
-    done();
-  }
-
-  it('should dispatch Create requests', async (done) => {
-    await dispatchCheckFor('Create', done);
-  });
-
-  it('should dispatch Read requests', async (done) => {
-    await dispatchCheckFor('Read', done);
-  });
-
-  it('should dispatch Update requests', async (done) => {
-    await dispatchCheckFor('Update', done);
-  });
-
-  it('should dispatch Delete requests', async (done) => {
-    await dispatchCheckFor('Delete', done);
-  });
-
-  it('should dispatch Execute requests', async (done) => {
-    await dispatchCheckFor('Execute', done);
-  });
-
-  it('should return errors for unknown actions', async (done) => {
-    const randomNumber = Math.round(Math.random() * 1000).toString();
-    const request = new HubRequest({
-      iss: 'did:example:alice.id',
-      aud: 'did:example:alice.id',
-      '@type': `Test/${randomNumber}`,
-    });
-    try {
-      const response = await controller.handle(request);
-      expect(response).toBeDefined();
-      const body = response.getResponseBody();
-      if (!body) {
-        fail('Response did not contain an error message');
-        return;
+  describe('handle', () => {
+    it('should throw for unauthorized requests', async () => {
+      const expectedRequest = TestRequest.createWriteRequest({sub: 'did:example:bob.id'});
+      spyOn(auth, 'getPermissionGrantsForRequest').and.returnValue([]);
+      try {
+        await controller.handle(expectedRequest);
+        fail('Did not throw');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
       }
-      expect(body.error).toBeDefined();
-      done();
-    } catch (reject) {
-      fail(reject);
-      done();
-    }
+    });
+
+    it('should dispatch Read requests', async () => {
+      const message = TestUtilities.randomString();
+      const queryRequest = TestRequest.createObjectQueryRequest();
+      const spy = spyOn(controller, 'handleQueryRequest').and.callFake(() => {
+        throw new HubError({
+          errorCode: ErrorCode.NotImplemented,
+          developerMessage: message,
+        });
+      });
+      try {
+        await controller.handle(queryRequest);
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.developerMessage).toEqual(message);
+      }
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should dispatch Write requests', async () => {
+      const message = TestUtilities.randomString();
+      const queryRequest = TestRequest.createWriteRequest();
+      const spy = spyOn(controller, 'handleWriteCommitRequest').and.callFake(() => {
+        throw new HubError({
+          errorCode: ErrorCode.NotImplemented,
+          developerMessage: message,
+        });
+      });
+      try {
+        await controller.handle(queryRequest);
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        expect(err.developerMessage).toEqual(message);
+      }
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should return errors for unknown operations', async () => {
+      try {
+        const expectedRequest = TestRequest.createWriteRequest({operation: 'TestOperation'});
+        await controller.handle(expectedRequest);
+        fail('did not throw an error');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        const testError = err as HubError;
+        expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(testError.property).toEqual('commit.protected.operation');
+        expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
+      }
+    });
+
+    it('should return errors for unknown types', async () => {
+      try {
+        const expectedRequest = TestRequest.createWriteRequest();
+        expectedRequest['type'] = 'UnknownRequestType';
+        await controller.handle(expectedRequest);
+        fail('did not throw an error');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        const testError = err as HubError;
+        expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(testError.property).toEqual('@type');
+        expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
+      }
+    });
+
+    it('should throw if the commit subject does not match the request subject', async() => {
+      try {
+        const badRequest = TestRequest.createWriteRequest({override_commit_sub: 'did:example:bob.id'});
+        await controller.handle(badRequest);
+        fail('did not throw an error');
+      } catch (err) {
+        if (!(err instanceof HubError)) {
+          fail(err.message);
+        }
+        const testError = err as HubError;
+        expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(testError.property).toEqual('commit.protected.sub');
+        expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
+      }
+    });
   });
+
+  describe('handleQueryRequest', () => {
+    it('should query the storage with just the interface', async () => {
+      const spy = spyOn(testContext.store, "queryObjects").and.callFake((queryRequest: ObjectQueryRequest) => {
+        expect(queryRequest.owner).toEqual('did:example:alice.id');
+        return {
+          results: [],
+          pagination: {
+            skip_token: null,
+          },
+        };
+      });
+      controller.handleQueryRequest(TestRequest.createObjectQueryRequest({
+        override_no_context: true,
+        override_no_type: true,
+      }), [OWNER_PERMISSION]);
+      expect(spy).toHaveBeenCalled();
+    });
+
+    ['interface', 'context', 'type'].forEach((parameter) => {
+      const value = TestUtilities.randomString();
+      it('should match optionals to the right filters', async () => {
+      const spy = spyOn(testContext.store, "queryObjects").and.callFake((queryRequest: ObjectQueryRequest) => {
+        if (!queryRequest.skip_token) {
+          fail('expected ObjectQueryRequest to contain skip_token');
+          return;
+        }
+        expect(queryRequest.skip_token).toEqual('yes skip token');
+        if (!queryRequest.filters) {
+          fail('expected ObjectQueryRequest to contain filters');
+          return;
+        }
+        queryRequest.filters.forEach((filter) => {
+          if (filter.field === parameter) {
+            expect(filter.type).toEqual('eq');
+            expect(filter.value).toEqual(value);
+          }
+        });
+        return {
+          results: [],
+          pagination: {
+            skip_token: null,
+          },
+        };
+      });
+      const options: any = {
+        skipToken: 'yes skip token',
+      };
+      options[parameter] = value;
+      controller.handleQueryRequest(TestRequest.createObjectQueryRequest(options), [OWNER_PERMISSION]);
+      expect(spy).toHaveBeenCalled();
+    });
+    })
+    
+  })
 });

@@ -1,256 +1,313 @@
-import HubRequest from '../../lib/models/HubRequest';
-import HubResponse from '../../lib/models/HubResponse';
-// import HubError from '../../lib/models/HubError';
-import ProfileController, { PROFILE_SCHEMA } from '../../lib/controllers/ProfileController';
 import TestContext from '../mocks/TestContext';
-import HubError from '../../lib/models/HubError';
 import TestAuthorization from '../mocks/TestAuthorization';
-
-const did = 'did:test:alice.id';
+import ProfileController from '../../lib/controllers/ProfileController';
+import WriteRequest from '../../lib/models/WriteRequest';
+import HubError, { ErrorCode } from '../../lib/models/HubError';
+import { Store } from '../../lib/interfaces/Store';
+import StoreUtils from '../../lib/utilities/StoreUtils';
+import ObjectContainer from '../../lib/interfaces/ObjectContainer';
+import { Operation } from '../../lib/models/Commit';
+import PermissionGrant, { OWNER_PERMISSION } from '../../lib/models/PermissionGrant';
+import WriteResponse from '../../lib/models/WriteResponse';
+import BaseRequest from '../../lib/models/BaseRequest';
+import TestUtilities from '../TestUtilities';
+import TestRequest from '../mocks/TestRequest';
 
 describe('ProfileController', () => {
-  let testContext: TestContext;
-  let testAuthorization: TestAuthorization;
-  let storeCreate: jasmine.Spy;
-  let storeQuery: jasmine.Spy;
-  let storeUpdate: jasmine.Spy;
-  let storeDelete: jasmine.Spy;
-  let controller: ProfileController;
+  const context = new TestContext();
+  const auth = new TestAuthorization();
+  const controller = new ProfileController(context, auth);
+  const profileContext = BaseRequest.context;
+  const profileType = TestUtilities.randomString();
+  let owner: string;
+  let hub: string;
+  let sender: string;
 
-  let request: HubRequest;
   beforeEach(() => {
-    testContext = new TestContext();
-    testAuthorization = new TestAuthorization();
-    storeCreate = spyOn(testContext.store, 'createDocument');
-    storeQuery = spyOn(testContext.store, 'queryDocuments');
-    storeUpdate = spyOn(testContext.store, 'updateDocument');
-    storeDelete = spyOn(testContext.store, 'deleteDocument');
-    // HubResponse is looped out to avoid unwrapping nested response objects
-    spyOn(HubResponse, 'withObject').and.callFake((obj: any) => obj);
-    spyOn(HubResponse, 'withObjects').and.callFake((obj: any) => obj);
-    spyOn(HubResponse, 'withError').and.callFake((obj: any) => obj);
-    controller = new ProfileController(testContext, testAuthorization);
-    request = new HubRequest({
-      iss: did,
-      aud: did,
-      '@type': 'Profile/<ACTION>',
+    owner = `did:example:${TestUtilities.randomString()}`;
+    hub = 'did:example:hub';
+    sender = `${owner}-not`;
+  });
+
+  describe('getProfiles', () => {
+    it('should form the correct store query filters', async () => {
+
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: sender,
+        sub: owner,
+        context: profileContext,
+        type: profileType,
+      });
+
+      const spy = spyOn(context.store, "queryObjects").and.callFake((request: any) => {
+        expect(request.owner).toEqual(owner);
+        expect(request.filters).toBeDefined();
+        expect(request.filters.length).toEqual(3);
+        let countFound = 0;
+        request.filters.forEach((filter: any) => {
+          switch (filter.field) {
+            case 'interface':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual('Profile');
+              countFound++;
+              break;
+            case 'context':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual(profileContext);
+              countFound++;
+              break;
+            case 'type':
+              expect(filter.type).toEqual('eq');
+              expect(filter.value).toEqual(profileType);
+              countFound++;
+              break;
+            default:
+              fail('unknown filter used');
+          }
+        });
+        expect(countFound).toEqual(3);
+        return {
+          results: [],
+          pagination: {
+            skip_token: null,
+          },
+        };
+      });
+      spyOn(StoreUtils, 'writeCommit');
+      await controller.handleWriteCommitRequest(writeRequest, []);
+      expect(spy).toHaveBeenCalled();
     });
   });
 
-  function queryReturnEmpty() {
-    storeQuery.and.returnValues([]);
-  }
+  describe('handleWriteCommitRequest', () => {
+    it('should throw if a profile already exists', async () => {
+      const spy = spyOn(context.store, 'queryObjects').and.returnValue({
+        results: [{
+          interface: 'Profile',
+          context: profileContext,
+          type: profileType,
+          id: TestUtilities.randomString(),
+          created_by: 'did:example:alice.id',
+          created_at: new Date(Date.now()).toISOString(),
+          sub: 'did:example:alice.id',
+          commit_strategy: 'basic',
+          } as ObjectContainer
+        ],
+        pagination: {
+          skip_token: null,
+      }});
 
-  function queryReturnProfile(): any {
-    const store = {
-      owner: did,
-      id: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      schema: PROFILE_SCHEMA,
-      payload: {
-        test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      },
-    };
-
-    storeQuery.and.returnValues([store]);
-    return store;
-  }
-
-  function queryReturnMultiple(): string[] {
-    const aObject = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-    const bObject = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
-    storeQuery.and.returnValues([
-      {
-        owner: did,
-        id: aObject,
-        schema: PROFILE_SCHEMA,
-        payload: {
-          test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-        },
-      },
-      {
-        owner: did,
-        id: bObject,
-        schema: PROFILE_SCHEMA,
-        payload: {
-          test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-        },
-      }]);
-    return [aObject, bObject];
-  }
-
-  describe('handleCreateRequest', () => {
-    it('should call create if a Profile cannot be found', async () => {
-      queryReturnEmpty();
-      const testObject = {
-        test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      };
-      storeCreate.and.returnValue(testObject);
-      request.payload = {
-        data: {
-          unused: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-        },
-      };
-      const result = await controller.handleCreateRequest(request);
-      expect(storeCreate).toHaveBeenCalledWith({
-        owner: did,
-        schema: PROFILE_SCHEMA,
-        meta: undefined,
-        payload: request.payload.data,
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: sender,
+        sub: owner,
+        context: profileContext,
+        type: profileType,
       });
-      expect(result as any).toEqual(testObject);
-    });
 
-    it('should call update if a Profile already exists', async() => {
-      const profile = queryReturnProfile();
-      const testObject = {
-        test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      };
-      storeUpdate.and.returnValue(testObject);
-      request.payload = {
-        data: {
-          unused: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-        },
-      };
-      const result = await controller.handleCreateRequest(request);
-      expect(storeUpdate).toHaveBeenCalledWith({
-        owner: did,
-        schema: PROFILE_SCHEMA,
-        id: profile.id,
-        meta: undefined,
-        payload: request.payload.data,
-      });
-      expect(result as any).toEqual(testObject);
-    });
-  });
-
-  describe('handleUpdateRequest', () => {
-    it('should call create if a Profile cannot be found', async () => {
-      queryReturnEmpty();
-      const testObject = {
-        test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      };
-      storeCreate.and.returnValue(testObject);
-      request.payload = {
-        data: {
-          unused: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-        },
-      };
-      const result = await controller.handleUpdateRequest(request);
-      expect(storeCreate).toHaveBeenCalledWith({
-        owner: did,
-        schema: PROFILE_SCHEMA,
-        meta: undefined,
-        payload: request.payload.data,
-      });
-      expect(result as any).toEqual(testObject);
-    });
-
-    it('should call update if a Profile already exists', async() => {
-      const profile = queryReturnProfile();
-      const testObject = {
-        test: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-      };
-      storeUpdate.and.returnValue(testObject);
-      request.payload = {
-        data: {
-          unused: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16),
-        },
-      };
-      const result = await controller.handleUpdateRequest(request);
-      expect(storeUpdate).toHaveBeenCalledWith({
-        owner: did,
-        schema: PROFILE_SCHEMA,
-        id: profile.id,
-        meta: undefined,
-        payload: request.payload.data,
-      });
-      expect(result as any).toEqual(testObject);
-    });
-  });
-
-  describe('handleExecuteRequest', () => {
-    it('should throw a HubError', async () => {
       try {
-        await controller.handleExecuteRequest(request);
-        fail('Execute should not be implemented.');
+        await controller.handleWriteCommitRequest(writeRequest, []);
+        fail('did not throw');
       } catch (err) {
-        if (err instanceof HubError) {
-          expect(err.httpStatusCode).not.toEqual(200);
-        } else {
-          fail('Expected a HubError');
+        if (!(err instanceof HubError)) {
+          fail(err.message);
         }
+        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
       }
+      
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call store if the create is valid', async () => {
+
+      const writeRequest = TestRequest.createWriteRequest({
+        iss: sender,
+        sub: owner,
+        context: profileContext,
+        type: profileType
+      });
+  
+      spyOn(context.store, 'queryObjects').and.returnValue({
+        results: [],
+        pagination: {
+          skip_token: null,
+        },
+      });
+      const spy = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, store: Store) => {
+        expect(store).toEqual(context.store);
+        expect(request).toEqual(writeRequest);
+      });
+      await controller.handleWriteCommitRequest(writeRequest, []);
+      expect(spy).toHaveBeenCalled();
+    });
+
+    [Operation.Update, Operation.Delete].forEach((operation) => {
+      const permissionMap: { [operation: string]: string} = {
+        update: '--U--',
+        delete: '---D-',
+      };
+
+      it(`should fail ${operation} if the profile does not exist`, async () => {
+        const writeRequest = TestRequest.createWriteRequest({
+          iss: sender,
+          sub: owner,
+          context: profileContext,
+          type: profileType,
+          operation,
+          object_id: TestUtilities.randomString(),
+        });
+  
+        const grant: PermissionGrant = {
+          owner,
+          grantee: sender,
+          context: profileContext,
+          type: profileType,
+          allow: permissionMap[operation]
+        };
+
+        const spy = spyOn(StoreUtils, 'objectExists').and.callFake((request: WriteRequest, store: Store, grants: PermissionGrant[]) => {
+          expect(grants[0]).toEqual(grant);
+          expect(store).toEqual(context.store);
+          expect(request).toEqual(writeRequest);
+          return false;
+        });
+        try {
+          await controller.handleWriteCommitRequest(writeRequest, [grant]);
+        } catch (err) {
+          if (!(err instanceof HubError)) {
+            fail(err.message);
+          }
+          expect(err.errorCode).toEqual(ErrorCode.NotFound);
+        }
+  
+        expect(spy).toHaveBeenCalled();
+      });
+  
+      it(`should ${operation} if the object already exists`, async () => {
+        const writeRequest = TestRequest.createWriteRequest({
+          iss: owner,
+          sub: owner,
+          context: profileContext,
+          type: profileType,
+          operation,
+          object_id: TestUtilities.randomString(),
+        });
+        
+        const spy = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, store: Store) => {
+          expect(store).toEqual(context.store);
+          expect(request).toEqual(writeRequest);
+          return new WriteResponse([request.commit.getHeaders().object_id]);
+        });
+  
+        spyOn(StoreUtils, 'objectExists').and.returnValue(true);
+  
+        let result = await controller.handleWriteCommitRequest(writeRequest, []);
+        expect(result.revisions[0]).toEqual(writeRequest.commit.getHeaders().object_id);
+        expect(spy).toHaveBeenCalled();
+      });
     });
   });
 
-  describe('handleReadRequest', () => {
-    it('should return the stored Profile', async () => {
-      const profile = queryReturnProfile();
-      const response = await controller.handleReadRequest(request);
-      expect(storeQuery).toHaveBeenCalledWith({
-        owner: did,
-        schema: PROFILE_SCHEMA,
-      });
-      expect(response as any).toEqual(profile);
+  describe('handleQueryRequest', () => {
+    const query = TestRequest.createObjectQueryRequest({
+      iss: sender,
+      aud: hub,
+      sub: owner,
+      interface: 'Profile',
+      context: profileContext,
+      type: profileType,
     });
 
-    it('should return an empty object when no profile is found', async () => {
-      queryReturnEmpty();
-      const response: any = await controller.handleReadRequest(request);
-      expect(storeQuery).toHaveBeenCalledWith({
-        owner: did,
-        schema: PROFILE_SCHEMA,
+    it('should return empty if no profile exists', async () => {
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: [],
+        pagination: {
+          skip_token: null,
+        },
       });
-      expect(response.owner).toEqual(did);
-      expect(response.schema).toEqual(PROFILE_SCHEMA);
-      expect(response.payload).toEqual({});
+      const results = await controller.handleQueryRequest(query, []);
+      expect(results.objects.length).toEqual(0);
+      expect(spy).toHaveBeenCalled();
     });
 
-    it('should return the a single Profile if multiple are found', async () => {
-      const profiles = queryReturnMultiple();
-      const response: any = await controller.handleReadRequest(request);
-      expect(storeQuery).toHaveBeenCalledWith({
-        owner: did,
-        schema: PROFILE_SCHEMA,
+    it('should return a profile if one exists', async () => {
+      const id = TestUtilities.randomString();
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: [{
+          interface: 'Profile',
+          context: profileContext,
+          type: profileType,
+          id,
+          created_by: owner,
+          created_at: new Date(Date.now()).toISOString(),
+          sub: owner,
+          commit_strategy: 'basic'
+          }],
+        pagination: {
+          skip_token: null,
+        },
       });
-      expect(typeof response).not.toEqual('Array');
-      expect(response.owner).toEqual(did);
-      expect(response.schema).toEqual(PROFILE_SCHEMA);
-      expect(profiles.includes(response.id)).toBeTruthy();
-    });
-  });
-
-  describe('handleDeleteRequest', () => {
-    it('should call query', async () => {
-      queryReturnEmpty();
-      await controller.handleDeleteRequest(request);
-      expect(storeQuery).toHaveBeenCalledWith({
-        owner: did,
-        schema: PROFILE_SCHEMA,
-      });
-    });
-
-    it('should delete queried objects', async () => {
-      const profile = queryReturnProfile();
-      storeDelete.and.callFake((deleteOptions: any) => {
-        expect(deleteOptions.id).toEqual(profile.id);
-        expect(deleteOptions.owner).toEqual(did);
-      });
-      await controller.handleDeleteRequest(request);
-      expect(storeDelete).toHaveBeenCalled();
+      const results = await controller.handleQueryRequest(query, [OWNER_PERMISSION]);
+      expect(results.objects.length).toEqual(1);
+      expect(spy).toHaveBeenCalled();
+      expect(results.objects[0].id).toEqual(id);
     });
 
-    it('should delete all profiles if multiple exist', async () => {
-      const profiles = queryReturnMultiple();
-      const calledIds: string[] = [];
-      storeDelete.and.callFake((deleteOptions: any) => {
-        expect(profiles.includes(deleteOptions.id)).toBeTruthy();
-        expect(deleteOptions.owner).toEqual(did);
-        calledIds.push(deleteOptions.id);
+    it('should return a random profile if multiple exist', async () => {
+      const profiles: ObjectContainer[] = [];
+      const count = Math.round(Math.random() * 10) + 1;
+      for(let i = 0; i < count; i++) {
+        profiles.push({
+        interface: 'Profile',
+        context: profileContext,
+        type: profileType,
+        id: TestUtilities.randomString(),
+        created_by: owner,
+        created_at: new Date(Date.now()).toISOString(),
+        sub: owner,
+        commit_strategy: 'basic'
+        });
+      }
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: profiles,
+        pagination: {
+          skip_token: null,
+        },
       });
-      await controller.handleDeleteRequest(request);
-      expect(storeDelete).toHaveBeenCalledTimes(profiles.length);
-      expect(calledIds).toEqual(profiles);
+      const results = await controller.handleQueryRequest(query, []);
+      expect(results.objects.length).toEqual(1);
+      expect(profiles.includes(results.objects[0])).toBeTruthy();
+      expect(spy).toHaveBeenCalled();
     });
-  });
+
+    
+    it('should return a random profile per schema if multiple exist', async () => {
+      const profiles: ObjectContainer[] = [];
+      const count = Math.round(Math.random() * 10) + 1;
+      let someType: string = TestUtilities.randomString();
+      for(let i = 0; i < count; i++) {
+        if (i % 2 == 0) {
+          someType = TestUtilities.randomString();
+        }
+        profiles.push({
+        interface: 'Profile',
+        context: profileContext,
+        type: someType,
+        id: TestUtilities.randomString(),
+        created_by: owner,
+        created_at: new Date(Date.now()).toISOString(),
+        sub: owner,
+        commit_strategy: 'basic'
+        });
+      }
+      const spy = spyOn(context.store, "queryObjects").and.returnValue({
+        results: profiles,
+        pagination: {
+          skip_token: null,
+        },
+      });
+      const results = await controller.handleQueryRequest(query, []);
+      expect(results.objects.length).toEqual(Math.ceil(count / 2));
+      expect(spy).toHaveBeenCalled();
+    });
+  })
 });

@@ -1,4 +1,4 @@
-import Store from './Store';
+import { Store } from './Store';
 import { CryptoSuite, PrivateKey } from '@decentralized-identity/did-auth-jose';
 import { DidResolver } from '@decentralized-identity/did-common-typescript';
 

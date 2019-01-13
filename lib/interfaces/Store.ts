@@ -1,71 +1,145 @@
+import Commit from '../models/Commit';
+import ObjectContainer from './ObjectContainer';
+
 /**
- * Interface for an object stored in the Hub.
+ * Query filter which refines results to those where the specified `field` has the given `value`. If
+ * `value` is an array, matches any entry in the array.
  */
-export interface StoredObject {
-  owner: string;
-  id: string;
-  schema: string;
-  meta?: object;
-  payload: any;
+export interface QueryEqualsFilter {
+
+  /** Indicates an equality filter. */
+  type: 'eq';
+
+  /** Name of metadata field to be evaluated, e.g. `sub` or `commit_strategy`. */
+  field: string;
+
+  /** Value or values to search for. */
+  value: string | string[];
+
 }
 
 /**
- * Options for creating an object in Hub.
+ * Represents all possible types of query filters.
+ *
+ * This list can be expanded in the future (e.g. `QueryEqualsFilter | QueryLessThanFilter`) when
+ * additional filter types are supported.
  */
-export interface CreateDocumentOptions {
+export type QueryFilter = QueryEqualsFilter;
+
+/**
+ * Common parameters for Store requests.
+ */
+export interface QueryRequest {
+
+  /** The fully-qualified DID of the Hub owner. */
   owner: string;
-  schema: string;
-  id?: string;
-  meta?: object;
-  payload: any;
+
+  /** (Optional) filters to refine the entities returned. */
+  filters?: QueryFilter[];
+
+  // List of fields to return from the queried items. Currently only supports "rev" or "id"
+  // fields?: string[];
+
+  /** A previously returned pagination token, for iterating through pages of a query. */
+  skip_token?: string;
+
 }
 
 /**
- * Options for reading objects in Hub.
+ * Store request to query over the objects in a particular Hub.
+ *
+ * Currently supported filters: 'interface', 'context', 'type', 'object_id'
  */
-export interface QueryDocumentsOptions {
-  owner: string;
-  schema: string;
+export interface ObjectQueryRequest extends QueryRequest {
 }
 
 /**
- * Options for updating an object in Hub.
+ * Store request to query over the individual commits in a particular Hub.
+ *
+ * Currently supported filters: 'object_id', 'rev'
  */
-export interface UpdateDocumentOptions {
-  owner: string;
-  schema: string;
-  id: string;
-  meta?: object;
-  payload: any;
+export interface CommitQueryRequest extends QueryRequest {
 }
 
 /**
- * Options for deleting an object in Hub.
+ * Common parameters for Store responses.
  */
-export interface DeleteDocumentOptions {
-  owner: string;
-  schema: string;
-  id: string;
+export interface QueryResponse<ResultType> {
+
+  results: ResultType[];
+
+  pagination: {
+    skip_token: string | null;
+  };
+
 }
 
 /**
- * Options common to all storage operations.
+ * Response to a query over the objects in a particular Hub.
  */
-export interface DocumentOperationOptions {
-  owner: string;
-  schema: string;
+export interface ObjectQueryResponse extends QueryResponse<ObjectContainer> {
+
 }
 
 /**
- * Interface for storing Hub data.
- * NOTE: This is subject to change as replication design solidifies.
+ * Response to a query over the individual commits in a particular Hub.
  */
-export default interface Store {
-  createDocument(options: CreateDocumentOptions): Promise<StoredObject>;
+export interface CommitQueryResponse extends QueryResponse<Commit> {
 
-  queryDocuments(options: QueryDocumentsOptions): Promise<StoredObject[]>;
+}
 
-  updateDocument(options: UpdateDocumentOptions): Promise<StoredObject>;
+/**
+ * A request to add a new commit to a Hub.
+ */
+export interface CommitRequest {
 
-  deleteDocument(options: DeleteDocumentOptions): Promise<void>;
+  /** The fully-qualified DID of the Hub owner. */
+  owner: string;
+
+  /** The commit to add to the Store. */
+  commit: Commit;
+
+}
+
+/**
+ * The response to a `CommitRequest`.
+ */
+export interface CommitResponse {
+
+  /** The list of known revisions for the object that was modified. */
+  knownRevisions: string[];
+
+}
+
+/**
+ * Interface for storing Hub data, which must be implemented by each backing database.
+ */
+export interface Store {
+  /**
+   * Adds one or more Commit objects to the store. This method is idempotent and it is acceptable to
+   * pass a previously seen Commit.
+   */
+  commit(request: CommitRequest): Promise<CommitResponse>;
+
+  /**
+   * Queries the store for objects matching the specified filters.
+   *
+   * @param request A request specifying the details of which objects to query. This query must
+   * specify at least an owner DID, may also specify other constraints.
+   *
+   * @returns A promise for a response containing details of the matching objects, as well as other
+   * metadata such as pagination.
+   */
+  queryObjects(request: ObjectQueryRequest): Promise<ObjectQueryResponse>;
+
+  /**
+   * Queries the store for commits matching the specified filters.
+   *
+   * @param request A request specifying the details of which commits to query. This query must
+   * specify at least an owner DID, may also specify other constraints.
+   *
+   * @returns A promise for a response containing details of the matching commits, as well as other
+   * metadata such as pagination.
+   */
+  queryCommits(request: CommitQueryRequest): Promise<CommitQueryResponse>;
 }

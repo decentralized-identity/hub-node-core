@@ -1,21 +1,14 @@
-import Store, {
-  StoredObject,
-  CreateDocumentOptions,
-  QueryDocumentsOptions,
-  UpdateDocumentOptions,
-  DeleteDocumentOptions} from '../../lib/interfaces/Store';
+import { Store, CommitResponse, CommitRequest, ObjectQueryRequest,
+  ObjectQueryResponse, CommitQueryRequest, CommitQueryResponse } from '../../lib/interfaces/Store';
 
 export default class TestStore implements Store {
-  createDocument(_: CreateDocumentOptions): Promise<StoredObject> {
-    return Promise.reject(null);
+  commit(_: CommitRequest): Promise<CommitResponse> {
+    throw new Error('Method not implemented.');
   }
-  queryDocuments(_: QueryDocumentsOptions): Promise<StoredObject[]> {
-    return Promise.reject(null);
+  queryObjects(_: ObjectQueryRequest): Promise<ObjectQueryResponse> {
+    throw new Error('Method not implemented.');
   }
-  updateDocument(_: UpdateDocumentOptions): Promise<StoredObject> {
-    return Promise.reject(null);
-  }
-  deleteDocument(_: DeleteDocumentOptions): Promise<void> {
-    return Promise.reject(null);
+  queryCommits(_: CommitQueryRequest): Promise<CommitQueryResponse> {
+    throw new Error('Method not implemented.');
   }
 }

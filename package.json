@@ -7,16 +7,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@decentralized-identity/did-auth-jose": "^0.1.2",
+    "@decentralized-identity/did-auth-jose": "^0.1.5",
     "@decentralized-identity/did-common-typescript": "^0.1.1",
-    "http-status": "^1.1.2",
+    "base64url": "3.0.1",
     "node-fetch": "^2.2.0"
   },
   "devDependencies": {
-    "@types/node-fetch": "^2.1.2",
-    "@types/http-status": "^0.2.30",
     "@types/jasmine": "^2.8.8",
     "@types/node": "^10.3.1",
+    "@types/node-fetch": "^2.1.2",
     "husky": "^0.14.3",
     "jasmine": "^3.1.0",
     "jasmine-reporters": "^2.3.2",
