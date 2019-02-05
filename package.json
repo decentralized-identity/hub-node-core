@@ -1,6 +1,6 @@
 {
   "name": "@decentralized-identity/hub-node-core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Node.js implementation of the Identity Hub core.",
   "repository": "https://github.com/decentralized-identity/hub-node-core",
   "license": "Apache-2.0",
