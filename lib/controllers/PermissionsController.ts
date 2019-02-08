@@ -1,12 +1,12 @@
+import { CommitOperation, HubErrorCode, ICommitProtectedHeaders } from '@decentralized-identity/hub-common-js';
 import BaseController from './BaseController';
-import HubError, { ErrorCode } from '../models/HubError';
+import HubError from '../models/HubError';
 import PermissionGrant, { PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import StoreUtils from '../utilities/StoreUtils';
-import { Operation, CommitHeaders } from '../models/Commit';
 
 /**
  * This class handles all the permission requests.
@@ -18,7 +18,7 @@ export default class PermissionsController extends BaseController {
     if ((request.queryContext || request.queryType) &&
         (request.queryContext !== PERMISSION_GRANT_CONTEXT || request.queryType !== PERMISSION_GRANT_TYPE)) {
       throw new HubError({
-        errorCode: ErrorCode.BadRequest,
+        errorCode: HubErrorCode.BadRequest,
         developerMessage: `query 'context' must be '${PERMISSION_GRANT_CONTEXT}', 'type' must be '${PERMISSION_GRANT_TYPE}'`,
       });
     }
@@ -27,10 +27,10 @@ export default class PermissionsController extends BaseController {
 
   async handleWriteCommitRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
     const headers = request.commit.getProtectedHeaders();
-    PermissionsController.validateSchema(headers as CommitHeaders);
+    PermissionsController.validateSchema(headers);
     const operation = request.commit.getProtectedHeaders().operation!;
-    if (operation === Operation.Create || operation === Operation.Update) {
-      PermissionsController.validateStrategy(headers as CommitHeaders);
+    if (operation === CommitOperation.Create || operation === CommitOperation.Update) {
+      PermissionsController.validateStrategy(headers);
       PermissionsController.validatePermissionGrant(request);
     }
     await StoreUtils.validateObjectExists(request, this.context.store, grants);
@@ -52,20 +52,20 @@ export default class PermissionsController extends BaseController {
   }
 
   // given commit headers, validates the permission grant schema
-  private static validateSchema(headers: CommitHeaders) {
+  private static validateSchema(headers: Partial<ICommitProtectedHeaders>) {
     if (headers.context !== PERMISSION_GRANT_CONTEXT ||
       headers.type !== PERMISSION_GRANT_TYPE) {
       throw new HubError({
-        errorCode: ErrorCode.BadRequest,
+        errorCode: HubErrorCode.BadRequest,
       });
     }
   }
 
   // given commit headers, validates the strategy
-  private static validateStrategy(headers: CommitHeaders) {
+  private static validateStrategy(headers: Partial<ICommitProtectedHeaders>) {
     if (headers.commit_strategy !== 'basic') {
       throw new HubError({
-        errorCode: ErrorCode.BadRequest,
+        errorCode: HubErrorCode.BadRequest,
         property: 'commit.protected.commit_strategy',
       });
     }
@@ -79,7 +79,7 @@ export default class PermissionsController extends BaseController {
     if (permission.created_by &&
       /C/.test(permission.allow)) {
       throw new HubError({
-        errorCode: ErrorCode.BadRequest,
+        errorCode: HubErrorCode.BadRequest,
         property: 'commit.payload.created_by',
         developerMessage: 'Create permission cannot be given when created_by is used',
       });

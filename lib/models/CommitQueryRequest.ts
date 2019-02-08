@@ -1,4 +1,5 @@
-import HubError, { ErrorCode } from './HubError';
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
+import HubError from './HubError';
 import BaseRequest from './BaseRequest';
 
 /**
@@ -25,7 +26,7 @@ export default class CommitQueryRequest extends BaseRequest {
       // object_id and revisisons are mutually exclusive
       if ('object_id' in request.query && 'revision' in request.query) {
         throw new HubError({
-          errorCode: ErrorCode.NotImplemented,
+          errorCode: HubErrorCode.NotImplemented,
           property: 'query.object_id, query.revision',
           developerMessage: 'object_id and revision are mutually exclusive',
         });

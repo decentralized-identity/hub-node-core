@@ -1,14 +1,12 @@
-
+import { CommitOperation, HubErrorCode, IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import BaseController from './BaseController';
-import HubError, { ErrorCode } from '../models/HubError';
+import HubError from '../models/HubError';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
-import ObjectContainer from '../interfaces/ObjectContainer';
 import PermissionGrant from '../models/PermissionGrant';
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import StoreUtils from '../utilities/StoreUtils';
-import { Operation } from '../models/Commit';
 import { QueryEqualsFilter } from '../interfaces/Store';
 
 /**
@@ -18,11 +16,11 @@ export default class ProfileController extends BaseController {
 
   async handleWriteCommitRequest(request: WriteRequest, grants: PermissionGrant[]): Promise<WriteResponse> {
     const headers = request.commit.getProtectedHeaders();
-    if (headers.operation === Operation.Create) {
+    if (headers.operation === CommitOperation.Create) {
       const profiles = await this.getProfiles(request.sub, headers.context, headers.type);
       if (profiles.length > 0) {
         throw new HubError({
-          errorCode: ErrorCode.BadRequest,
+          errorCode: HubErrorCode.BadRequest,
           developerMessage: `Profile already exists. Please issue update for object_id: '${profiles[0].id}'`,
         });
       }
@@ -42,7 +40,7 @@ export default class ProfileController extends BaseController {
     }
     // attempt to reduce profiles to one per context/type deterministically
     const schemas: [string, string][] = [];
-    const indexToObjects: {[index: number]: ObjectContainer} = {};
+    const indexToObjects: {[index: number]: IObjectMetadata} = {};
     profiles.forEach((profile) => {
       const schema: [string, string] = [profile.context, profile.type];
       let indexFound: number | undefined = undefined;
@@ -70,7 +68,7 @@ export default class ProfileController extends BaseController {
     });
 
     // finalize into an array
-    const results: ObjectContainer[] = [];
+    const results: IObjectMetadata[] = [];
     for (const index in indexToObjects) {
       results.push(indexToObjects[index]);
     }
@@ -79,7 +77,7 @@ export default class ProfileController extends BaseController {
   }
 
   // gets all the profiles on the first page for this user
-  private async getProfiles(owner: string, context?: string, type?: string): Promise<ObjectContainer[]> {
+  private async getProfiles(owner: string, context?: string, type?: string): Promise<IObjectMetadata[]> {
     const filters: QueryEqualsFilter[] = [
       {
         field: 'interface',

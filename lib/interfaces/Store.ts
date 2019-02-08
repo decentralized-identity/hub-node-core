@@ -1,5 +1,5 @@
+import { IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import Commit from '../models/Commit';
-import ObjectContainer from './ObjectContainer';
 
 /**
  * Query filter which refines results to those where the specified `field` has the given `value`. If
@@ -77,7 +77,7 @@ export interface QueryResponse<ResultType> {
 /**
  * Response to a query over the objects in a particular Hub.
  */
-export interface ObjectQueryResponse extends QueryResponse<ObjectContainer> {
+export interface ObjectQueryResponse extends QueryResponse<IObjectMetadata> {
 
 }
 

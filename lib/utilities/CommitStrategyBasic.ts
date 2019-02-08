@@ -1,4 +1,5 @@
-import Commit, { Operation } from '../models/Commit';
+import { CommitOperation } from '@decentralized-identity/hub-common-js';
+import Commit from '../models/Commit';
 import { Store, CommitQueryResponse } from '../interfaces/Store';
 import StoreUtils from './StoreUtils';
 
@@ -47,13 +48,13 @@ export default class CommitStrategyBasic {
     }
     return allObjectCommits.reduce((latestCommit, currentCommit) => {
       // create commits are first, any other commit has higher value
-      if (latestCommit.getProtectedHeaders().operation === Operation.Create &&
-          currentCommit.getProtectedHeaders().operation !== Operation.Create) {
+      if (latestCommit.getProtectedHeaders().operation === CommitOperation.Create &&
+          currentCommit.getProtectedHeaders().operation !== CommitOperation.Create) {
         return currentCommit;
       }
       // delete commits are last, any other commit has lower value
-      if (latestCommit.getProtectedHeaders().operation !== Operation.Delete &&
-          currentCommit.getProtectedHeaders().operation === Operation.Delete) {
+      if (latestCommit.getProtectedHeaders().operation !== CommitOperation.Delete &&
+          currentCommit.getProtectedHeaders().operation === CommitOperation.Delete) {
         return currentCommit;
       }
       // the commit is of the same type and must be decided by datetime
@@ -61,7 +62,7 @@ export default class CommitStrategyBasic {
       const currentDate = Date.parse(currentCommit.getHeaders().committed_at);
       // if the commit times are the same, defer to lexigraphical rev order
       if (latestDate === currentDate &&
-          latestCommit.getHeaders().rev < currentCommit.getHeaders().rev) {
+          latestCommit.getHeaders().rev! < currentCommit.getHeaders().rev!) {
         return currentCommit;
       }
       // latest datetime wins

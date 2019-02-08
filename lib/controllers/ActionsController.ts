@@ -1,5 +1,6 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import BaseController from './BaseController';
-import HubError, { ErrorCode } from '../models/HubError';
+import HubError from '../models/HubError';
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
@@ -15,10 +16,10 @@ export const ACTION_SCHEMA: string = 'http://schema.identity.foundation/Action';
 export default class ActionsController extends BaseController {
 
   handleWriteCommitRequest(_: WriteRequest, __: PermissionGrant[]): Promise<WriteResponse> {
-    throw new HubError({ errorCode: ErrorCode.NotImplemented });
+    throw new HubError({ errorCode: HubErrorCode.NotImplemented });
   }
 
   async handleQueryRequest(_: ObjectQueryRequest, __: PermissionGrant[]): Promise<ObjectQueryResponse> {
-    throw new HubError({ errorCode: ErrorCode.NotImplemented });
+    throw new HubError({ errorCode: HubErrorCode.NotImplemented });
   }
 }

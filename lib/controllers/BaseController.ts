@@ -1,12 +1,12 @@
+import { CommitOperation, HubErrorCode } from '@decentralized-identity/hub-common-js';
 import Context from '../interfaces/Context';
-import HubError, { ErrorCode } from '../models/HubError';
+import HubError from '../models/HubError';
 import WriteRequest from '../models/WriteRequest';
 import WriteResponse from '../models/WriteResponse';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
 import ObjectQueryResponse from '../models/ObjectQueryResponse';
 import BaseRequest from '../models/BaseRequest';
 import BaseResponse from '../models/BaseResponse';
-import { Operation } from '../models/Commit';
 import AuthorizationController from './AuthorizationController';
 import PermissionGrant from '../models/PermissionGrant';
 import { QueryEqualsFilter } from '../interfaces/Store';
@@ -74,11 +74,11 @@ export default abstract class BaseController {
   /**
    * Handles the Hub request.
    */
-  public async handle(request: BaseRequest): Promise<BaseResponse> {
+  public async handle(request: BaseRequest): Promise<BaseResponse<string>> {
     const grants = await this.authorization.getPermissionGrantsForRequest(request);
     if (grants.length === 0) {
       throw new HubError({
-        errorCode: ErrorCode.PermissionsRequired,
+        errorCode: HubErrorCode.PermissionsRequired,
       });
     }
     switch (request.getType()) {
@@ -103,7 +103,7 @@ export default abstract class BaseController {
     if (request.sub !== headers.sub) {
       throw HubError.incorrectParameter('commit.protected.sub');
     }
-    const operation = request.commit.getProtectedHeaders().operation as Operation;
+    const operation = request.commit.getProtectedHeaders().operation as CommitOperation;
     /* istanbul ignore if */
     if (!operation) { // this is covered in Commit
       throw HubError.incorrectParameter('commit.protected.operation');

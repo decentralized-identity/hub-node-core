@@ -1,19 +1,5 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import ErrorResponse from './ErrorResponse';
-
-/**
- * Standard error codes
- */
-export enum ErrorCode {
-  BadRequest = 'bad_request',
-  AuthenticationFailed = 'authentication_failed',
-  PermissionsRequired = 'permissions_required',
-  NotFound = 'not_found',
-  TooManyRequests = 'too_many_requests',
-  ServerError = 'server_error',
-  NotImplemented = 'not_implemented',
-  ServiceUnavailable = 'service_unavailable',
-  TemporarilyUnavailable = 'temporarily_unavailable',
-}
 
 /**
  * Common Developer Messages
@@ -26,7 +12,7 @@ export enum DeveloperMessage {
 }
 
 interface HubErrorOptions {
-  errorCode: ErrorCode;
+  errorCode: HubErrorCode;
   property?: string;
   developerMessage?: string;
   userMessage?: string;
@@ -36,14 +22,19 @@ interface HubErrorOptions {
  * Standardized Error class for throwing errors in this project.
  */
 export default class HubError extends Error {
+
   /** A standard error code value */
-  readonly errorCode: ErrorCode;
+  readonly errorCode: HubErrorCode;
+
   /** The property in the request that caused error */
   readonly property?: string;
+
   /** (Optional) developer message */
   readonly developerMessage?: string;
+
   /** Message to the user */
   readonly userMessage?: string;
+
   /** ISO datetime at which this Error was created */
   readonly timestamp: string;
 
@@ -68,7 +59,7 @@ export default class HubError extends Error {
     let developerMessage = this.developerMessage;
     if (!developerMessage) {
       switch (this.errorCode) {
-        case ErrorCode.NotImplemented:
+        case HubErrorCode.NotImplemented:
           developerMessage = DeveloperMessage.NotImplemented;
           break;
       }
@@ -89,7 +80,7 @@ export default class HubError extends Error {
   public static incorrectParameter(property: string): HubError {
     return new HubError({
       property,
-      errorCode: ErrorCode.BadRequest,
+      errorCode: HubErrorCode.BadRequest,
       developerMessage: DeveloperMessage.IncorrectParameter,
     });
   }
@@ -98,7 +89,7 @@ export default class HubError extends Error {
   public static missingParameter(property: string): HubError {
     return new HubError({
       property,
-      errorCode: ErrorCode.BadRequest,
+      errorCode: HubErrorCode.BadRequest,
       developerMessage: DeveloperMessage.MissingParameter,
     });
   }
@@ -106,21 +97,21 @@ export default class HubError extends Error {
   /** returns a not implemented error */
   public static notImplemented(): HubError {
     return new HubError({
-      errorCode: ErrorCode.NotImplemented,
+      errorCode: HubErrorCode.NotImplemented,
     });
   }
 
   /** returns a permission required error */
   public static permissionRequired(): HubError {
     return new HubError({
-      errorCode: ErrorCode.PermissionsRequired,
+      errorCode: HubErrorCode.PermissionsRequired,
     });
   }
 
   /** returns a not found error */
   public static notFound(): HubError {
     return new HubError({
-      errorCode: ErrorCode.NotFound,
+      errorCode: HubErrorCode.NotFound,
     });
   }
 

@@ -1,5 +1,6 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
-import HubError, { ErrorCode } from '../../lib/models/HubError';
+import HubError from '../../lib/models/HubError';
 import BaseRequest from '../../lib/models/BaseRequest';
 import TestUtilities from '../TestUtilities';
 
@@ -117,7 +118,7 @@ describe('CommitQueryRequest', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.NotImplemented);
+        expect(err.errorCode).toEqual(HubErrorCode.NotImplemented);
         expect(err.property).toContain('query.object_id');
         expect(err.property).toContain('query.revision');
       }

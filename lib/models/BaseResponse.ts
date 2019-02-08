@@ -1,18 +1,22 @@
+import { IHubResponse } from '@decentralized-identity/hub-common-js';
 
 /**
- * A hub response of type BaseResponse
+ * A base class for Hub responses, which is extended by more specific response classes.
  */
-export default abstract class BaseResponse {
+export default abstract class BaseResponse<ResponseType extends string> {
+
   /** \@context of the response */
   public static readonly context = 'https://schema.identity.foundation/0.1';
+
   /** \@type of the response */
-  protected type = 'BaseResponse';
+  protected type: ResponseType;
 
   /**
    * Creates a base response
    * @param developerMessage (Optional) developer message
    */
-  constructor(public developerMessage?: string) {
+  constructor(type: ResponseType, public developerMessage?: string) {
+    this.type = type;
   }
 
   /**
@@ -25,7 +29,7 @@ export default abstract class BaseResponse {
   /**
    * Returns the JSON representation of the response
    */
-  protected toJson(): any {
+  protected toJson(): IHubResponse<ResponseType> {
     return {
       '@context': BaseResponse.context,
       '@type': this.type,

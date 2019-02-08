@@ -1,16 +1,15 @@
+import { CommitOperation, HubErrorCode, IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import WriteRequest from '../../lib/models/WriteRequest';
 import TestContext from '../mocks/TestContext';
 import PermissionsController from '../../lib/controllers/PermissionsController';
 import TestAuthorization from '../mocks/TestAuthorization';
-import HubError, { ErrorCode, DeveloperMessage } from '../../lib/models/HubError';
+import HubError, { DeveloperMessage } from '../../lib/models/HubError';
 import PermissionGrant, { PERMISSION_GRANT_TYPE, PERMISSION_GRANT_CONTEXT } from '../../lib/models/PermissionGrant';
 import StoreUtils from '../../lib/utilities/StoreUtils';
 import WriteResponse from '../../lib/models/WriteResponse';
 import { Store } from '../../lib/interfaces/Store';
 import { QueryEqualsFilter } from '../../lib/interfaces/Store';
-import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
-import { Operation } from '../../lib/models/Commit';
 import TestRequest from '../mocks/TestRequest';
 import TestUtilities from '../TestUtilities';
 
@@ -32,7 +31,7 @@ describe('PermissionsController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
       }
     });
 
@@ -48,7 +47,7 @@ describe('PermissionsController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
       }
     });
   });
@@ -68,7 +67,7 @@ describe('PermissionsController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
         expect(err.property).toEqual('commit.protected.commit_strategy');
       }
     });
@@ -102,7 +101,7 @@ describe('PermissionsController', () => {
           if (!(err instanceof HubError)) {
             fail(err.message);
           }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+          expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
           expect(err.property).toEqual(`commit.payload.${property}`);
           expect(err.developerMessage).toEqual(DeveloperMessage.MissingParameter);
         }
@@ -124,7 +123,7 @@ describe('PermissionsController', () => {
           if (!(err instanceof HubError)) {
             fail(err.message);
           }
-          expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+          expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
           expect(err.property).toEqual(`commit.payload.${property}`);
           expect(err.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
         }
@@ -160,7 +159,7 @@ describe('PermissionsController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
         expect(err.property).toEqual('commit.payload.created_by');
       }
     });
@@ -208,7 +207,7 @@ describe('PermissionsController', () => {
         kid: `${owner}#key-1`,
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Update,
+        operation: CommitOperation.Update,
         object_id: TestUtilities.randomString(),
         payload: {
           owner,
@@ -248,7 +247,7 @@ describe('PermissionsController', () => {
         kid: `${owner}#key-1`,
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Update,
+        operation: CommitOperation.Update,
         object_id: TestUtilities.randomString(),
         payload: {
           owner,
@@ -293,7 +292,7 @@ describe('PermissionsController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
       }
       expect(spy).not.toHaveBeenCalled();
     });
@@ -318,7 +317,7 @@ describe('PermissionsController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
       }
       expect(spy).not.toHaveBeenCalled();
     });
@@ -403,12 +402,12 @@ describe('PermissionsController', () => {
           created_at: new Date(Date.now()).toISOString(),
           sub: owner,
           commit_strategy: 'basic'
-        } as ObjectContainer],
+        } as IObjectMetadata],
         pagination: {
           skip_token: null,
         },
       });
-      const pruneSpy = spyOn(AuthorizationController, 'pruneResults').and.callFake((objects: ObjectContainer[], grants: PermissionGrant[]) => {
+      const pruneSpy = spyOn(AuthorizationController, 'pruneResults').and.callFake((objects: IObjectMetadata[], grants: PermissionGrant[]) => {
         expect(grants[0]).toEqual(grant);
         expect(objects[0].id).toEqual(objectId);
         return objects;
