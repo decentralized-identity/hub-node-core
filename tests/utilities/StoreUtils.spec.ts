@@ -1,11 +1,10 @@
+import { CommitOperation, HubErrorCode, IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import TestStore from '../mocks/TestStore';
 import TestCommit from '../mocks/TestCommit';
 import WriteRequest from '../../lib/models/WriteRequest';
 import * as store from '../../lib/interfaces/Store';
 import StoreUtils from '../../lib/utilities/StoreUtils';
-import { Operation } from '../../lib/models/Commit';
-import ObjectContainer from '../../lib/interfaces/ObjectContainer';
-import HubError, { ErrorCode } from '../../lib/models/HubError';
+import HubError from '../../lib/models/HubError';
 import PermissionGrant from '../../lib/models/PermissionGrant';
 import BaseRequest from '../../lib/models/BaseRequest';
 
@@ -29,7 +28,7 @@ describe('StoreUtils', () => {
       object_id: getHex(),
       sub: owner,
       kid: `${sender}#key-1`,
-      operation: Operation.Update,
+      operation: CommitOperation.Update,
     });
     request = new WriteRequest({
       iss: sender,
@@ -60,7 +59,7 @@ describe('StoreUtils', () => {
           if (filter.field !== 'object_id') {
             expect(filter.value).toEqual((commit.getHeaders() as any)[filter.field]);
           } else {
-            expect(filter.value).toEqual([commit.getHeaders().object_id]);
+            expect(filter.value).toEqual([commit.getHeaders().object_id!]);
           }
         });
         return {
@@ -78,7 +77,7 @@ describe('StoreUtils', () => {
 
     it('should throw if multiple objects are returned for just one object_id', async () => {
       const spy = spyOn(store, "queryObjects").and.callFake((_: store.ObjectQueryRequest) => {
-        const objects: ObjectContainer[] = [];
+        const objects: IObjectMetadata[] = [];
         const count = Math.round(Math.random() * 10) + 2;
         for (let i = 0; i < count; i++) {
           objects.push({
@@ -106,7 +105,7 @@ describe('StoreUtils', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.ServerError);
+        expect(err.errorCode).toEqual(HubErrorCode.ServerError);
       }
       expect(spy).toHaveBeenCalled();
     });
@@ -144,7 +143,7 @@ describe('StoreUtils', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+        expect(err.errorCode).toEqual(HubErrorCode.PermissionsRequired);
       }
       expect(spy).toHaveBeenCalled();
     });

@@ -1,5 +1,6 @@
+import { CommitOperation } from '@decentralized-identity/hub-common-js';
 import base64url from 'base64url';
-import Commit, { Operation } from '../../lib/models/Commit';
+import Commit from '../../lib/models/Commit';
 import HubError, { DeveloperMessage } from '../../lib/models/HubError';
 import TestUtilities from '../TestUtilities';
 import Context from '../../lib/interfaces/Context';
@@ -146,7 +147,7 @@ describe('Commit', () => {
           interface: 'Test',
           context: 'example.com',
           type: 'test',
-          operation: Operation.Create,
+          operation: CommitOperation.Create,
           committed_at: new Date(Date.now()).toISOString(),
           commit_strategy: 'basic',
           sub: 'did:example:alice.id',
@@ -170,7 +171,7 @@ describe('Commit', () => {
           interface: 'Test',
           context: 'example.com',
           type: 'test',
-          operation: Operation.Create,
+          operation: CommitOperation.Create,
           committed_at: new Date(Date.now()).toISOString(),
           commit_strategy: 'basic',
           sub: 'did:example:alice.id',
@@ -195,7 +196,7 @@ describe('Commit', () => {
         interface: 'Test',
         context: 'example.com',
         type: 'test',
-        operation: Operation.Create,
+        operation: CommitOperation.Create,
         committed_at: new Date(Date.now()).toISOString(),
         commit_strategy: 'basic',
         sub: 'did:example:alice.id',
@@ -221,7 +222,7 @@ describe('Commit', () => {
         interface: 'Test',
         context: 'example.com',
         type: 'test',
-        operation: Operation.Create,
+        operation: CommitOperation.Create,
         committed_at: new Date(Date.now()).toISOString(),
         commit_strategy: 'basic',
         sub: 'did:example:alice.id',

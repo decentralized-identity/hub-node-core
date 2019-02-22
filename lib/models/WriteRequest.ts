@@ -1,6 +1,7 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import BaseRequest from './BaseRequest';
 import Commit from './Commit';
-import HubError, { ErrorCode } from './HubError';
+import HubError from './HubError';
 import SignedCommit from './SignedCommit';
 import { DidDocument } from '@decentralized-identity/did-common-typescript';
 
@@ -28,7 +29,7 @@ export default class WriteRequest extends BaseRequest {
 
     if (this.iss !== DidDocument.getDidFromKeyId(this.commit.getProtectedHeaders().kid!)) {
       throw new HubError({
-        errorCode: ErrorCode.BadRequest,
+        errorCode: HubErrorCode.BadRequest,
         property: 'commit',
         developerMessage: 'The commit must be signed by the request issuer',
       });

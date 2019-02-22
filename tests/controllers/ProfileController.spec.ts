@@ -1,12 +1,11 @@
+import { CommitOperation, HubErrorCode, IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import TestContext from '../mocks/TestContext';
 import TestAuthorization from '../mocks/TestAuthorization';
 import ProfileController from '../../lib/controllers/ProfileController';
 import WriteRequest from '../../lib/models/WriteRequest';
-import HubError, { ErrorCode } from '../../lib/models/HubError';
+import HubError from '../../lib/models/HubError';
 import { Store } from '../../lib/interfaces/Store';
 import StoreUtils from '../../lib/utilities/StoreUtils';
-import ObjectContainer from '../../lib/interfaces/ObjectContainer';
-import { Operation } from '../../lib/models/Commit';
 import PermissionGrant, { OWNER_PERMISSION } from '../../lib/models/PermissionGrant';
 import WriteResponse from '../../lib/models/WriteResponse';
 import BaseRequest from '../../lib/models/BaseRequest';
@@ -91,7 +90,7 @@ describe('ProfileController', () => {
           created_at: new Date(Date.now()).toISOString(),
           sub: 'did:example:alice.id',
           commit_strategy: 'basic',
-          } as ObjectContainer
+          } as IObjectMetadata
         ],
         pagination: {
           skip_token: null,
@@ -111,7 +110,7 @@ describe('ProfileController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
       }
       
       expect(spy).toHaveBeenCalled();
@@ -140,7 +139,7 @@ describe('ProfileController', () => {
       expect(spy).toHaveBeenCalled();
     });
 
-    [Operation.Update, Operation.Delete].forEach((operation) => {
+    [CommitOperation.Update, CommitOperation.Delete].forEach((operation) => {
       const permissionMap: { [operation: string]: string} = {
         update: '--U--',
         delete: '---D-',
@@ -176,7 +175,7 @@ describe('ProfileController', () => {
           if (!(err instanceof HubError)) {
             fail(err.message);
           }
-          expect(err.errorCode).toEqual(ErrorCode.NotFound);
+          expect(err.errorCode).toEqual(HubErrorCode.NotFound);
         }
   
         expect(spy).toHaveBeenCalled();
@@ -195,13 +194,13 @@ describe('ProfileController', () => {
         const spy = spyOn(StoreUtils, 'writeCommit').and.callFake((request: WriteRequest, store: Store) => {
           expect(store).toEqual(context.store);
           expect(request).toEqual(writeRequest);
-          return new WriteResponse([request.commit.getHeaders().object_id]);
+          return new WriteResponse([request.commit.getHeaders().object_id!]);
         });
   
         spyOn(StoreUtils, 'objectExists').and.returnValue(true);
   
         let result = await controller.handleWriteCommitRequest(writeRequest, []);
-        expect(result.revisions[0]).toEqual(writeRequest.commit.getHeaders().object_id);
+        expect(result.revisions[0]).toEqual(writeRequest.commit.getHeaders().object_id!);
         expect(spy).toHaveBeenCalled();
       });
     });
@@ -253,7 +252,7 @@ describe('ProfileController', () => {
     });
 
     it('should return a random profile if multiple exist', async () => {
-      const profiles: ObjectContainer[] = [];
+      const profiles: IObjectMetadata[] = [];
       const count = Math.round(Math.random() * 10) + 1;
       for(let i = 0; i < count; i++) {
         profiles.push({
@@ -281,7 +280,7 @@ describe('ProfileController', () => {
 
     
     it('should return a random profile per schema if multiple exist', async () => {
-      const profiles: ObjectContainer[] = [];
+      const profiles: IObjectMetadata[] = [];
       const count = Math.round(Math.random() * 10) + 1;
       let someType: string = TestUtilities.randomString();
       for(let i = 0; i < count; i++) {

@@ -1,5 +1,6 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import PermissionGrant, { OWNER_PERMISSION, PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from '../models/PermissionGrant';
-import HubError, { ErrorCode } from '../models/HubError';
+import HubError from '../models/HubError';
 import BaseRequest from '../models/BaseRequest';
 import WriteRequest from '../models/WriteRequest';
 import ObjectQueryRequest from '../models/ObjectQueryRequest';
@@ -8,7 +9,7 @@ import { ObjectQueryResponse } from '../interfaces/Store';
 import CommitStrategyBasic from '../utilities/CommitStrategyBasic';
 import CommitQueryRequest from '../models/CommitQueryRequest';
 import Context from '../interfaces/Context';
-import { ObjectContainer } from '../index';
+import { IObjectMetadata } from '../index';
 import StoreUtils from '../utilities/StoreUtils';
 
 /** Operations included in Permission Grants */
@@ -69,7 +70,7 @@ export default class AuthorizationController {
     switch (request.getType()) {
       case 'CommitQueryRequest':
         throw new HubError({
-          errorCode: ErrorCode.ServerError,
+          errorCode: HubErrorCode.ServerError,
           developerMessage: 'Commits should not call getPermissionGrantsForRequest',
         });
       case 'ObjectQueryRequest':
@@ -160,7 +161,7 @@ export default class AuthorizationController {
         return grant.context === context && grant.type === type;
       })) {
         throw new HubError({
-          errorCode: ErrorCode.PermissionsRequired,
+          errorCode: HubErrorCode.PermissionsRequired,
         });
       }
     });
@@ -198,7 +199,7 @@ export default class AuthorizationController {
      * @param grants Permission Grants used to prune the results
      * @returns A subset of results permitted by grants
      */
-  static async pruneResults(results: ObjectContainer[], grants: PermissionGrant[]): Promise<ObjectContainer[]> {
+  static async pruneResults(results: IObjectMetadata[], grants: PermissionGrant[]): Promise<IObjectMetadata[]> {
 
     // check if a grant gives permission to all results
     if (grants.some(grant => !grant.created_by)) return results;
@@ -208,10 +209,10 @@ export default class AuthorizationController {
     // all applicable objects at that time?
 
     throw new HubError({
-      errorCode: ErrorCode.PermissionsRequired,
+      errorCode: HubErrorCode.PermissionsRequired,
     });
 
-    // const prunedResults: ObjectContainer[] = [];
+    // const prunedResults: IObjectMetadata[] = [];
     // results.forEach((result) => {
     //   if (createdByRestrictions.includes(result.created_by)) {
     //     prunedResults.push(result);

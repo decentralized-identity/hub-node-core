@@ -1,8 +1,8 @@
+import { IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import ObjectQueryResponse from '../../lib/models/ObjectQueryResponse';
-import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 
 describe('ObjectQueryResponse', () => {
-  function createObject(): ObjectContainer {
+  function createObject(): IObjectMetadata {
     return {
       interface: 'Test',
       context: 'example.com',

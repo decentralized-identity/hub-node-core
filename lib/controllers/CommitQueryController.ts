@@ -1,9 +1,9 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import Context from '../interfaces/Context';
 import AuthorizationController from './AuthorizationController';
 import CommitQueryRequest from '../models/CommitQueryRequest';
 import CommitQueryResponse from '../models/CommitQueryResponse';
 import { HubError } from '../index';
-import { ErrorCode } from '../models/HubError';
 import * as store from '../interfaces/Store';
 
 /**
@@ -27,7 +27,7 @@ export default class CommitQueryController {
 
     if (request.fields && request.fields.length > 0) {
       throw new HubError({
-        errorCode: ErrorCode.NotImplemented,
+        errorCode: HubErrorCode.NotImplemented,
         property: 'fields',
         developerMessage: 'A new type of response is required',
       });
@@ -60,7 +60,7 @@ export default class CommitQueryController {
     const grants = await this.authorization.getPermissionGrantsForCommitQuery(request, response.results);
     if (grants.length === 0) {
       throw new HubError({
-        errorCode: ErrorCode.PermissionsRequired,
+        errorCode: HubErrorCode.PermissionsRequired,
       });
     }
 

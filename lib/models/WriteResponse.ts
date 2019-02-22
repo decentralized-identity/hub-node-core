@@ -3,15 +3,14 @@ import BaseResponse from './BaseResponse';
 /**
  * A hub response of type WriteResponse
  */
-export default class WriteResponse extends BaseResponse {
+export default class WriteResponse extends BaseResponse<'WriteResponse'> {
   constructor(public readonly revisions: string[], developerMessage?: string) {
-    super(developerMessage);
-    this.type = 'WriteResponse';
+    super('WriteResponse', developerMessage);
   }
 
   protected toJson(): any {
-    const json = super.toJson();
-    json.revisions = this.revisions;
-    return json;
+    return Object.assign({}, super.toJson(), {
+      revisions: this.revisions,
+    });
   }
 }

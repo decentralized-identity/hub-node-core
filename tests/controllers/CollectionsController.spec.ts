@@ -1,8 +1,8 @@
+import { HubErrorCode, IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import CollectionsController from '../../lib/controllers/CollectionsController';
 import TestContext from '../mocks/TestContext';
-import HubError, { ErrorCode } from '../../lib/models/HubError';
+import HubError from '../../lib/models/HubError';
 import * as store from '../../lib/interfaces/Store';
-import ObjectContainer from '../../lib/interfaces/ObjectContainer';
 import TestAuthorization from '../mocks/TestAuthorization';
 import AuthorizationController from '../../lib/controllers/AuthorizationController';
 import PermissionGrant from '../../lib/models/PermissionGrant';
@@ -11,7 +11,7 @@ import TestRequest from '../mocks/TestRequest';
 
 function createSpyThatReturnsObjectsFor(contextObject: any, ids: string[]): jasmine.Spy {
   return spyOn(contextObject.store, 'queryObjects').and.callFake((query: store.QueryRequest) => {
-    const results: ObjectContainer[] = [];
+    const results: IObjectMetadata[] = [];
     if (query.filters) {
       query.filters.forEach((filter) => {
         if (filter.field === 'object_id') {
@@ -44,7 +44,7 @@ describe('CollectionsController', () => {
   const controller = new CollectionsController(context, auth);
 
   beforeEach(() => {
-    spyOn(AuthorizationController, 'pruneResults').and.callFake((results: ObjectContainer[], _:PermissionGrant[]) => { return results; });
+    spyOn(AuthorizationController, 'pruneResults').and.callFake((results: IObjectMetadata[], _:PermissionGrant[]) => { return results; });
   });
 
   describe('handleWriteCommitRequest', () => {
@@ -85,7 +85,7 @@ describe('CollectionsController', () => {
           if (!(err instanceof HubError)) {
             fail(err.message);
           }
-          expect(err.errorCode).toEqual(ErrorCode.NotFound);
+          expect(err.errorCode).toEqual(HubErrorCode.NotFound);
         }
         expect(spy).toHaveBeenCalled();
         expect(operationSpy).not.toHaveBeenCalled();

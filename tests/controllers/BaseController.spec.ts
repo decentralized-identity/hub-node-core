@@ -1,4 +1,5 @@
-import HubError, { ErrorCode, DeveloperMessage } from '../../lib/models/HubError';
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
+import HubError, { DeveloperMessage } from '../../lib/models/HubError';
 import TestController from '../mocks/TestController';
 import TestContext from '../mocks/TestContext';
 import TestAuthorization from '../mocks/TestAuthorization';
@@ -23,7 +24,7 @@ describe('BaseController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+        expect(err.errorCode).toEqual(HubErrorCode.PermissionsRequired);
       }
     });
 
@@ -32,7 +33,7 @@ describe('BaseController', () => {
       const queryRequest = TestRequest.createObjectQueryRequest();
       const spy = spyOn(controller, 'handleQueryRequest').and.callFake(() => {
         throw new HubError({
-          errorCode: ErrorCode.NotImplemented,
+          errorCode: HubErrorCode.NotImplemented,
           developerMessage: message,
         });
       });
@@ -52,7 +53,7 @@ describe('BaseController', () => {
       const queryRequest = TestRequest.createWriteRequest();
       const spy = spyOn(controller, 'handleWriteCommitRequest').and.callFake(() => {
         throw new HubError({
-          errorCode: ErrorCode.NotImplemented,
+          errorCode: HubErrorCode.NotImplemented,
           developerMessage: message,
         });
       });
@@ -77,7 +78,7 @@ describe('BaseController', () => {
           fail(err.message);
         }
         const testError = err as HubError;
-        expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(testError.errorCode).toEqual(HubErrorCode.BadRequest);
         expect(testError.property).toEqual('commit.protected.operation');
         expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
       }
@@ -94,7 +95,7 @@ describe('BaseController', () => {
           fail(err.message);
         }
         const testError = err as HubError;
-        expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(testError.errorCode).toEqual(HubErrorCode.BadRequest);
         expect(testError.property).toEqual('@type');
         expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
       }
@@ -110,7 +111,7 @@ describe('BaseController', () => {
           fail(err.message);
         }
         const testError = err as HubError;
-        expect(testError.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(testError.errorCode).toEqual(HubErrorCode.BadRequest);
         expect(testError.property).toEqual('commit.protected.sub');
         expect(testError.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
       }

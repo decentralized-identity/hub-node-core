@@ -1,5 +1,6 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import Commit from './Commit';
-import HubError, { ErrorCode } from './HubError';
+import HubError from './HubError';
 import Context from '../interfaces/Context';
 import { DidResolver, DidDocument } from '@decentralized-identity/did-common-typescript';
 import { CryptoFactory, JwsToken } from '@decentralized-identity/did-auth-jose';
@@ -47,7 +48,7 @@ export default class SignedCommit extends Commit {
     const publicKey = senderDDO.didDocument.getPublicKey(keyId);
     if (!publicKey) {
       throw new HubError({
-        errorCode: ErrorCode.BadRequest,
+        errorCode: HubErrorCode.BadRequest,
         property: 'commit',
         developerMessage: `Public Key ${keyId} could not be found`,
       });

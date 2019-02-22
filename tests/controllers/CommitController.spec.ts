@@ -1,8 +1,9 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import TestContext from '../mocks/TestContext';
 import TestAuthorization from '../mocks/TestAuthorization';
 import CommitQueryController from '../../lib/controllers/CommitQueryController';
 import CommitQueryRequest from '../../lib/models/CommitQueryRequest';
-import { HubError, ErrorCode } from '../../lib';
+import { HubError } from '../../lib';
 import * as store from '../../lib/interfaces/Store';
 import TestCommit from '../mocks/TestCommit';
 import BaseRequest from '../../lib/models/BaseRequest';
@@ -48,7 +49,7 @@ describe('CommitQueryController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.NotImplemented);
+        expect(err.errorCode).toEqual(HubErrorCode.NotImplemented);
         expect(err.property).toEqual('fields');
       }
     });
@@ -60,7 +61,7 @@ describe('CommitQueryController', () => {
         expect(request.skip_token).toBeUndefined();
         expect(!request.filters || request.filters.length === 0).toBeTruthy();
         throw new HubError({
-          errorCode: ErrorCode.ServerError,
+          errorCode: HubErrorCode.ServerError,
           developerMessage: errorCode,
         });
       });
@@ -71,7 +72,7 @@ describe('CommitQueryController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.ServerError);
+        expect(err.errorCode).toEqual(HubErrorCode.ServerError);
         expect(err.developerMessage).toEqual(errorCode);
       }
       expect(spy).toHaveBeenCalled();
@@ -98,7 +99,7 @@ describe('CommitQueryController', () => {
           expect(filter.value).toEqual([value]);
   
           throw new HubError({
-            errorCode: ErrorCode.ServerError,
+            errorCode: HubErrorCode.ServerError,
             developerMessage: errorCode,
           });
         });
@@ -111,7 +112,7 @@ describe('CommitQueryController', () => {
           if (!(err instanceof HubError)) {
             fail(err.message);
           }
-          expect(err.errorCode).toEqual(ErrorCode.ServerError);
+          expect(err.errorCode).toEqual(HubErrorCode.ServerError);
           expect(err.developerMessage).toEqual(errorCode);
         }
         expect(spy).toHaveBeenCalled();
@@ -155,7 +156,7 @@ describe('CommitQueryController', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.PermissionsRequired);
+        expect(err.errorCode).toEqual(HubErrorCode.PermissionsRequired);
       }
       expect(storeSpy).toHaveBeenCalled();
       expect(querySpy).toHaveBeenCalled();

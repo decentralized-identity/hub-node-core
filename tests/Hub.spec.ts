@@ -1,3 +1,4 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import { DidDocument, unitTestExports } from '@decentralized-identity/did-common-typescript';
 import Hub from '../lib/Hub';
 import TestContext from './mocks/TestContext';
@@ -8,7 +9,6 @@ import {
          RsaCryptoSuite,
          PrivateKey,
         CryptoFactory} from '@decentralized-identity/did-auth-jose';
-import { ErrorCode } from '../lib/models/HubError';
 import CommitQueryRequest from '../lib/models/CommitQueryRequest';
 import ObjectQueryRequest from '../lib/models/ObjectQueryRequest';
 import TestCommit from './mocks/TestCommit';
@@ -112,7 +112,7 @@ describe('Hub', () => {
       expect(httpresponse.ok).toEqual(true);
       expect(httpresponse.body).toBeDefined();
       const response = await unwrapResponse(hubkey, hubkey, httpresponse.body);
-      expect(response.error_code).toEqual(ErrorCode.BadRequest);
+      expect(response.error_code).toEqual(HubErrorCode.BadRequest);
       expect(response.target).toEqual('@type');
     });
 
@@ -163,7 +163,7 @@ describe('Hub', () => {
       expect(httpresponse.ok).toEqual(false);
       expect(httpresponse.body).toBeDefined();
       const response = JSON.parse(httpresponse.body.toString('utf-8'));
-      expect(response.error_code).toEqual(ErrorCode.AuthenticationFailed);
+      expect(response.error_code).toEqual(HubErrorCode.AuthenticationFailed);
     });
 
     it('should dispatch CommitQueryRequests to the commitController', async() => {
@@ -348,7 +348,7 @@ describe('Hub', () => {
       const response = await hub.handleRequest(requestString);
       expect(response.ok).toBeTruthy();
       const error = await unwrapResponse(hubkey, hubkey, response.body);
-      expect(error.error_code).toEqual(ErrorCode.BadRequest);
+      expect(error.error_code).toEqual(HubErrorCode.BadRequest);
       expect(error.target).toEqual('query.interface');
     });
 
@@ -378,7 +378,7 @@ describe('Hub', () => {
       const response = await hub.handleRequest(requestString);
       expect(response.ok).toBeTruthy();
       const error = await unwrapResponse(hubkey, hubkey, response.body);
-      expect(error.error_code).toEqual(ErrorCode.BadRequest);
+      expect(error.error_code).toEqual(HubErrorCode.BadRequest);
       expect(error.target).toEqual('commit.protected.interface');
     });
   });

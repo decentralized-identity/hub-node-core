@@ -1,3 +1,4 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import { Authentication } from '@decentralized-identity/did-auth-jose';
 import Context from './interfaces/Context';
 
@@ -7,7 +8,7 @@ import ActionsController from './controllers/ActionsController';
 import CollectionsController from './controllers/CollectionsController';
 import PermissionsController from './controllers/PermissionsController';
 import ProfileController from './controllers/ProfileController';
-import HubError, { ErrorCode } from './models/HubError';
+import HubError from './models/HubError';
 import BaseRequest from './models/BaseRequest';
 import ObjectQueryRequest from './models/ObjectQueryRequest';
 import WriteRequest from './models/WriteRequest';
@@ -73,7 +74,7 @@ export default class Hub {
       return {
         ok: false,
         body: Buffer.from(new HubError({
-          errorCode: ErrorCode.AuthenticationFailed,
+          errorCode: HubErrorCode.AuthenticationFailed,
         }).toResponse().toString()),
       };
     }
@@ -89,7 +90,7 @@ export default class Hub {
 
     try {
       // If we get here, it means the Hub access token received is valid, proceed with handling the request.
-      let response: BaseResponse;
+      let response: BaseResponse<string>;
       const requestType = BaseRequest.getTypeFromJson(verifiedRequest.request);
       switch (requestType) {
         case 'CommitQueryRequest':
@@ -101,7 +102,7 @@ export default class Hub {
           const queryController = this._controllers[queryRequest.interface];
           if (!queryController) {
             throw new HubError({
-              errorCode: ErrorCode.BadRequest,
+              errorCode: HubErrorCode.BadRequest,
               property: 'query.interface',
             });
           }
@@ -113,7 +114,7 @@ export default class Hub {
             await writeRequest.commit.validate(this.context);
           } catch (_) {
             throw new HubError({
-              errorCode: ErrorCode.BadRequest,
+              errorCode: HubErrorCode.BadRequest,
               property: 'commit',
               developerMessage: 'Signature could not be verified',
             });
@@ -121,7 +122,7 @@ export default class Hub {
           const writeController = this._controllers[writeRequest.commit.getHeaders().interface];
           if (!writeController) {
             throw new HubError({
-              errorCode: ErrorCode.BadRequest,
+              errorCode: HubErrorCode.BadRequest,
               property: 'commit.protected.interface',
             });
           }
@@ -129,7 +130,7 @@ export default class Hub {
           break;
         default:
           throw new HubError({
-            errorCode: ErrorCode.BadRequest,
+            errorCode: HubErrorCode.BadRequest,
             property: '@type',
             developerMessage: `Request format unknown: ${requestType}`,
           });
@@ -148,7 +149,7 @@ export default class Hub {
       if (error instanceof HubError) {
         hubError = error;
       } else {
-        hubError = new HubError({ errorCode: ErrorCode.ServerError });
+        hubError = new HubError({ errorCode: HubErrorCode.ServerError });
         hubError.stack = error.stack;
       }
       const hubResponseBody = hubError.toResponse().toString();

@@ -1,9 +1,9 @@
+import { CommitOperation } from '@decentralized-identity/hub-common-js';
 import TestStore from "../mocks/TestStore";
 import { CommitQueryRequest, CommitQueryResponse } from "../../lib/interfaces/Store";
 import CommitStrategyBasic from "../../lib/utilities/CommitStrategyBasic";
 import TestCommit from "../mocks/TestCommit";
 import { PERMISSION_GRANT_CONTEXT, PERMISSION_GRANT_TYPE } from "../../lib/models/PermissionGrant";
-import { Operation } from "../../lib/models/Commit";
 import TestUtilities from "../TestUtilities";
 
 describe('CommitStrategyBasic', () => {
@@ -47,7 +47,7 @@ describe('CommitStrategyBasic', () => {
         interface: 'Permissions',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Create,
+        operation: CommitOperation.Create,
         sub: owner,
         commit_strategy: 'basic',
         kid: `${owner}#key-1`,
@@ -75,7 +75,7 @@ describe('CommitStrategyBasic', () => {
         interface: 'Permissions',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Create,
+        operation: CommitOperation.Create,
         sub: owner,
         commit_strategy: 'basic',
         kid: `${owner}#key-1`,
@@ -86,7 +86,7 @@ describe('CommitStrategyBasic', () => {
         interface: 'Permissions',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Update,
+        operation: CommitOperation.Update,
         sub: owner,
         commit_strategy: 'basic',
         kid: `${owner}#key-1`,
@@ -118,7 +118,7 @@ describe('CommitStrategyBasic', () => {
         interface: 'Permissions',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Update,
+        operation: CommitOperation.Update,
         sub: owner,
         commit_strategy: 'basic',
         kid: `${owner}#key-1`,
@@ -130,7 +130,7 @@ describe('CommitStrategyBasic', () => {
         interface: 'Permissions',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Delete,
+        operation: CommitOperation.Delete,
         sub: owner,
         commit_strategy: 'basic',
         kid: `${owner}#key-1`,
@@ -159,7 +159,7 @@ describe('CommitStrategyBasic', () => {
         interface: 'Permissions',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Create,
+        operation: CommitOperation.Create,
         sub: owner,
         commit_strategy: 'basic',
         kid: `${owner}#key-1`,
@@ -170,7 +170,7 @@ describe('CommitStrategyBasic', () => {
           interface: 'Permissions',
           context: PERMISSION_GRANT_CONTEXT,
           type: PERMISSION_GRANT_TYPE,
-          operation: Operation.Create,
+          operation: CommitOperation.Create,
           sub: owner,
           commit_strategy: 'basic',
           kid: `${owner}#key-2`,
@@ -202,7 +202,7 @@ describe('CommitStrategyBasic', () => {
         interface: 'Permissions',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Update,
+        operation: CommitOperation.Update,
         object_id: id,
         sub: owner,
         commit_strategy: 'basic',
@@ -214,7 +214,7 @@ describe('CommitStrategyBasic', () => {
         interface: 'Permissions',
         context: PERMISSION_GRANT_CONTEXT,
         type: PERMISSION_GRANT_TYPE,
-        operation: Operation.Update,
+        operation: CommitOperation.Update,
         object_id: id,
         sub: owner,
         commit_strategy: 'basic',
@@ -222,8 +222,8 @@ describe('CommitStrategyBasic', () => {
         committed_at: dateTime
       });
 
-      const theCommit = commitOne.getHeaders().rev > commitTwo.getHeaders().rev ? commitOne : commitTwo;
-      const notTheCommit = commitOne.getHeaders().rev > commitTwo.getHeaders().rev ? commitTwo : commitOne;
+      const theCommit = commitOne.getHeaders().rev! > commitTwo.getHeaders().rev! ? commitOne : commitTwo;
+      const notTheCommit = commitOne.getHeaders().rev! > commitTwo.getHeaders().rev! ? commitTwo : commitOne;
   
       spy.and.returnValue({
         results: [

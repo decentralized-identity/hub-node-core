@@ -1,19 +1,19 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import ErrorResponse from '../../lib/models/ErrorResponse';
-import { ErrorCode } from '../../lib/models/HubError';
 
 describe('ErrorResponse', () => {
   describe('constructor', () => {
     it('should create from just an errorCode', () => {
       const response = new ErrorResponse({
-        errorCode: ErrorCode.ServerError,
+        errorCode: HubErrorCode.ServerError,
       });
       expect(response).toBeDefined();
-      expect(response.errorCode).toEqual(ErrorCode.ServerError);
+      expect(response.errorCode).toEqual(HubErrorCode.ServerError);
     });
 
     it('should copy additional parameters', () => {
       const options = {
-        errorCode: ErrorCode.ServerError,
+        errorCode: HubErrorCode.ServerError,
         errorUrl: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(32),
         userMessage: Math.round(Math.random() * 255).toString(2),
         target: Math.round(Math.random() * 255).toString(16),
@@ -33,7 +33,7 @@ describe('ErrorResponse', () => {
   describe('toString', () => {
     it('should format parameters correctly', () => {
       const options = {
-        errorCode: ErrorCode.ServerError,
+        errorCode: HubErrorCode.ServerError,
         errorUrl: Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(32),
         userMessage: Math.round(Math.random() * 255).toString(2),
         target: Math.round(Math.random() * 255).toString(16),

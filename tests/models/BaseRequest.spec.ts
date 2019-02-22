@@ -1,7 +1,8 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import BaseRequest from "../../lib/models/BaseRequest";
 import TestRequest from "../mocks/TestRequest";
 import TestUtilities from "../TestUtilities";
-import HubError, { ErrorCode, DeveloperMessage } from "../../lib/models/HubError";
+import HubError, { DeveloperMessage } from "../../lib/models/HubError";
 
 describe('BaseRequest', () => {
   describe('constructor', () => {
@@ -128,7 +129,7 @@ describe('BaseRequest', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
         expect(err.property).toEqual('@type');
         expect(err.developerMessage).toEqual(DeveloperMessage.IncorrectParameter);
       }

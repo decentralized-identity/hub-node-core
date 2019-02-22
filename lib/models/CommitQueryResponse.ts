@@ -1,10 +1,11 @@
 import BaseResponse from './BaseResponse';
 import Commit from './Commit';
+import { IHubCommitQueryResponse } from '@decentralized-identity/hub-common-js';
 
 /**
  * A hub response of type CommitQueryResponse
  */
-export default class CommitQueryResponse extends BaseResponse {
+export default class CommitQueryResponse extends BaseResponse<'CommitQueryResponse'> {
 
   /**
    * Creates a response for hub commit data
@@ -13,17 +14,14 @@ export default class CommitQueryResponse extends BaseResponse {
    * @param developerMessage message to the developer
    */
   constructor (public readonly commits: Commit[], public readonly skipToken: string | null, developerMessage?: string) {
-    super(developerMessage);
-    this.type = 'CommitQueryResponse';
+    super('CommitQueryResponse', developerMessage);
   }
 
-  protected toJson(): any {
+  protected toJson(): IHubCommitQueryResponse {
     const jwtCommits = this.commits.map(commit => commit.toJson());
-    const json = super.toJson();
-    Object.assign(json, {
+    return Object.assign({}, super.toJson(), {
       commits: jwtCommits,
       skip_token: this.skipToken,
     });
-    return json;
   }
 }

@@ -1,9 +1,9 @@
+import { CommitOperation, HubErrorCode } from '@decentralized-identity/hub-common-js';
 import { Store, QueryEqualsFilter } from '../interfaces/Store';
 import PermissionGrant from '../models/PermissionGrant';
 import WriteRequest from '../models/WriteRequest';
-import HubError, { ErrorCode } from '../models/HubError';
+import HubError from '../models/HubError';
 import WriteResponse from '../models/WriteResponse';
-import { Operation } from '../models/Commit';
 
 /**
  * Utilities for interacting with the Storage layer (Store)
@@ -17,7 +17,7 @@ export default class StoreUtils {
    */
   public static async validateObjectExists(request: WriteRequest, store: Store, grants?: PermissionGrant[]) {
     const operation = request.commit.getProtectedHeaders().operation!;
-    if (operation !== Operation.Create && !await StoreUtils.objectExists(request, store, grants)) {
+    if (operation !== CommitOperation.Create && !await StoreUtils.objectExists(request, store, grants)) {
       throw HubError.notFound();
     }
   }
@@ -64,7 +64,7 @@ export default class StoreUtils {
 
     if (response.results.length > 1) {
       throw new HubError({
-        errorCode: ErrorCode.ServerError,
+        errorCode: HubErrorCode.ServerError,
       });
     } else if (response.results.length === 1 && grants) {
       let authorized = false;

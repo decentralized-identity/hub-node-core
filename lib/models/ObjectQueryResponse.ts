@@ -1,10 +1,10 @@
+import { IHubObjectQueryResponse, IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import BaseResponse from './BaseResponse';
-import ObjectContainer from '../interfaces/ObjectContainer';
 
 /**
  * A hub response for type ObjectQueryResponse
  */
-export default class ObjectQueryResponse extends BaseResponse {
+export default class ObjectQueryResponse extends BaseResponse<'ObjectQueryResponse'> {
 
   /**
    * Creates a response for a hub object query
@@ -12,17 +12,14 @@ export default class ObjectQueryResponse extends BaseResponse {
    * @param skipToken skip token to include
    * @param developerMessage message to the developer
    */
-  constructor(public readonly objects: ObjectContainer[], public readonly skipToken: string | null, developerMessage?: string) {
-    super(developerMessage);
-    this.type = 'ObjectQueryResponse';
+  constructor(public readonly objects: IObjectMetadata[], public readonly skipToken: string | null, developerMessage?: string) {
+    super('ObjectQueryResponse', developerMessage);
   }
 
-  protected toJson(): any {
-    const json = super.toJson();
-    Object.assign(json, {
+  protected toJson(): IHubObjectQueryResponse {
+    return Object.assign({}, super.toJson(), {
       objects: this.objects,
       skip_token: this.skipToken,
     });
-    return json;
   }
 }

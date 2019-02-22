@@ -1,15 +1,9 @@
+import { CommitOperation, ICommitProtectedHeaders, ICommitUnprotectedHeaders, HubErrorCode } from '@decentralized-identity/hub-common-js';
 import base64url from 'base64url';
 import { DidDocument } from '@decentralized-identity/did-common-typescript';
-import HubError, { ErrorCode } from './HubError';
+import HubError from './HubError';
 import * as crypto from 'crypto';
 import Context from '../interfaces/Context';
-
-/** Operations for a commit */
-export enum Operation {
-  Create = 'create',
-  Update = 'update',
-  Delete = 'delete',
-}
 
 /**
  * A single Commit to an object
@@ -23,10 +17,10 @@ export default abstract class Commit {
   protected readonly originalPayload: string;
 
   /** decrypted unprotected headers */
-  protected readonly unprotectedHeaders: Partial<CommitHeaders>;
+  protected readonly unprotectedHeaders: Partial<ICommitUnprotectedHeaders>;
 
   /** decrypted protected headers */
-  protected readonly protectedHeaders: Partial<CommitHeaders>;
+  protected readonly protectedHeaders: Partial<ICommitProtectedHeaders>;
 
   /**
    * Parses JSON Serialization and forms a Commit
@@ -65,7 +59,7 @@ export default abstract class Commit {
     const revision = sha256.digest('hex');
 
     switch (protectedHeaders.operation) {
-      case Operation.Create:
+      case CommitOperation.Create:
         // its impossible to include object_id as a create without the hash algorithm being broken
         if ('object_id' in protectedHeaders) {
           /* istanbul ignore if */
@@ -73,14 +67,14 @@ export default abstract class Commit {
             console.warn('sha256 has been broken');
           }
           throw new HubError({
-            errorCode: ErrorCode.BadRequest,
+            errorCode: HubErrorCode.BadRequest,
             property: 'commit.protected.object_id',
             developerMessage: 'object_id cannot be included in the protected headers for a \'create\' commit',
           });
         }
         break;
-      case Operation.Update:
-      case Operation.Delete:
+      case CommitOperation.Update:
+      case CommitOperation.Delete:
         if (!('object_id' in protectedHeaders)) {
           throw HubError.missingParameter('commit.protected.object_id');
         }
@@ -99,7 +93,7 @@ export default abstract class Commit {
         console.warn('sha256 has been broken');
       }
       throw new HubError({
-        errorCode: ErrorCode.BadRequest,
+        errorCode: HubErrorCode.BadRequest,
         property: 'commit.protected.rev',
         developerMessage: "'rev' cannot be included in protected headers",
       });
@@ -113,7 +107,7 @@ export default abstract class Commit {
     // recompute/populate convinence headers
     additionalHeaders.iss = DidDocument.getDidFromKeyId(this.protectedHeaders.kid!);
     additionalHeaders.rev = revision;
-    if (protectedHeaders.operation === Operation.Create) {
+    if (protectedHeaders.operation === CommitOperation.Create) {
       additionalHeaders.object_id = revision;
     }
 
@@ -123,14 +117,14 @@ export default abstract class Commit {
   /**
    * Gets the combined headers for this commit
    */
-  getHeaders(): CommitHeaders {
-    return Object.assign({}, this.unprotectedHeaders, this.protectedHeaders) as CommitHeaders;
+  getHeaders(): ICommitProtectedHeaders & ICommitUnprotectedHeaders {
+    return Object.assign({}, this.unprotectedHeaders, this.protectedHeaders) as (ICommitProtectedHeaders & ICommitUnprotectedHeaders);
   }
 
   /**
    * Gets the protected headers
    */
-  getProtectedHeaders(): Partial<CommitHeaders> {
+  getProtectedHeaders(): Partial<ICommitProtectedHeaders> {
     return this.protectedHeaders;
   }
 
@@ -150,20 +144,4 @@ export default abstract class Commit {
    * Validates the commit
    */
   abstract async validate(context: Context): Promise<void>;
-}
-
-/** Combined headers for a commit */
-export interface CommitHeaders {
-  interface: string;
-  context: string;
-  type: string;
-  operation: Operation;
-  committed_at: string;
-  commit_strategy: string;
-  sub: string;
-  kid: string;
-  meta?: any;
-  iss: string;
-  object_id: string;
-  rev: string;
 }

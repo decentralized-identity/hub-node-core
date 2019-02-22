@@ -1,16 +1,16 @@
 /**
  * This file defines the external exports.
  */
+import { HubErrorCode, IObjectMetadata } from '@decentralized-identity/hub-common-js';
 import Hub from './Hub';
 
 // Interfaces
-import ObjectContainer from './interfaces/ObjectContainer';
 import * as Store from './interfaces/Store';
 
 // Models
 import SignedCommit from './models/SignedCommit';
 import Commit from './models/Commit';
-import HubError, { ErrorCode } from './models/HubError';
+import HubError from './models/HubError';
 import HttpResolver from './plugins/HttpResolver';
 
 // Utilities
@@ -20,9 +20,9 @@ export default Hub;
 export {
   Commit,
   CommitDeserializer,
-  ErrorCode,
+  HubErrorCode,
   HubError,
-  ObjectContainer,
+  IObjectMetadata,
   SignedCommit,
   Store,
   HttpResolver,

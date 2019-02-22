@@ -1,6 +1,7 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import SignedCommit from '../../lib/models/SignedCommit';
 import TestCommit from '../mocks/TestCommit';
-import HubError, { ErrorCode } from '../../lib/models/HubError';
+import HubError from '../../lib/models/HubError';
 import TestContext from '../mocks/TestContext';
 import { DidDocument } from '@decentralized-identity/did-common-typescript';
 import TestUtilities from '../TestUtilities';
@@ -123,7 +124,7 @@ describe('SignedCommit', () => {
         if (!(err instanceof HubError)) {
           fail(err.message);
         }
-        expect(err.errorCode).toEqual(ErrorCode.BadRequest);
+        expect(err.errorCode).toEqual(HubErrorCode.BadRequest);
         expect(err.property).toEqual('commit');
         expect(err.developerMessage.toLowerCase()).toContain('public key');
       }

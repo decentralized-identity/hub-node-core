@@ -1,5 +1,6 @@
+import { CommitOperation } from '@decentralized-identity/hub-common-js';
 import base64url from 'base64url';
-import Commit, { Operation } from "../../lib/models/Commit";
+import Commit from "../../lib/models/Commit";
 import Context from '../../lib/interfaces/Context';
 
 interface TestCommitOptions {
@@ -28,7 +29,7 @@ export default class TestCommit extends Commit {
       }
     });
     if (!headers.operation) {
-      headers.operation = Operation.Create; // does not require additional parameters
+      headers.operation = CommitOperation.Create; // does not require additional parameters
     }
     if (!headers.context) {
       headers.context = 'example.com';

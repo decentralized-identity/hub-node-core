@@ -1,5 +1,6 @@
+import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import BaseRequest from './BaseRequest';
-import HubError, { ErrorCode } from './HubError';
+import HubError from './HubError';
 import { QueryFilter } from '../interfaces/Store';
 
 /**
@@ -44,7 +45,7 @@ export default class ObjectQueryRequest extends BaseRequest {
     // if context or type, but not both context and type, throw.
     if ('context' in request.query !== 'type' in request.query) {
       throw new HubError({
-        errorCode: ErrorCode.BadRequest,
+        errorCode: HubErrorCode.BadRequest,
         property: 'query.context, query.type',
         developerMessage: 'context and type are co-dependent',
       });
