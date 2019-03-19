@@ -11,7 +11,6 @@ import * as Store from './interfaces/Store';
 import SignedCommit from './models/SignedCommit';
 import Commit from './models/Commit';
 import HubError from './models/HubError';
-import HttpResolver from './plugins/HttpResolver';
 
 // Utilities
 import CommitDeserializer from './utilities/CommitDeserializer';
@@ -25,5 +24,4 @@ export {
   IObjectMetadata,
   SignedCommit,
   Store,
-  HttpResolver,
 };
