@@ -1,6 +1,6 @@
 import { Store } from './Store';
 import { CryptoSuite, PrivateKey } from '@decentralized-identity/did-auth-jose';
-import { DidResolver } from '@decentralized-identity/did-common-typescript';
+import { IDidResolver } from '@decentralized-identity/did-common-typescript';
 
 /**
  * Interface for injecting all components required to instantiate a Hub.
@@ -26,5 +26,5 @@ export default interface Context {
   /**
    * The object to use for resolving DIDs
    */
-  resolver: DidResolver;
+  resolver: IDidResolver;
 }
