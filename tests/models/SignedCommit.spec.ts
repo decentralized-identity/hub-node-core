@@ -60,12 +60,12 @@ describe('SignedCommit', () => {
       spyOn(context.resolver, 'resolve').and.returnValue({
         didDocument: new DidDocument({
           id: 'did:example:alice.id',
-          '@context': 'example.com',
+          '@context': 'https://w3id.org/did/v1',
           publicKey: [
             {
               id: privateKey.kid,
               type: 'RsaVerificationKey2018',
-              owner: 'did:example:alice.id',
+              controller: 'did:example:alice.id',
               publicKeyJwk: privateKey.getPublicKey()
             }
           ],
@@ -94,12 +94,12 @@ describe('SignedCommit', () => {
       spyOn(context.resolver, 'resolve').and.returnValue({
         didDocument: new DidDocument({
           id: 'did:example:alice.id',
-          '@context': 'example.com',
+          '@context': 'https://w3id.org/did/v1',
           publicKey: [
             {
               id: privateKey.kid + 'a',
               type: 'RsaVerificationKey2018',
-              owner: 'did:example:alice.id',
+              controller: 'did:example:alice.id',
               publicKeyJwk: privateKey.getPublicKey()
             }
           ],
@@ -138,12 +138,12 @@ describe('SignedCommit', () => {
       spyOn(context.resolver, 'resolve').and.returnValue({
         didDocument: new DidDocument({
           id: 'did:example:alice.id',
-          '@context': 'example.com',
+          '@context': 'https://w3id.org/did/v1',
           publicKey: [
             {
               id: privateKey.kid,
               type: 'RsaVerificationKey2018',
-              owner: 'did:example:alice.id',
+              controller: 'did:example:alice.id',
               publicKeyJwk: privateKey.getPublicKey()
             }
           ],

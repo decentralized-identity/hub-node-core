@@ -2,7 +2,7 @@ import { HubErrorCode } from '@decentralized-identity/hub-common-js';
 import Commit from './Commit';
 import HubError from './HubError';
 import Context from '../interfaces/Context';
-import { DidResolver, DidDocument } from '@decentralized-identity/did-common-typescript';
+import { IDidResolver, DidDocument } from '@decentralized-identity/did-common-typescript';
 import { CryptoFactory, JwsToken } from '@decentralized-identity/did-auth-jose';
 
 /**
@@ -12,7 +12,7 @@ export default class SignedCommit extends Commit {
   /** The original signature of the commit */
   protected readonly originalSignature: string;
   /** Singleton universal resolver */
-  protected static resolver: DidResolver;
+  protected static resolver: IDidResolver;
   /** Singleton cryptoFactory */
   protected static cryptoFactory: CryptoFactory;
 

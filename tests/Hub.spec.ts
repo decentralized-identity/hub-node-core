@@ -8,7 +8,8 @@ import {
          PublicKey,
          RsaCryptoSuite,
          PrivateKey,
-        CryptoFactory} from '@decentralized-identity/did-auth-jose';
+        CryptoFactory,
+        AesCryptoSuite} from '@decentralized-identity/did-auth-jose';
 import CommitQueryRequest from '../lib/models/CommitQueryRequest';
 import ObjectQueryRequest from '../lib/models/ObjectQueryRequest';
 import TestCommit from './mocks/TestCommit';
@@ -28,13 +29,14 @@ describe('Hub', () => {
   let hubDID: DidDocument;
   let hubKeys: {[id: string]: PrivateKey}= {};
   const rsa = new RsaCryptoSuite();
-  const registry = new CryptoFactory([rsa]);
+  const aes = new AesCryptoSuite();
+  const registry = new CryptoFactory([rsa, aes]);
 
   beforeEach(async () => {
     hubId = `did:example:${TestUtilities.randomString()}`;
     hubKid = `${hubId}#key1`
     testContext = new TestContext();
-    testContext.cryptoSuites = [rsa];
+    testContext.cryptoSuites = [rsa, aes];
     hubkey = await testContext.createPrivateKey(hubKid);
     hubPublicKey = hubkey.getPublicKey();
     hubKeys = {};
@@ -46,7 +48,7 @@ describe('Hub', () => {
       publicKey: [{
         id: hubKid,
         type: 'RsaVerificationKey2018',
-        owner: hubId,
+        controller: hubId,
         publicKeyJwk: hubPublicKey,
       }],
     });
@@ -137,7 +139,7 @@ describe('Hub', () => {
         publicKey: [{
           id: hubKid,
           type: 'ExplicitlyUnknownKeyType2018',
-          owner: hubId,
+          controller: hubId,
           publicKeyJwk: hubkey,
         }],
       });
