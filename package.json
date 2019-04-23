@@ -8,7 +8,7 @@
   "types": "dist/index.d.ts",
   "dependencies": {
     "@decentralized-identity/did-auth-jose": "^0.1.11",
-    "@decentralized-identity/did-common-typescript": "^0.1.16",
+    "@decentralized-identity/did-common-typescript": "^0.1.17",
     "@decentralized-identity/hub-common-js": "^0.1.0",
     "base64url": "3.0.1",
     "node-fetch": "^2.2.0"
@@ -21,7 +21,7 @@
     "jasmine": "^3.1.0",
     "jasmine-reporters": "^2.3.2",
     "jasmine-ts": "^0.2.1",
-    "nyc": "^13.3.0",
+    "nyc": "^14.0.0",
     "source-map-support": "^0.5.9",
     "tslint": "^5.10.0",
     "tslint-config-airbnb": "^5.9.2",
