@@ -8,7 +8,7 @@
   "types": "dist/index.d.ts",
   "dependencies": {
     "@decentralized-identity/did-auth-jose": "^0.1.11",
-    "@decentralized-identity/did-common-typescript": "^0.1.17",
+    "@decentralized-identity/did-common-typescript": "^0.1.18",
     "@decentralized-identity/hub-common-js": "^0.1.0",
     "base64url": "3.0.1",
     "node-fetch": "^2.2.0"
