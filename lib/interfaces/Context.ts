@@ -27,4 +27,9 @@ export default interface Context {
    * The object to use for resolving DIDs
    */
   resolver: IDidResolver;
+
+  /**
+   * Optional flag to require access tokens for hub operations. Defaults to requiring tokens (true).
+   */
+  requireAccessTokens?: boolean;
 }

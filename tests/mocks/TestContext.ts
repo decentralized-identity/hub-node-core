@@ -14,6 +14,7 @@ export default class TestContext implements Context {
   static instance: TestContext;
   cryptoSuites: CryptoSuite[];
   resolver: IDidResolver;
+  requireAccessTokens?: boolean;
 
   constructor() {
     this.keys = {};

@@ -34,6 +34,8 @@ export default class Hub {
 
   private _authorization: AuthorizationController;
 
+  private _requireAccessTokens: boolean;
+
   /**
    * Hub constructor.
    *
@@ -55,6 +57,7 @@ export default class Hub {
       Profile: new ProfileController(this.context, this._authorization),
     };
     this._commitController = new CommitQueryController(this.context, this._authorization);
+    this._requireAccessTokens = context.requireAccessTokens === undefined ? true : context.requireAccessTokens;
   }
 
   /**
@@ -67,7 +70,7 @@ export default class Hub {
     // Respond with bad request if unable to identify the requester.
     let verifiedRequest;
     try {
-      verifiedRequest = await this._authentication.getVerifiedRequest(request);
+      verifiedRequest = await this._authentication.getVerifiedRequest(request, this._requireAccessTokens);
     } catch (error) {
       // TODO: Proper error logging with logger, for now logging to console.
       console.log(error);

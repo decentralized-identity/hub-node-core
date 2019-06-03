@@ -17,6 +17,7 @@ import WriteRequest from '../lib/models/WriteRequest';
 import BaseRequest from '../lib/models/BaseRequest';
 import TestUtilities from './TestUtilities';
 import WriteResponse from '../lib/models/WriteResponse';
+import ObjectQueryResponse from '../lib/models/ObjectQueryResponse';
 
 describe('Hub', () => {
 
@@ -129,6 +130,33 @@ describe('Hub', () => {
       expect(httpresponse.body).toBeDefined();
       const response = await unwrapResponse(hubkey, hubkey, httpresponse.body);
       expect(response.split('.').length).toEqual(3); // compact JWS comes in the form header.content.signature
+    });
+
+    it('should allow a request when requireAccessToken is set to false', async () => {
+      testContext.requireAccessTokens = false;
+
+      const hub = new Hub(testContext);
+      const commitController = hub['_commitController'];
+      const commitRequest = {
+        iss: hubId,
+        aud: hubId,
+        sub: hubId,
+        '@context': BaseRequest.context,
+        '@type': 'CommitQueryRequest',
+        query: {
+          object_id: ['foobar'],
+        },
+      };
+
+      const testToken = Math.round(Math.random() * Number.MAX_SAFE_INTEGER).toString(16);
+      const request = await wrapRequest(hubkey, hubkey, JSON.stringify(commitRequest), {'did-access-token': null});
+      const spy = spyOn(commitController, 'handle').and.returnValue(
+        new ObjectQueryResponse([], '', testToken)
+      );
+      const httpresponse = await hub.handleRequest(request);
+      const unwrapped = await unwrapResponse(hubkey, hubPublicKey, httpresponse.body);
+      expect(spy).toHaveBeenCalled();
+      expect(unwrapped.developer_message).toEqual(testToken);
     });
 
     it('should fail validation and send back an authentication failure', async () => { 
