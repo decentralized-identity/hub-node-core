@@ -31,5 +31,5 @@ export default interface Context {
   /**
    * Optional flag to require access tokens for hub operations. Defaults to requiring tokens (true).
    */
-  requireAccessTokens?: boolean;
+  requireAccessToken?: boolean;
 }

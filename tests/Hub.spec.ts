@@ -133,7 +133,7 @@ describe('Hub', () => {
     });
 
     it('should allow a request when requireAccessToken is set to false', async () => {
-      testContext.requireAccessTokens = false;
+      testContext.requireAccessToken = false;
 
       const hub = new Hub(testContext);
       const commitController = hub['_commitController'];
