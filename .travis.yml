@@ -8,6 +8,7 @@ cache:
 
 install:
   - npm i
+  - npm i npm
 
 script:
   - npm run build
